@@ -17,13 +17,32 @@ namespace RazorDB {
 
         public byte[] InternalBytes { get { return _bytes; } }
 
+        public int Length {
+            get { return _bytes.Length; }
+        }
+
         public int CompareTo(ByteArray other) {
             return CompareMemCmp(_bytes, other._bytes);
         }
 
+        public static bool operator ==(ByteArray a, ByteArray b) {
+            return CompareMemCmp(a._bytes, b._bytes) == 0;
+        }
+
+        public static bool operator !=(ByteArray a, ByteArray b) {
+            return CompareMemCmp(a._bytes, b._bytes) != 0;
+        }
+
+        private static Random rand = new Random();
+        public static ByteArray Random(int numBytes) {
+            byte[] bytes = new byte[numBytes];
+            rand.NextBytes(bytes);
+            return new ByteArray(bytes);
+        }
+
         public override bool Equals(object obj) {
             if (obj != null && obj is ByteArray) {
-                return CompareMemCmp(_bytes, ((ByteArray)obj)._bytes) == 0;
+                return this == (ByteArray)obj;
             } else {
                 return false;
             }
@@ -36,7 +55,12 @@ namespace RazorDB {
         public static int CompareMemCmp(byte[] left, byte[] right) {
             int l = left.Length;
             int r = right.Length;
-            return memcmp(left, right, Math.Min(l, r));
+            int comparison = memcmp(left, right, Math.Min(l, r));
+            if (comparison == 0 && l != r) {
+                return l.CompareTo(r);
+            } else {
+                return comparison;
+            }
         }
 
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
