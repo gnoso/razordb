@@ -65,6 +65,12 @@ namespace RazorDB {
 
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int memcmp(byte[] arr1, byte[] arr2, int cnt);
+
+        public static ByteArray From(byte[] block, int offset, int size) {
+            byte[] bytes = new byte[size];
+            Array.Copy(block, offset, bytes, 0, size);
+            return new ByteArray(bytes);
+        }
     }
 
 }

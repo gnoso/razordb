@@ -30,12 +30,17 @@ namespace RazorDB {
         }
 
         public void WriteToSortedBlockTable(string fileName) {
-            var tableWriter = new SortedBlockTableWriter(fileName);
 
-            foreach (var pair in _internalTable.OrderBy((pair) => pair.Key)) {
-                tableWriter.WritePair(pair.Key, pair.Value);
+            SortedBlockTableWriter tableWriter = null;
+            try {
+                tableWriter = new SortedBlockTableWriter(fileName);
+
+                foreach (var pair in _internalTable.OrderBy((pair) => pair.Key)) {
+                    tableWriter.WritePair(pair.Key, pair.Value);
+                }
+            } finally {
+                tableWriter.Close();
             }
-            tableWriter.Close();
         }
     }
 }

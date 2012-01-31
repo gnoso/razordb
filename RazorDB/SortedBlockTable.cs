@@ -24,9 +24,9 @@ namespace RazorDB {
         public void WritePair(ByteArray key, ByteArray value) {
 
             byte[] keySize = new byte[8];
-            int keySizeLen = Helper.Get7BitEncodedInt(keySize, key.Length);
+            int keySizeLen = Helper.Encode7BitInt(keySize, key.Length);
             byte[] valueSize = new byte[8];
-            int valueSizeLen = Helper.Get7BitEncodedInt(valueSize, value.Length);
+            int valueSizeLen = Helper.Encode7BitInt(valueSize, value.Length);
             
             int bytesNeeded = keySizeLen + key.Length + valueSizeLen + value.Length;
 
@@ -72,5 +72,68 @@ namespace RazorDB {
 
     public class SortedBlockTable {
 
+        public SortedBlockTable(string fileName) {
+            _fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, FileOptions.Asynchronous);
+        }
+        private FileStream _fileStream;
+
+        public byte[] ReadBlock(int blockNum) {
+            _fileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+            byte[] block = new byte[Config.SortedBlockSize];
+            _fileStream.Read(block, 0, Config.SortedBlockSize);
+            return block;
+        }
+
+        public IAsyncResult BeginReadBlock(int blockNum) {
+            _fileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+            byte[] block = new byte[Config.SortedBlockSize];
+            return _fileStream.BeginRead(block, 0, Config.SortedBlockSize, null, block);
+        }
+
+        public byte[] EndReadBlock(IAsyncResult async) {
+            _fileStream.EndRead(async);
+            return (byte[]) async.AsyncState;
+        }
+
+        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> Enumerate() {
+
+            int numBlocks = (int) _fileStream.Length / Config.SortedBlockSize;
+            var asyncResult = BeginReadBlock(0);
+
+            for (int i = 0; i < numBlocks; i++) {
+                
+                // wait on last block read to complete so we can start processing the data
+                byte[] block = EndReadBlock(asyncResult);
+
+                // Go ahead and kick off the next block read asynchronously while we parse the last one
+                if (i < numBlocks)
+                    asyncResult = BeginReadBlock(i + 1);
+
+                int offset = 0;
+                while (offset >= 0) {
+                    yield return ReadPair(block, ref offset);
+                }
+            }
+        }
+
+        private KeyValuePair<ByteArray, ByteArray> ReadPair(byte[] block, ref int offset) {
+            int keySize = Helper.Decode7BitInt(block, ref offset);
+            var key = ByteArray.From(block, offset, keySize);
+            offset += keySize;
+            int valueSize = Helper.Decode7BitInt(block, ref offset);
+            var val = ByteArray.From(block, offset, valueSize);
+            offset += valueSize;
+
+            // if the next keySize bit is zero then we have exhausted this block. Set to -1 to terminate enumeration
+            if (block[offset] == 0)
+                offset = -1;
+
+            return new KeyValuePair<ByteArray,ByteArray>(key,val);
+        }
+
+        public void Close() {
+            _fileStream.Close();
+            _fileStream = null;
+        }
     }
 }

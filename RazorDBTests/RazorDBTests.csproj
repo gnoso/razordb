@@ -42,6 +42,7 @@
     <Compile Include="ByteArrayTests.cs" />
     <Compile Include="MemTableTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SortedBlockTableTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\RazorDB\RazorDB.csproj">
