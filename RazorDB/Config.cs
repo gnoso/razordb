@@ -10,6 +10,13 @@ namespace RazorDB {
 
         public static int MaxMemTableSize = 1 * 1024 * 1024;    // Maximum size we should let the memtable grow to in memory before compacting.
         public static int SortedBlockSize = 32 * 1024;          // Size of each block in the sorted table files.
+
+        public static string SBTFile(string baseName, int level, int version) {
+            return string.Format("{0}-{1}-{2}.sbt", baseName, level, version);
+        }
+        public static string JournalFile(string baseName, int version) {
+            return string.Format("{0}-{1}.jf", baseName, version);
+        }
     }
 
     public static class Helper {
@@ -26,6 +33,7 @@ namespace RazorDB {
             size++;
             return size;
         }
+
         public static int Decode7BitInt(byte[] workingArray, ref int offset) {
             byte b;
             int val = 0;
@@ -38,6 +46,36 @@ namespace RazorDB {
             }
             while ((b & 0x80) != 0);
             return val;
+        }
+                public static int Read7BitEncodedInt(this BinaryReader rdr) {
+            return (int) rdr.Read7BitEncodedUInt();
+        }
+
+        public static uint Read7BitEncodedUInt(this BinaryReader rdr) {
+            byte b;
+            int val = 0;
+            int bits = 0;
+            do {
+                b = rdr.ReadByte();
+                val |= (b & 0x7f) << bits;
+                bits += 7;
+            }
+            while ((b & 0x80) != 0);
+            return (uint)val;
+        }
+
+        public static void Write7BitEncodedInt(this BinaryWriter wtr, int value) {
+            if (value < 0)
+                throw new InvalidDataException("Negative numbers are not supported.");
+            wtr.Write7BitEncodedUInt( (uint) value);
+        }
+        public static void Write7BitEncodedUInt(this BinaryWriter wtr, uint value) {
+            uint num = value;
+            while (num >= 0x80) {
+                wtr.Write((byte)(num | 0x80));
+                num = num >> 7;
+            }
+            wtr.Write((byte)num);
         }
 
     }

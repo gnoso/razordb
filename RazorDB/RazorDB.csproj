@@ -39,6 +39,7 @@
   <ItemGroup>
     <Compile Include="ByteArray.cs" />
     <Compile Include="Config.cs" />
+    <Compile Include="Journal.cs" />
     <Compile Include="KeyValueStore.cs" />
     <Compile Include="MemTable.cs" />
     <Compile Include="MurmurHash.cs" />
