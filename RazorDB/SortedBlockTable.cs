@@ -19,6 +19,7 @@ namespace RazorDB {
         private FileStream _fileStream;
         private byte[] _buffer;
         private int _bufferPos;
+        private IAsyncResult _async;
 
         // Write a new key value pair to the output file. This method assumes that the data is being fed in key-sorted order.
         public void WritePair(ByteArray key, ByteArray value) {
@@ -47,24 +48,19 @@ namespace RazorDB {
 
         }
 
-        private int _outstandingWrites = 0;
-
         private void WriteBlock() {
-            Interlocked.Increment(ref _outstandingWrites);
-            _fileStream.BeginWrite(_buffer, 0, Config.SortedBlockSize, (asyncResult) => {
-                _fileStream.EndWrite(asyncResult); 
-                Interlocked.Decrement(ref _outstandingWrites);
-            }, null);
+            // make sure any outstanding writes are completed
+            if (_async != null) {
+                _fileStream.EndWrite(_async);
+            }
+            _async = _fileStream.BeginWrite(_buffer, 0, Config.SortedBlockSize, null, null);
             _buffer = new byte[Config.SortedBlockSize];
             _bufferPos = 0;
         }
 
         public void Close() {
             WriteBlock();
-
-            // Spin and wait for all pending writes to complete
-            while (_outstandingWrites != 0) Thread.Sleep(0);
-
+            _fileStream.EndWrite(_async);
             _fileStream.Close();
             _fileStream = null;
         }
