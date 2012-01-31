@@ -32,8 +32,8 @@ namespace RazorDB {
         public void Set(byte[] key, byte[] value) {
             var k = new ByteArray(key);
             var v = new ByteArray(value);
-            _currentMemTable.Add( k, v );
             _currentJournal.Add( k, v );
+            _currentMemTable.Add( k, v );
             if (_currentMemTable.Full) {
                 FlushCurrentMemTable();
             }
