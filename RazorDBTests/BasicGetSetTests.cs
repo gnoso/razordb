@@ -3,7 +3,7 @@ using NUnit.Framework;
 using System.Text;
 using RazorDB;
 
-namespace RazorDB.Tests {
+namespace RazorDBTests {
 
     [TestFixture]
     public class BasicGetSetTests {
