@@ -10,20 +10,22 @@ namespace RazorDB {
     public class KeyValueStore : IDisposable {
 
         public KeyValueStore(string baseFileName) {
-            _baseFileName = baseFileName;
+            _manifest = new Manifest(baseFileName);
+
             string directoryName = Path.GetDirectoryName(baseFileName);
             if (!Directory.Exists(directoryName))
                 Directory.CreateDirectory(directoryName);
 
-            _currentJournaledMemTable = new JournaledMemTable(_baseFileName, _level_0_version);
+            _currentJournaledMemTable = new JournaledMemTable(baseFileName, 0);
         }
 
         ~KeyValueStore() {
             Dispose();
         }
 
-        private string _baseFileName;
+        private Manifest _manifest;
         private int _level_0_version = 0;
+
         private volatile JournaledMemTable _currentJournaledMemTable;
 
         public void Set(byte[] key, byte[] value) {
@@ -59,7 +61,7 @@ namespace RazorDB {
                 if (_currentJournaledMemTable.Full) {
                     _level_0_version++;
                     #pragma warning disable 420
-                    var oldMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_baseFileName, _level_0_version));
+                    var oldMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _level_0_version));
                     #pragma warning restore 420
                     oldMemTable.AsyncWriteToSortedBlockTable();
                 }

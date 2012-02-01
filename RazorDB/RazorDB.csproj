@@ -42,6 +42,7 @@
     <Compile Include="Journal.cs" />
     <Compile Include="JournaledMemTable.cs" />
     <Compile Include="KeyValueStore.cs" />
+    <Compile Include="Manifest.cs" />
     <Compile Include="MemTable.cs" />
     <Compile Include="MurmurHash.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
