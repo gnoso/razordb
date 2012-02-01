@@ -59,9 +59,11 @@ namespace RazorDB {
         }
 
         public void Close() {
-            WriteBlock();
-            _fileStream.EndWrite(_async);
-            _fileStream.Close();
+            if (_fileStream != null) {
+                WriteBlock();
+                _fileStream.EndWrite(_async);
+                _fileStream.Close();
+            }
             _fileStream = null;
         }
     }

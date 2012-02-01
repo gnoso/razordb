@@ -9,11 +9,12 @@ namespace RazorDB {
     public class JournalWriter {
 
         public JournalWriter(string baseFileName, int version) {
-            var fileName = Config.JournalFile(baseFileName, version);
-            _writer = new BinaryWriter(new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, 1024, false));
+            _fileName = Config.JournalFile(baseFileName, version);
+            _writer = new BinaryWriter(new FileStream(_fileName, FileMode.Create, FileAccess.Write, FileShare.None, 1024, false));
         }
 
         private BinaryWriter _writer;
+        private string _fileName;
 
         public void Add(ByteArray key, ByteArray value) {
             _writer.Write7BitEncodedInt(key.Length);
@@ -23,8 +24,13 @@ namespace RazorDB {
         }
 
         public void Close() {
-            _writer.Close();
+            if (_writer != null)
+                _writer.Close();
             _writer = null;
+        }
+
+        public void Delete() {
+            File.Delete(_fileName);
         }
     }
 }
