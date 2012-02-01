@@ -61,7 +61,7 @@ namespace RazorDBTests {
             timer.Reset();
             timer.Start();
             foreach (var pair in sbt.Enumerate()) {
-                Assert.True(lastKey.CompareTo(pair.Key) < 0);
+                Assert.IsTrue(lastKey.CompareTo(pair.Key) < 0);
                 lastKey = pair.Key;
             }
             timer.Stop();

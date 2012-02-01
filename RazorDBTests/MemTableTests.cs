@@ -29,13 +29,13 @@ namespace RazorDBTests {
 
             ByteArray value;
             foreach (var pair in values) {
-                Assert.True(mt.Lookup(pair.Key, out value));
+                Assert.IsTrue(mt.Lookup(pair.Key, out value));
                 Assert.AreEqual(pair.Value, value);
             }
-            Assert.False(mt.Lookup(ByteArray.Random(40), out value));
+            Assert.IsFalse(mt.Lookup(ByteArray.Random(40), out value));
 
             Assert.AreEqual(10000 * (40 + 256), mt.Size);
-            Assert.True(mt.Full);
+            Assert.IsTrue(mt.Full);
         }
 
         [Test]

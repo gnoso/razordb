@@ -3,3 +3,6 @@ Debug/*
 External/*
 */obj/*
 *.suo
+*.pidb
+*/test-results/*
+test-results/*
