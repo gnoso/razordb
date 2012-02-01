@@ -56,9 +56,9 @@ namespace RazorDB {
                 if (_currentMemTable.Full) {
                     var oldMemTable = Interlocked.Exchange<MemTable>(ref _currentMemTable, new MemTable());
                     var version = _level_0_version++;
-                    var thread = new Thread(() => {
+                    new Thread(() => {
                         oldMemTable.WriteToSortedBlockTable(Config.SBTFile(_baseFileName, 0, version));
-                    });
+                    }).Start();
                 }
             }
         }
