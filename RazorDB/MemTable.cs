@@ -49,5 +49,18 @@ namespace RazorDB {
                 }
             }
         }
+
+        public void ReadFromJournal(string fileName, int version) {
+            lock (_tableLock) {
+                JournalReader jr = new JournalReader(fileName, version);
+                try {
+                    foreach (var pair in jr.Enumerate()) {
+                        Add(pair.Key, pair.Value);
+                    }
+                } finally {
+                    jr.Close();
+                }
+            }
+        }
     }
 }

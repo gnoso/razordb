@@ -46,5 +46,43 @@ namespace RazorDB {
             if (File.Exists(_fileName))
                 File.Delete(_fileName);
         }
+
     }
+
+    public class JournalReader {
+
+        public JournalReader(string baseFileName, int version) {
+            _fileName = Config.JournalFile(baseFileName, version);
+            _reader = new BinaryReader(new FileStream(_fileName, FileMode.Open, FileAccess.Read, FileShare.None, 1024, false));
+        }
+
+        private BinaryReader _reader;
+        private string _fileName;
+
+        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> Enumerate() {
+            byte[] key = null;
+            byte[] value = null;
+            bool data = true;
+            while (data) {
+                try {
+                    int keyLen = _reader.Read7BitEncodedInt();
+                    key = _reader.ReadBytes(keyLen);
+                    int valueLen = _reader.Read7BitEncodedInt();
+                    value = _reader.ReadBytes(valueLen);
+                } catch (EndOfStreamException) {
+                    data = false;
+                }
+                if (data)
+                    yield return new KeyValuePair<ByteArray, ByteArray>(new ByteArray(key), new ByteArray(value));
+            }
+        }
+                
+        public void Close() {
+            if (_reader != null)
+                _reader.Close();
+            _reader = null;
+        }
+
+    }
+
 }

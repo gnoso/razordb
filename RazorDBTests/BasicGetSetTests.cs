@@ -73,7 +73,7 @@ namespace RazorDBTests {
             using (var db = new KeyValueStore(path)) {
 
                 timer.Start();
-                for (int i = 0; i < 500000; i++) {
+                for (int i = 0; i < 100000; i++) {
                     var randomKey = ByteArray.Random(40);
                     var randomValue = ByteArray.Random(256);
                     db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
@@ -90,7 +90,7 @@ namespace RazorDBTests {
         public void BulkThreadedSet() {
 
             int numThreads = 10;
-            int totalItems = 500000;
+            int totalItems = 100000;
             int totalSize = 0;
 
             string path = Path.GetFullPath("TestData\\BulkThreadedSet");

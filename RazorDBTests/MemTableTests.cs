@@ -58,6 +58,37 @@ namespace RazorDBTests {
             
             Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double) mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0) );
         }
+
+        [Test]
+        public void AddAndLookupItemsPersisted() {
+
+            JournalWriter jw = new JournalWriter("AddAndLookupItemsPersisted", 523);
+
+            List<KeyValuePair<ByteArray, ByteArray>> values = new List<KeyValuePair<ByteArray, ByteArray>>();
+
+            for (int i = 0; i < 10000; i++) {
+                var randomKey = ByteArray.Random(40);
+                var randomValue = ByteArray.Random(256);
+
+                values.Add(new KeyValuePair<ByteArray, ByteArray>(randomKey, randomValue));
+                jw.Add(randomKey, randomValue);
+            }
+            jw.Close();
+
+            MemTable mtl = new MemTable();
+            mtl.ReadFromJournal("AddAndLookupItemsPersisted", 523);
+
+            ByteArray value;
+            foreach (var pair in values) {
+                Assert.IsTrue(mtl.Lookup(pair.Key, out value));
+                Assert.AreEqual(pair.Value, value);
+            }
+            Assert.IsFalse(mtl.Lookup(ByteArray.Random(40), out value));
+
+            Assert.AreEqual(10000 * (40 + 256), mtl.Size);
+            Assert.IsTrue(mtl.Full);
+        }
+
     }
 
 }
