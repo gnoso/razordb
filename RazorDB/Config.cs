@@ -17,6 +17,9 @@ namespace RazorDB {
         public static string JournalFile(string baseName, int version) {
             return string.Format("{0}-{1}.jf", baseName, version);
         }
+        public static string ManifestFile(string baseName) {
+            return string.Format("{0}.mf", baseName);
+        }
     }
 
     public static class Helper {
