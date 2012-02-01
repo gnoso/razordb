@@ -16,21 +16,35 @@ namespace RazorDB {
         private BinaryWriter _writer;
         private string _fileName;
 
-        public void Add(ByteArray key, ByteArray value) {
-            _writer.Write7BitEncodedInt(key.Length);
-            _writer.Write(key.InternalBytes);
-            _writer.Write7BitEncodedInt(value.Length);
-            _writer.Write(value.InternalBytes);
+        private object _writeLock = new object();
+
+        // Add an item to the journal. It's possible that a thread is still Adding while another thread is Closing the journal.
+        // in that case, we return false and expect the caller to do the operation over again on another journal instance.
+        public bool Add(ByteArray key, ByteArray value) {
+            lock (_writeLock) {
+                if (_writer == null)
+                    return false;
+                else {
+                    _writer.Write7BitEncodedInt(key.Length);
+                    _writer.Write(key.InternalBytes);
+                    _writer.Write7BitEncodedInt(value.Length);
+                    _writer.Write(value.InternalBytes);
+                    return true;
+                }
+            }
         }
 
         public void Close() {
-            if (_writer != null)
-                _writer.Close();
-            _writer = null;
+            lock (_writeLock) {
+                if (_writer != null)
+                    _writer.Close();
+                _writer = null;
+            }
         }
 
         public void Delete() {
-            File.Delete(_fileName);
+            if (File.Exists(_fileName))
+                File.Delete(_fileName);
         }
     }
 }

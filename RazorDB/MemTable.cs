@@ -9,16 +9,21 @@ namespace RazorDB {
         private Dictionary<ByteArray, ByteArray> _internalTable = new Dictionary<ByteArray,ByteArray>();
         private int _totalKeySize = 0;
         private int _totalValueSize = 0;
+        private object _tableLock = new object();
 
         public void Add(ByteArray key, ByteArray value) {
             _totalKeySize += key.Length;
             _totalValueSize += value.Length;
 
-            _internalTable.Add( key, value );
+            lock (_tableLock) {
+                _internalTable.Add(key, value);
+            }
         }
 
         public bool Lookup(ByteArray key, out ByteArray value) {
-            return _internalTable.TryGetValue(key, out value);
+            lock (_tableLock) {
+                return _internalTable.TryGetValue(key, out value);
+            }
         }
 
         public int Size {
@@ -31,15 +36,17 @@ namespace RazorDB {
 
         public void WriteToSortedBlockTable(string fileName) {
 
-            SortedBlockTableWriter tableWriter = null;
-            try {
-                tableWriter = new SortedBlockTableWriter(fileName);
+            lock (_tableLock) {
+                SortedBlockTableWriter tableWriter = null;
+                try {
+                    tableWriter = new SortedBlockTableWriter(fileName);
 
-                foreach (var pair in _internalTable.OrderBy((pair) => pair.Key)) {
-                    tableWriter.WritePair(pair.Key, pair.Value);
+                    foreach (var pair in _internalTable.OrderBy((pair) => pair.Key)) {
+                        tableWriter.WritePair(pair.Key, pair.Value);
+                    }
+                } finally {
+                    tableWriter.Close();
                 }
-            } finally {
-                tableWriter.Close();
             }
         }
     }

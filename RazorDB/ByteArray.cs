@@ -33,10 +33,21 @@ namespace RazorDB {
             return CompareMemCmp(a._bytes, b._bytes) != 0;
         }
 
-        private static Random rand = new Random();
+        [ThreadStatic]
+        private static Random rand;
+        private static object randLock = new object();
+        private static Random getRand() {
+            if (rand == null)
+                lock (randLock) {
+                    if (rand == null)
+                        rand = new Random();
+                }
+            return rand;
+        }
+
         public static ByteArray Random(int numBytes) {
             byte[] bytes = new byte[numBytes];
-            rand.NextBytes(bytes);
+            getRand().NextBytes(bytes);
             return new ByteArray(bytes);
         }
 

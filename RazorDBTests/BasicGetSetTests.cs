@@ -4,6 +4,8 @@ using System.Text;
 using RazorDB;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
+using System.Collections.Generic;
 
 namespace RazorDBTests {
 
@@ -84,6 +86,46 @@ namespace RazorDBTests {
             Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
 
+        [Test]
+        public void BulkThreadedSet() {
+
+            int numThreads = 10;
+            int totalItems = 500000;
+            int totalSize = 0;
+
+            string path = Path.GetFullPath("TestData\\BulkThreadedSet");
+
+            List<Thread> threads = new List<Thread>();
+            using (var db = new KeyValueStore(path)) {
+
+                for (int j = 0; j < numThreads; j++) {
+                    threads.Add(new Thread( (num) => {
+                        int itemsPerThread = totalItems / numThreads;
+                        for (int i = 0; i < itemsPerThread; i++) {
+                            var randomKey = new ByteArray( BitConverter.GetBytes( ((int)num * itemsPerThread) + i ) );
+                            var randomValue = ByteArray.Random(256);
+                            db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
+
+                            Interlocked.Add(ref totalSize, randomKey.Length + randomValue.Length);
+                        }
+                    }));
+                }
+
+                var timer = new Stopwatch();
+                timer.Start();
+
+                // Start all the threads
+                int tnum = 0;
+                threads.ForEach((t) => t.Start(tnum++));
+
+                // Wait on all the threads to complete
+                threads.ForEach((t) => t.Join(300000));
+
+                timer.Stop();
+                Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            }
+
+        }
 
     }
 

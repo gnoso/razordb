@@ -23,13 +23,20 @@ namespace RazorDB {
         }
 
         private string _baseFileName;
-        private JournaledMemTable _currentJournaledMemTable;
         private int _level_0_version = 0;
+        private volatile JournaledMemTable _currentJournaledMemTable;
 
         public void Set(byte[] key, byte[] value) {
             var k = new ByteArray(key);
             var v = new ByteArray(value);
-            _currentJournaledMemTable.Add(k, v);
+
+            int adds = 10;
+            while (!_currentJournaledMemTable.Add(k, v)) {
+                adds--;
+                if (adds <= 0)
+                    throw new InvalidOperationException("Failed multiple times trying to add an item to the JournaledMemTable");
+            }
+
             if (_currentJournaledMemTable.Full) {
                 RotateMemTable();
             }
@@ -51,7 +58,9 @@ namespace RazorDB {
                 // Double check the flag in case we have multiple threads that make it into this routine
                 if (_currentJournaledMemTable.Full) {
                     _level_0_version++;
+                    #pragma warning disable 420
                     var oldMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_baseFileName, _level_0_version));
+                    #pragma warning restore 420
                     oldMemTable.AsyncWriteToSortedBlockTable();
                 }
             }

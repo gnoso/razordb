@@ -20,9 +20,18 @@ namespace RazorDB {
         private string _baseFileName;
         private int _version;
 
-        public void Add(ByteArray key, ByteArray value) {
-            _journal.Add(key, value);
-            _memTable.Add(key, value);
+        public bool Add(ByteArray key, ByteArray value) {
+
+            if (_journal == null || _memTable == null)
+                return false;
+
+            if (_journal.Add(key, value)) {
+                _memTable.Add(key, value);
+                return true;
+            } else {
+                return false;
+            }
+
         }
 
         public bool Lookup(ByteArray key, out ByteArray value) {
@@ -35,17 +44,21 @@ namespace RazorDB {
 
         public void AsyncWriteToSortedBlockTable() {
             ThreadPool.QueueUserWorkItem((o) => {
-                // Close the journal file, we don't need it anymore
-                _journal.Close();
-                // Write out the contents of the memtable to our level-0 sbt log
-                _memTable.WriteToSortedBlockTable(Config.SBTFile(_baseFileName, 0, _version));
-                // Remove the journal
-                _journal.Delete();
+                WriteToSortedBlockTable();
             });
         }
 
+        public void WriteToSortedBlockTable() {
+            // Close the journal file, we don't need it anymore
+            _journal.Close();
+            // Write out the contents of the memtable to our level-0 sbt log
+            _memTable.WriteToSortedBlockTable(Config.SBTFile(_baseFileName, 0, _version));
+            // Remove the journal
+            _journal.Delete();
+        }
+
         public void Close() {
-            if (_journal != null) 
+            if (_journal != null)
                 _journal.Close();
             _journal = null;
             _memTable = null;
