@@ -50,6 +50,50 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void EnumerateFromKeys() {
+
+            List<KeyValuePair<ByteArray, ByteArray>> items = new List<KeyValuePair<ByteArray, ByteArray>>();
+
+            int num_items = 10000;
+            var mt = new MemTable();
+            for (int i = 0; i < num_items; i++) {
+                var k0 = ByteArray.Random(40);
+                var v0 = ByteArray.Random(200);
+                mt.Add(k0, v0);
+
+                items.Add(new KeyValuePair<ByteArray, ByteArray>(k0, v0));
+            }
+
+            mt.WriteToSortedBlockTable("EnumerateFromKeys", 10, 10);
+
+            var sbt = new SortedBlockTable("EnumerateFromKeys", 10, 10);
+
+            try {
+                var indexCache = new Cache();
+
+                var timer = new Stopwatch();
+                timer.Start();
+                Assert.AreEqual(10000, sbt.EnumerateFromKey(indexCache, new ByteArray(new byte[] { 0 })).Count());
+                timer.Stop();
+                Console.WriteLine("Counted from beginning at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                items = items.OrderBy( (a) => a.Key ).ToList();
+
+                timer.Reset();
+                timer.Start();
+                Assert.AreEqual(5000, sbt.EnumerateFromKey(indexCache, items[5000].Key).Count());
+                timer.Stop();
+                Console.WriteLine("Counted from halfway at a throughput of {0} MB/s", (double)mt.Size / 2 / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                Assert.AreEqual(0, sbt.EnumerateFromKey(indexCache, new ByteArray(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF })).Count());
+
+            } finally {
+                sbt.Close();
+            }
+
+        }
+
+        [Test]
         public void RandomizedLookups() {
 
             List<KeyValuePair<ByteArray, ByteArray>> items = new List<KeyValuePair<ByteArray, ByteArray>>();
@@ -131,7 +175,6 @@ namespace RazorDBTests {
             Console.WriteLine("Randomized (threaded) read sbt table at a throughput of {0} MB/s (avg {1} ms per lookup)", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
 
             sbt.Close();
-
         }
     }
 }

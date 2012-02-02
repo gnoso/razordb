@@ -132,11 +132,17 @@ namespace RazorDB {
     public class SortedBlockTable {
 
         public SortedBlockTable(string baseFileName, int level, int version) {
+            _baseFileName = baseFileName;
+            _level = level;
+            _version = version;
             string path = Config.SortedBlockTableFile(baseFileName, level, version);
             _fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, FileOptions.Asynchronous);
             ReadMetadata();
         }
         private FileStream _fileStream;
+        private string _baseFileName;
+        private int _level;
+        private int _version;
         private int _dataBlocks;
         private int _indexBlocks;
         private int _totalBlocks;
@@ -181,11 +187,7 @@ namespace RazorDB {
         public static bool Lookup(string baseFileName, int level, int version, Cache indexCache, ByteArray key, out ByteArray value) {
             SortedBlockTable sbt = new SortedBlockTable(baseFileName, level, version);
             try {
-                ByteArray[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
-                int dataBlockNum = Array.BinarySearch(index, key);
-                if (dataBlockNum < 0) {
-                    dataBlockNum = ~dataBlockNum - 1;
-                }
+                int dataBlockNum = FindBlockForKey(baseFileName, level, version, indexCache, key);
 
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
                     byte[] block = sbt.ReadBlock(dataBlockNum);
@@ -203,6 +205,15 @@ namespace RazorDB {
             }
             value = new ByteArray();
             return false;
+        }
+
+        private static int FindBlockForKey(string baseFileName, int level, int version, Cache indexCache, ByteArray key) {
+            ByteArray[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
+            int dataBlockNum = Array.BinarySearch(index, key);
+            if (dataBlockNum < 0) {
+                dataBlockNum = ~dataBlockNum - 1;
+            }
+            return dataBlockNum;
         }
 
         public IEnumerable<KeyValuePair<ByteArray, ByteArray>> Enumerate() {
@@ -223,6 +234,46 @@ namespace RazorDB {
                     yield return ReadPair(block, ref offset);
                 }
             }
+        }
+
+        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateFromKey(Cache indexCache, ByteArray key) {
+
+            int startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key);
+            if (startingBlock < 0)
+                startingBlock = 0;
+            if (startingBlock < _dataBlocks) {
+
+                var asyncResult = BeginReadBlock(startingBlock);
+
+                for (int i = startingBlock; i < _dataBlocks; i++) {
+
+                    // wait on last block read to complete so we can start processing the data
+                    byte[] block = EndReadBlock(asyncResult);
+
+                    // Go ahead and kick off the next block read asynchronously while we parse the last one
+                    if (i < _dataBlocks)
+                        asyncResult = BeginReadBlock(i + 1);
+
+                    int offset = 0;
+
+                    // On the first block, we need to seek to the key first
+                    if ( i == startingBlock) {
+                        while (offset >= 0) {
+                            var pair = ReadPair(block, ref offset);
+                            if (pair.Key.CompareTo(key) >= 0) {
+                                yield return pair;
+                                break;
+                            }
+                        }
+                    }
+
+                    // Now loop through the rest of the block
+                    while (offset >= 0) {
+                        yield return ReadPair(block, ref offset);
+                    }
+                }
+            }
+
         }
 
         private IEnumerable<ByteArray> EnumerateIndex() {
