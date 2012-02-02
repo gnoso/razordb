@@ -69,7 +69,7 @@ namespace RazorDB {
             // Close the journal file, we don't need it anymore
             _journal.Close();
             // Write out the contents of the memtable to our level-0 sbt log
-            _memTable.WriteToSortedBlockTable(Config.SBTFile(_baseFileName, 0, _version));
+            _memTable.WriteToSortedBlockTable(_baseFileName, 0, _version);
             // Remove the journal
             _journal.Delete();
         }

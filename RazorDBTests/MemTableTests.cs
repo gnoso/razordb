@@ -76,9 +76,8 @@ namespace RazorDBTests {
             }
 
             var timer = new Stopwatch();
-            string path = Path.GetFullPath("WriteMemTableToSsTable.mt");
             timer.Start();
-            mt.WriteToSortedBlockTable(path);
+            mt.WriteToSortedBlockTable("WriteMemTableToSsTable",0,1);
             timer.Stop();
             
             Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double) mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0) );

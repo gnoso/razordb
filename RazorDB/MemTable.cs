@@ -34,18 +34,19 @@ namespace RazorDB {
             get { return Size > Config.MaxMemTableSize; }
         }
 
-        public void WriteToSortedBlockTable(string fileName) {
+        public void WriteToSortedBlockTable(string baseFileName, int level, int version) {
 
             lock (_tableLock) {
                 SortedBlockTableWriter tableWriter = null;
                 try {
-                    tableWriter = new SortedBlockTableWriter(fileName);
+                    tableWriter = new SortedBlockTableWriter(baseFileName, level, version);
 
                     foreach (var pair in _internalTable.OrderBy((pair) => pair.Key)) {
                         tableWriter.WritePair(pair.Key, pair.Value);
                     }
                 } finally {
-                    tableWriter.Close();
+                    if (tableWriter != null)
+                        tableWriter.Close();
                 }
             }
         }
