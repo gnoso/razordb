@@ -8,9 +8,10 @@ namespace RazorDB {
 
     public class JournalWriter {
 
-        public JournalWriter(string baseFileName, int version) {
+        public JournalWriter(string baseFileName, int version, bool append) {
             _fileName = Config.JournalFile(baseFileName, version);
-            _writer = new BinaryWriter(new FileStream(_fileName, FileMode.Create, FileAccess.Write, FileShare.None, 1024, false));
+            FileMode fileMode = append ? FileMode.Append : FileMode.Create;
+            _writer = new BinaryWriter(new FileStream(_fileName, fileMode, FileAccess.Write, FileShare.None, 1024, false));
         }
 
         private BinaryWriter _writer;

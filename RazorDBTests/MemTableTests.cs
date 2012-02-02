@@ -62,7 +62,7 @@ namespace RazorDBTests {
         [Test]
         public void AddAndLookupItemsPersisted() {
 
-            JournalWriter jw = new JournalWriter("AddAndLookupItemsPersisted", 523);
+            JournalWriter jw = new JournalWriter("AddAndLookupItemsPersisted", 523, false);
 
             List<KeyValuePair<ByteArray, ByteArray>> values = new List<KeyValuePair<ByteArray, ByteArray>>();
 

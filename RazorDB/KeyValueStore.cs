@@ -11,12 +11,7 @@ namespace RazorDB {
 
         public KeyValueStore(string baseFileName) {
             _manifest = new Manifest(baseFileName);
-
-            string directoryName = Path.GetDirectoryName(baseFileName);
-            if (!Directory.Exists(directoryName))
-                Directory.CreateDirectory(directoryName);
-
-            _currentJournaledMemTable = new JournaledMemTable(baseFileName, 0);
+            _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
         }
 
         ~KeyValueStore() {
@@ -36,7 +31,7 @@ namespace RazorDB {
             while (!_currentJournaledMemTable.Add(k, v)) {
                 adds--;
                 if (adds <= 0)
-                    throw new InvalidOperationException("Failed multiple times trying to add an item to the JournaledMemTable");
+                    throw new InvalidOperationException("Failed too many times trying to add an item to the JournaledMemTable");
             }
 
             if (_currentJournaledMemTable.Full) {
