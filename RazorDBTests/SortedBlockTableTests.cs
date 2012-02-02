@@ -6,6 +6,7 @@ using NUnit.Framework;
 using RazorDB;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
 
 namespace RazorDBTests {
 
@@ -63,9 +64,9 @@ namespace RazorDBTests {
                 items.Add( new KeyValuePair<ByteArray,ByteArray>(k0, v0) );
             }
 
-            mt.WriteToSortedBlockTable("ReadKeys", 10, 10);
+            mt.WriteToSortedBlockTable("RandomizedKeys", 10, 10);
 
-            var sbt = new SortedBlockTable("ReadKeys", 10, 10);
+            var sbt = new SortedBlockTable("RandomizedKeys", 10, 10);
 
             var indexCache = new Cache();
 
@@ -73,13 +74,13 @@ namespace RazorDBTests {
             timer.Start();
             foreach (var pair in items) {
                 ByteArray value;
-                Assert.IsTrue(SortedBlockTable.Lookup("ReadKeys", 10, 10, indexCache, pair.Key, out value));
+                Assert.IsTrue(SortedBlockTable.Lookup("RandomizedKeys", 10, 10, indexCache, pair.Key, out value));
                 Assert.AreEqual(pair.Value, value);
             }
             timer.Stop();
 
             ByteArray randomValue;
-            Assert.IsFalse(SortedBlockTable.Lookup("ReadKeys", 10, 10, indexCache, ByteArray.Random(40), out randomValue));
+            Assert.IsFalse(SortedBlockTable.Lookup("RandomizedKeys", 10, 10, indexCache, ByteArray.Random(40), out randomValue));
 
             Console.WriteLine("Randomized read sbt table at a throughput of {0} MB/s (avg {1} ms per lookup)", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double) num_items);
 
@@ -87,5 +88,50 @@ namespace RazorDBTests {
 
         }
 
+        [Test]
+        public void RandomizedThreadedLookups() {
+
+            List<KeyValuePair<ByteArray, ByteArray>> items = new List<KeyValuePair<ByteArray, ByteArray>>();
+
+            int num_items = 10000;
+            var mt = new MemTable();
+            for (int i = 0; i < num_items; i++) {
+                var k0 = ByteArray.Random(40);
+                var v0 = ByteArray.Random(200);
+                mt.Add(k0, v0);
+
+                items.Add(new KeyValuePair<ByteArray, ByteArray>(k0, v0));
+            }
+
+            mt.WriteToSortedBlockTable("RandomizedThreadedLookups", 10, 10);
+
+            var sbt = new SortedBlockTable("RandomizedThreadedLookups", 10, 10);
+
+            var indexCache = new Cache();
+
+            List<Thread> threads = new List<Thread>();
+            for (int t = 0; t < 10; t++) {
+                threads.Add(new Thread( (num) => {
+                    for (int k=0; k < num_items / 10; k++) {
+                        var pair = items[k * (int)num];
+                        ByteArray value;
+                        Assert.IsTrue(SortedBlockTable.Lookup("RandomizedThreadedLookups", 10, 10, indexCache, pair.Key, out value));
+                        Assert.AreEqual(pair.Value, value);
+                    }
+                }));
+            }
+
+            var timer = new Stopwatch();
+            timer.Start();
+            int threadNum = 0;
+            threads.ForEach( (t) => t.Start(threadNum++) );
+            threads.ForEach((t) => t.Join());
+            timer.Stop();
+
+            Console.WriteLine("Randomized (threaded) read sbt table at a throughput of {0} MB/s (avg {1} ms per lookup)", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
+
+            sbt.Close();
+
+        }
     }
 }
