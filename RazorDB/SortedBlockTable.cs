@@ -11,7 +11,7 @@ namespace RazorDB {
     public class SortedBlockTableWriter {
 
         public SortedBlockTableWriter(string baseFileName, int level, int version) {
-            string fileName = Config.SBTFile(baseFileName, level, version);
+            string fileName = Config.SortedBlockTableFile(baseFileName, level, version);
             _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
             _buffer = new byte[Config.SortedBlockSize];
             _bufferPos = 0;
@@ -132,7 +132,7 @@ namespace RazorDB {
     public class SortedBlockTable {
 
         public SortedBlockTable(string baseFileName, int level, int version) {
-            string path = Config.SBTFile(baseFileName, level, version);
+            string path = Config.SortedBlockTableFile(baseFileName, level, version);
             _fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, FileOptions.Asynchronous);
             ReadMetadata();
         }

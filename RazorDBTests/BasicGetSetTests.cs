@@ -12,6 +12,13 @@ namespace RazorDBTests {
     [TestFixture]
     public class BasicGetSetTests {
 
+        [TestFixtureSetUp]
+        public void Setup() {
+            string path = Path.GetFullPath("TestData");
+            if (!Directory.Exists(path)) 
+                Directory.CreateDirectory(path);
+        }
+
         [Test]
         public void BasicGetAndSet() {
 

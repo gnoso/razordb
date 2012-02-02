@@ -9,10 +9,10 @@ namespace RazorDB {
     public static class Config {
 
         public static int MaxMemTableSize = 1 * 1024 * 1024;    // Maximum size we should let the memtable grow to in memory before compacting.
-        public static int SortedBlockSize = 32 * 1024;          // Size of each block in the sorted table files.
+        public static int SortedBlockSize = 16 * 1024;          // Size of each block in the sorted table files.
         public static int ManifestVersionCount = 1000;          // Number of manifests to append before rolling the file over
 
-        public static string SBTFile(string baseName, int level, int version) {
+        public static string SortedBlockTableFile(string baseName, int level, int version) {
             return string.Format("{0}-{1}-{2}.sbt", baseName, level, version);
         }
         public static string JournalFile(string baseName, int version) {

@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ByteArray.cs" />
+    <Compile Include="Cache.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Journal.cs" />
     <Compile Include="JournaledMemTable.cs" />

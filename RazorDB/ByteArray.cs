@@ -74,6 +74,10 @@ namespace RazorDB {
             }
         }
 
+        public override string ToString() {
+            return string.Concat(_bytes.Select((b) => b.ToString("X2")).ToArray());
+        }
+
         [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int memcmp(byte[] arr1, byte[] arr2, int cnt);
 
