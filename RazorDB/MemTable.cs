@@ -16,7 +16,7 @@ namespace RazorDB {
             _totalValueSize += value.Length;
 
             lock (_tableLock) {
-                _internalTable.Add(key, value);
+                _internalTable[key] = value;
             }
         }
 

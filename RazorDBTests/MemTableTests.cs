@@ -39,6 +39,31 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void SetItemsMultipleTimes() {
+
+            MemTable mt = new MemTable();
+
+            Dictionary<ByteArray, ByteArray> values = new Dictionary<ByteArray, ByteArray>();
+
+            for (int i = 0; i < 10000; i++) {
+                var randomKey = new ByteArray(BitConverter.GetBytes(i % 10));
+                var randomValue = ByteArray.Random(256);
+
+                values[randomKey] = randomValue;
+                mt.Add(randomKey, randomValue);
+            }
+
+            ByteArray value;
+            foreach (var pair in values) {
+                Assert.IsTrue(mt.Lookup(pair.Key, out value));
+                Assert.AreEqual(pair.Value, value);
+            }
+            Assert.IsFalse(mt.Lookup(ByteArray.Random(4), out value));
+
+            Assert.AreEqual(10000 * (4 + 256), mt.Size);
+        }
+
+        [Test]
         public void WriteMemTableToSsTable() {
 
             MemTable mt = new MemTable();
