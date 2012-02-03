@@ -10,7 +10,11 @@ namespace RazorDB {
     // a merged version with the result being in sorted order as well.
     public static class MergeEnumerator {
 
-        public static IEnumerable<T> Merge<T>(IEnumerable<IOrderedEnumerable<T>> enumerables) {
+        public static IEnumerable<T> Merge<T>(IEnumerable<IEnumerable<T>> enumerables) {
+            return Merge(enumerables, o => o);
+        }
+
+        public static IEnumerable<T> Merge<T,TKey>(IEnumerable<IEnumerable<T>> enumerables, Func<T,TKey> keySelector) {
 
             // Get enumerators for each enumerable
             var enumerators = enumerables.Select( e => e.GetEnumerator() );
@@ -26,7 +30,8 @@ namespace RazorDB {
             }
 
             // order them by the first (current) element and put into a linked list
-            var workingEnums = new LinkedList<IEnumerator<T>>(nonEmptyEnums.OrderBy( e => e.Current ));
+            nonEmptyEnums.Sort( (x,y) => Comparer<TKey>.Default.Compare( keySelector(x.Current), keySelector(y.Current) ) );
+            var workingEnums = new LinkedList<IEnumerator<T>>(nonEmptyEnums);
 
             int totalEnumerators = workingEnums.Count;
             while (totalEnumerators > 0) {
@@ -50,7 +55,7 @@ namespace RazorDB {
                             workingEnums.AddLast(e);
                             break;
                         }
-                        if (Comparer<T>.Default.Compare(currentNode.Value.Current, e.Current) >= 0) {
+                        if (Comparer<TKey>.Default.Compare( keySelector(currentNode.Value.Current), keySelector(e.Current) ) >= 0) {
                             workingEnums.AddBefore(currentNode, e);
                             break;
                         }

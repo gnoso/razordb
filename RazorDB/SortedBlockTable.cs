@@ -329,11 +329,19 @@ namespace RazorDB {
         }
 
         public struct MergeTablePair {
-            int Level;
-            int Version;
+            public int Level;
+            public int Version;
         }
-        public static IEnumerable<MergeTablePair> MergeTables(Manifest mf, string baseFileName, IEnumerable<MergeTablePair> tables) {
-            return null;
+
+        public static IEnumerable<KeyValuePair<ByteArray,ByteArray>> EnumerateMergedTables(string baseFileName, IEnumerable<MergeTablePair> tableSpecs) {
+            var tables = new List<SortedBlockTable>();
+            foreach (var ts in tableSpecs) {
+                tables.Add(new SortedBlockTable(baseFileName, ts.Level, ts.Version));
+            }
+            foreach (var pair in MergeEnumerator.Merge(tables.Select( t => t.Enumerate() ), p => p.Key)) {
+                yield return pair;
+            }
+            tables.ForEach(t => t.Close());
         }
 
         public void Close() {

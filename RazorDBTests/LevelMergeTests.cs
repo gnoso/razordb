@@ -27,7 +27,7 @@ namespace RazorDBTests {
                 collections.Add(randomData);
             }
             // Sort all the individual lists
-            var sortedCollections = collections.Select(list => list.OrderBy(i => i));
+            var sortedCollections = collections.Select(list => list.OrderBy(i => i).AsEnumerable());
 
             // Now scan through the merged list and make sure the result is ordered
             int lastNum = int.MinValue;
@@ -43,7 +43,7 @@ namespace RazorDBTests {
         [Test]
         public void TestEmptyMergeIterator() {
 
-            var enumerators = new List<IOrderedEnumerable<int>>();
+            var enumerators = new List<IEnumerable<int>>();
             Assert.AreEqual(0, MergeEnumerator.Merge(enumerators).Count());
             enumerators.Add(new List<int>().OrderBy( e => e) );
             enumerators.Add(new List<int>().OrderBy(e => e));
@@ -52,10 +52,11 @@ namespace RazorDBTests {
         }
 
         [Test]
-        public void LevelMergeEmpty() {
+        public void LevelMergeReadTest() {
 
             int num_tables_to_merge = 4;
             int items_per_table = 2500;
+            int totalData = 0;
             for (int i = 0; i < num_tables_to_merge; i++) {
                 var mt = new MemTable();
                 for (int j=0; j < items_per_table; j++) {
@@ -63,8 +64,106 @@ namespace RazorDBTests {
                     var randVal = ByteArray.Random(512);
                     mt.Add(randKey, randVal);
                 }
-                mt.WriteToSortedBlockTable("LevelMergeEmpty", 0, i);
+                mt.WriteToSortedBlockTable("LevelMergeReadTest", 0, i);
+                totalData += mt.Size;
             }
+            var tables = new List<IEnumerable<KeyValuePair<ByteArray,ByteArray>>>();
+            var sbts = new List<SortedBlockTable>();
+            for (int j=0; j < num_tables_to_merge; j++) {
+                var sbt = new SortedBlockTable("LevelMergeReadTest", 0, j);
+                tables.Add(sbt.Enumerate());
+                sbts.Add(sbt);
+            }
+
+            int ct = 0;
+            ByteArray key = new ByteArray(new byte[]{0});
+            var timer = new Stopwatch();
+            timer.Start();
+            foreach (var pair in MergeEnumerator.Merge(tables, pair => pair.Key )) {
+                Assert.True(key.CompareTo(pair.Key) < 0);
+                key = pair.Key;
+                ct++;
+            }
+            timer.Stop();
+
+            sbts.ForEach(s => s.Close());
+
+            Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
+
+        [Test]
+        public void LevelMergeReadTest2() {
+
+            int num_tables_to_merge = 4;
+            int items_per_table = 2500;
+            int totalData = 0;
+            for (int i = 0; i < num_tables_to_merge; i++) {
+                var mt = new MemTable();
+                for (int j = 0; j < items_per_table; j++) {
+                    var randKey = ByteArray.Random(40);
+                    var randVal = ByteArray.Random(512);
+                    mt.Add(randKey, randVal);
+                }
+                mt.WriteToSortedBlockTable("LevelMergeReadTest2", 0, i);
+                totalData += mt.Size;
+            }
+
+            int ct = 0;
+            ByteArray key = new ByteArray(new byte[] { 0 });
+            var timer = new Stopwatch();
+            timer.Start();
+            foreach (var pair in SortedBlockTable.EnumerateMergedTables(null, "LevelMergeReadTest2", 
+                new List<SortedBlockTable.MergeTablePair>{
+                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 0},
+                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 1},
+                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 2},
+                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 3}
+                })) {
+                Assert.True(key.CompareTo(pair.Key) < 0);
+                key = pair.Key;
+                ct++;
+            }
+            timer.Stop();
+
+            Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+        }
+
+        [Test]
+        public void LevelMergeOutputTest() {
+
+            int num_tables_to_merge = 4;
+            int items_per_table = 2500;
+            int totalData = 0;
+            for (int i = 0; i < num_tables_to_merge; i++) {
+                var mt = new MemTable();
+                for (int j = 0; j < items_per_table; j++) {
+                    var randKey = ByteArray.Random(40);
+                    var randVal = ByteArray.Random(512);
+                    mt.Add(randKey, randVal);
+                }
+                mt.WriteToSortedBlockTable("LevelMergeOutputTest", 0, i);
+                totalData += mt.Size;
+            }
+
+            int ct = 0;
+            ByteArray key = new ByteArray(new byte[] { 0 });
+            var timer = new Stopwatch();
+            timer.Start();
+            foreach (var pair in SortedBlockTable.EnumerateMergedTables("LevelMergeOutputTest",
+                new List<SortedBlockTable.MergeTablePair>{
+                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 0},
+                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 1},
+                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 2},
+                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 3}
+                })) {
+                Assert.True(key.CompareTo(pair.Key) < 0);
+                key = pair.Key;
+                ct++;
+            }
+            timer.Stop();
+
+            Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+        }
+
     }
 }
