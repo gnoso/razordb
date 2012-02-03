@@ -8,6 +8,7 @@ namespace RazorDB {
 
     public static class Config {
 
+        public static int MaxSortedBlockTableSize = 2 * 1024 * 1024;    // Maximum size we should let the sorted block table grow to before rolling over to a new file.
         public static int MaxMemTableSize = 1 * 1024 * 1024;    // Maximum size we should let the memtable grow to in memory before compacting.
         public static int SortedBlockSize = 16 * 1024;          // Size of each block in the sorted table files.
         public static int ManifestVersionCount = 1000;          // Number of manifests to append before rolling the file over

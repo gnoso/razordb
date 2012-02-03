@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace RazorDB {
 
-    // With this implementation, the maximum sized data that can be stored is ... block size >= keylen + valuelen + sizecounter (no more than 8 bytes)
+    // With this implementation, the maximum sized data that can be stored is ... block size >= keylen + valuelen + (sizecounter - no more than 8 bytes)
     public class SortedBlockTableWriter {
 
         public SortedBlockTableWriter(string baseFileName, int level, int version) {
@@ -16,6 +16,8 @@ namespace RazorDB {
             _buffer = new byte[Config.SortedBlockSize];
             _bufferPos = 0;
             _pageIndex = new List<ByteArray>();
+            Version = version;
+            WrittenSize = 0;
         }
 
         private FileStream _fileStream;
@@ -26,6 +28,9 @@ namespace RazorDB {
         private int dataBlocks = 0;
         private int indexBlocks = 0;
         private int totalBlocks = 0;
+
+        public int Version { get; private set; }
+        public int WrittenSize { get; private set; }
 
         // Write a new key value pair to the output file. This method assumes that the data is being fed in key-sorted order.
         public void WritePair(ByteArray key, ByteArray value) {
@@ -57,6 +62,7 @@ namespace RazorDB {
             Array.Copy(value.InternalBytes, 0, _buffer, _bufferPos, value.Length);
             _bufferPos += value.Length;
 
+            WrittenSize += bytesNeeded;
         }
 
         private void WriteBlock() {
@@ -344,6 +350,28 @@ namespace RazorDB {
             tables.ForEach(t => t.Close());
         }
 
+        public static IEnumerable<MergeTablePair> MergeTables(Manifest mf, string baseFileName, int destinationLevel, IEnumerable<MergeTablePair> tableSpecs) {
+
+            var outputTables = new List<MergeTablePair>();
+            SortedBlockTableWriter writer = null;
+
+            foreach (var pair in EnumerateMergedTables(baseFileName, tableSpecs)) {
+                if (writer == null) {
+                    writer = new SortedBlockTableWriter(baseFileName, destinationLevel, mf.NextVersion(destinationLevel));
+                    outputTables.Add(new MergeTablePair { Level = destinationLevel, Version = writer.Version });
+                }
+                writer.WritePair(pair.Key, pair.Value);
+                if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {
+                    writer.Close();
+                    writer = null;
+                }
+            }
+            if (writer != null)
+                writer.Close();
+
+            return outputTables;
+        }
+        
         public void Close() {
             _fileStream.Close();
             _fileStream = null;

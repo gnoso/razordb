@@ -112,7 +112,7 @@ namespace RazorDBTests {
             ByteArray key = new ByteArray(new byte[] { 0 });
             var timer = new Stopwatch();
             timer.Start();
-            foreach (var pair in SortedBlockTable.EnumerateMergedTables(null, "LevelMergeReadTest2", 
+            foreach (var pair in SortedBlockTable.EnumerateMergedTables("LevelMergeReadTest2", 
                 new List<SortedBlockTable.MergeTablePair>{
                                                               new SortedBlockTable.MergeTablePair { Level = 0, Version = 0},
                                                               new SortedBlockTable.MergeTablePair { Level = 0, Version = 1},
@@ -145,24 +145,20 @@ namespace RazorDBTests {
                 totalData += mt.Size;
             }
 
-            int ct = 0;
             ByteArray key = new ByteArray(new byte[] { 0 });
             var timer = new Stopwatch();
             timer.Start();
-            foreach (var pair in SortedBlockTable.EnumerateMergedTables("LevelMergeOutputTest",
-                new List<SortedBlockTable.MergeTablePair>{
-                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 0},
-                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 1},
-                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 2},
-                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 3}
-                })) {
-                Assert.True(key.CompareTo(pair.Key) < 0);
-                key = pair.Key;
-                ct++;
-            }
+            
+            Manifest mf = new Manifest("LevelMergeOutputTest");
+            var outputTables = SortedBlockTable.MergeTables(mf, "LevelMergeOutputTest", 1,  new List<SortedBlockTable.MergeTablePair>{
+                                                                                                new SortedBlockTable.MergeTablePair { Level = 0, Version = 0},
+                                                                                                new SortedBlockTable.MergeTablePair { Level = 0, Version = 1},
+                                                                                                new SortedBlockTable.MergeTablePair { Level = 0, Version = 2},
+                                                                                                new SortedBlockTable.MergeTablePair { Level = 0, Version = 3}
+                                                                                            });
             timer.Stop();
 
-            Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            Console.WriteLine("Wrote a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
 
     }
