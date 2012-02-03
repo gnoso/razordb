@@ -328,6 +328,14 @@ namespace RazorDB {
             return new KeyValuePair<ByteArray,ByteArray>(key,val);
         }
 
+        public struct MergeTablePair {
+            int Level;
+            int Version;
+        }
+        public static IEnumerable<MergeTablePair> MergeTables(Manifest mf, string baseFileName, IEnumerable<MergeTablePair> tables) {
+            return null;
+        }
+
         public void Close() {
             _fileStream.Close();
             _fileStream = null;

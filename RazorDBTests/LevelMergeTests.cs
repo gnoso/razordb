@@ -4,11 +4,52 @@ using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using RazorDB;
+using System.Diagnostics;
 
 namespace RazorDBTests {
 
     [TestFixture]
     public class LevelMergeTests {
+
+        [Test]
+        public void TestMergeIterator() {
+
+            Random r = new Random();
+            int totalElements = 0;
+            // Create 10 randomly sized lists of random numbers
+            List<IEnumerable<int>> collections = new List<IEnumerable<int>>();
+            for (int i = 0; i < 10; i++) {
+                List<int> randomData = new List<int>();
+                for (int j=0; j < r.Next(100); j++) {
+                    randomData.Add(r.Next());
+                    totalElements++;
+                }
+                collections.Add(randomData);
+            }
+            // Sort all the individual lists
+            var sortedCollections = collections.Select(list => list.OrderBy(i => i));
+
+            // Now scan through the merged list and make sure the result is ordered
+            int lastNum = int.MinValue;
+            int numElements = 0;
+            foreach (var num in MergeEnumerator.Merge(sortedCollections)) {
+                Assert.LessOrEqual(lastNum, num);
+                lastNum = num;
+                numElements++;
+            }
+            Assert.AreEqual(totalElements, numElements);
+        }
+
+        [Test]
+        public void TestEmptyMergeIterator() {
+
+            var enumerators = new List<IOrderedEnumerable<int>>();
+            Assert.AreEqual(0, MergeEnumerator.Merge(enumerators).Count());
+            enumerators.Add(new List<int>().OrderBy( e => e) );
+            enumerators.Add(new List<int>().OrderBy(e => e));
+            enumerators.Add(new List<int>().OrderBy(e => e));
+            Assert.AreEqual(0, MergeEnumerator.Merge(enumerators).Count());
+        }
 
         [Test]
         public void LevelMergeEmpty() {
