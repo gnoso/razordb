@@ -98,5 +98,52 @@ namespace RazorDBTests {
             var mf2 = new Manifest(path);
             Assert.AreEqual(1100, mf2.CurrentVersion(0));
         }
+
+        [Test]
+        public void ManifestAddPages() {
+
+            var path = Path.GetFullPath("ManifestAddPages");
+
+            // Remove the file if it exists
+            var filename = Path.ChangeExtension(path, "mf");
+            if (File.Exists(filename))
+                File.Delete(filename);
+
+            var mf = new Manifest(path);
+            mf.AddPage(1, 5, new ByteArray(new byte[] { 5 }));
+            mf.AddPage(1, 6, new ByteArray(new byte[] { 6 }));
+            mf.AddPage(1, 4, new ByteArray(new byte[] { 4 }));
+
+            PageRecord[] pg = mf.GetPagesAtLevel(1);
+            Assert.AreEqual(1, pg[0].Level);
+            Assert.AreEqual(4, pg[0].Version);
+            Assert.AreEqual(1, pg[1].Level);
+            Assert.AreEqual(5, pg[1].Version);
+            Assert.AreEqual(1, pg[2].Level);
+            Assert.AreEqual(6, pg[2].Version);
+
+            mf = new Manifest(path);
+
+            mf.ModifyPages(new List<PageRecord>{
+                new PageRecord( 1, 8, new ByteArray( new byte[] { 16 }) ),
+                new PageRecord( 1, 9, new ByteArray( new byte[] { 1 }) ),
+                new PageRecord( 1, 16, new ByteArray( new byte[] { 10 }) )
+            }, new List<PageRef>{
+                new PageRef{ Level = 1, Version = 6},
+                new PageRef{ Level = 1, Version = 4},
+            });
+
+            mf = new Manifest(path);
+
+            pg = mf.GetPagesAtLevel(1);
+            Assert.AreEqual(1, pg[0].Level);
+            Assert.AreEqual(9, pg[0].Version);
+            Assert.AreEqual(1, pg[1].Level);
+            Assert.AreEqual(5, pg[1].Version);
+            Assert.AreEqual(1, pg[2].Level);
+            Assert.AreEqual(16,pg[2].Version);
+            Assert.AreEqual(1, pg[3].Level);
+            Assert.AreEqual(8, pg[3].Version);
+        }
     }
 }

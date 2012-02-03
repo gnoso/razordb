@@ -334,12 +334,7 @@ namespace RazorDB {
             return new KeyValuePair<ByteArray,ByteArray>(key,val);
         }
 
-        public struct MergeTablePair {
-            public int Level;
-            public int Version;
-        }
-
-        public static IEnumerable<KeyValuePair<ByteArray,ByteArray>> EnumerateMergedTables(string baseFileName, IEnumerable<MergeTablePair> tableSpecs) {
+        public static IEnumerable<KeyValuePair<ByteArray,ByteArray>> EnumerateMergedTables(string baseFileName, IEnumerable<PageRef> tableSpecs) {
             var tables = new List<SortedBlockTable>();
             foreach (var ts in tableSpecs) {
                 tables.Add(new SortedBlockTable(baseFileName, ts.Level, ts.Version));
@@ -350,15 +345,15 @@ namespace RazorDB {
             tables.ForEach(t => t.Close());
         }
 
-        public static IEnumerable<MergeTablePair> MergeTables(Manifest mf, string baseFileName, int destinationLevel, IEnumerable<MergeTablePair> tableSpecs) {
+        public static IEnumerable<PageRef> MergeTables(Manifest mf, string baseFileName, int destinationLevel, IEnumerable<PageRef> tableSpecs) {
 
-            var outputTables = new List<MergeTablePair>();
+            var outputTables = new List<PageRef>();
             SortedBlockTableWriter writer = null;
 
             foreach (var pair in EnumerateMergedTables(baseFileName, tableSpecs)) {
                 if (writer == null) {
                     writer = new SortedBlockTableWriter(baseFileName, destinationLevel, mf.NextVersion(destinationLevel));
-                    outputTables.Add(new MergeTablePair { Level = destinationLevel, Version = writer.Version });
+                    outputTables.Add(new PageRef { Level = destinationLevel, Version = writer.Version });
                 }
                 writer.WritePair(pair.Key, pair.Value);
                 if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {

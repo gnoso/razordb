@@ -113,11 +113,11 @@ namespace RazorDBTests {
             var timer = new Stopwatch();
             timer.Start();
             foreach (var pair in SortedBlockTable.EnumerateMergedTables("LevelMergeReadTest2", 
-                new List<SortedBlockTable.MergeTablePair>{
-                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 0},
-                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 1},
-                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 2},
-                                                              new SortedBlockTable.MergeTablePair { Level = 0, Version = 3}
+                new List<PageRef>{
+                                                              new PageRef { Level = 0, Version = 0},
+                                                              new PageRef { Level = 0, Version = 1},
+                                                              new PageRef { Level = 0, Version = 2},
+                                                              new PageRef { Level = 0, Version = 3}
                 })) {
                 Assert.True(key.CompareTo(pair.Key) < 0);
                 key = pair.Key;
@@ -150,11 +150,11 @@ namespace RazorDBTests {
             timer.Start();
             
             Manifest mf = new Manifest("LevelMergeOutputTest");
-            var outputTables = SortedBlockTable.MergeTables(mf, "LevelMergeOutputTest", 1,  new List<SortedBlockTable.MergeTablePair>{
-                                                                                                new SortedBlockTable.MergeTablePair { Level = 0, Version = 0},
-                                                                                                new SortedBlockTable.MergeTablePair { Level = 0, Version = 1},
-                                                                                                new SortedBlockTable.MergeTablePair { Level = 0, Version = 2},
-                                                                                                new SortedBlockTable.MergeTablePair { Level = 0, Version = 3}
+            var outputTables = SortedBlockTable.MergeTables(mf, "LevelMergeOutputTest", 1, new List<PageRef>{
+                                                                                                new PageRef { Level = 0, Version = 0},
+                                                                                                new PageRef { Level = 0, Version = 1},
+                                                                                                new PageRef { Level = 0, Version = 2},
+                                                                                                new PageRef { Level = 0, Version = 3}
                                                                                             });
             timer.Stop();
 
