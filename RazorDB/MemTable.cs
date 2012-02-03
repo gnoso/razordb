@@ -27,11 +27,15 @@ namespace RazorDB {
         }
 
         public int Size {
-            get { return _totalKeySize + _totalValueSize; }
+            get { lock (_tableLock) { return _totalKeySize + _totalValueSize; } }
         }
 
         public bool Full {
             get { return Size > Config.MaxMemTableSize; }
+        }
+
+        public ByteArray FirstKey {
+            get { lock (_tableLock) { return _internalTable.Keys.Min(); } }
         }
 
         public void WriteToSortedBlockTable(string baseFileName, int level, int version) {

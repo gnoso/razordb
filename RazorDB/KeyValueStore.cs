@@ -19,7 +19,6 @@ namespace RazorDB {
         }
 
         private Manifest _manifest;
-        private int _level_0_version = 0;
 
         private volatile JournaledMemTable _currentJournaledMemTable;
 
@@ -54,10 +53,10 @@ namespace RazorDB {
             lock (memTableRotationLock) {
                 // Double check the flag in case we have multiple threads that make it into this routine
                 if (_currentJournaledMemTable.Full) {
-                    _level_0_version++;
                     #pragma warning disable 420
-                    var oldMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _level_0_version));
+                    var oldMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
                     #pragma warning restore 420
+                    _manifest.AddPage(0, oldMemTable.Version, oldMemTable.FirstKey);
                     oldMemTable.AsyncWriteToSortedBlockTable();
                 }
             }
