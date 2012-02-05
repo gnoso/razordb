@@ -150,7 +150,7 @@ namespace RazorDBTests {
             timer.Start();
             
             Manifest mf = new Manifest("LevelMergeOutputTest");
-            var outputTables = SortedBlockTable.MergeTables(mf, "LevelMergeOutputTest", 1, new List<PageRef>{
+            var outputTables = SortedBlockTable.MergeTables(mf, 1, new List<PageRef>{
                                                                                                 new PageRef { Level = 0, Version = 0},
                                                                                                 new PageRef { Level = 0, Version = 1},
                                                                                                 new PageRef { Level = 0, Version = 2},

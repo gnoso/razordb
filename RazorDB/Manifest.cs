@@ -152,6 +152,14 @@ namespace RazorDB {
             }
         }
 
+        public int GetNumPagesAtLevel(int level) {
+            if (level >= num_levels)
+                throw new IndexOutOfRangeException();
+            lock (manifestLock) {
+                return _pages[level].Count;
+            }
+        }
+
         public PageRecord[] GetPagesAtLevel(int level) {
             if (level >= num_levels)
                 throw new IndexOutOfRangeException();

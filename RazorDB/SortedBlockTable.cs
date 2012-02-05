@@ -12,7 +12,7 @@ namespace RazorDB {
 
         public SortedBlockTableWriter(string baseFileName, int level, int version) {
             string fileName = Config.SortedBlockTableFile(baseFileName, level, version);
-            _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            _fileStream = new FileStream(fileName, FileMode.CreateNew, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
             _buffer = new byte[Config.SortedBlockSize];
             _bufferPos = 0;
             _pageIndex = new List<ByteArray>();
@@ -345,15 +345,15 @@ namespace RazorDB {
             tables.ForEach(t => t.Close());
         }
 
-        public static IEnumerable<PageRef> MergeTables(Manifest mf, string baseFileName, int destinationLevel, IEnumerable<PageRef> tableSpecs) {
+        public static IEnumerable<PageRecord> MergeTables(Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs) {
 
-            var outputTables = new List<PageRef>();
+            var outputTables = new List<PageRecord>();
             SortedBlockTableWriter writer = null;
 
-            foreach (var pair in EnumerateMergedTables(baseFileName, tableSpecs)) {
+            foreach (var pair in EnumerateMergedTables(mf.BaseFileName, tableSpecs)) {
                 if (writer == null) {
-                    writer = new SortedBlockTableWriter(baseFileName, destinationLevel, mf.NextVersion(destinationLevel));
-                    outputTables.Add(new PageRef { Level = destinationLevel, Version = writer.Version });
+                    writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
+                    outputTables.Add(new PageRecord(destinationLevel, writer.Version, pair.Key));
                 }
                 writer.WritePair(pair.Key, pair.Value);
                 if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {

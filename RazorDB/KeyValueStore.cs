@@ -12,6 +12,7 @@ namespace RazorDB {
         public KeyValueStore(string baseFileName) {
             _manifest = new Manifest(baseFileName);
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
+            _tableManager = new TableManager(_manifest);
         }
 
         ~KeyValueStore() {
@@ -19,6 +20,7 @@ namespace RazorDB {
         }
 
         private Manifest _manifest;
+        private TableManager _tableManager;
 
         private volatile JournaledMemTable _currentJournaledMemTable;
 
@@ -56,8 +58,7 @@ namespace RazorDB {
                     #pragma warning disable 420
                     var oldMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
                     #pragma warning restore 420
-                    _manifest.AddPage(0, oldMemTable.Version, oldMemTable.FirstKey);
-                    oldMemTable.AsyncWriteToSortedBlockTable();
+                    oldMemTable.AsyncWriteToSortedBlockTable(_manifest);
                 }
             }
         }
@@ -67,6 +68,10 @@ namespace RazorDB {
         }
 
         public void Close() {
+            if (_tableManager != null) {
+                _tableManager.Close();
+                _tableManager = null;
+            }
             if (_currentJournaledMemTable != null) {
                 _currentJournaledMemTable.Close();
                 _currentJournaledMemTable = null;
