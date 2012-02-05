@@ -110,9 +110,9 @@ namespace RazorDBTests {
                 File.Delete(filename);
 
             var mf = new Manifest(path);
-            mf.AddPage(1, 5, new ByteArray(new byte[] { 5 }));
-            mf.AddPage(1, 6, new ByteArray(new byte[] { 6 }));
-            mf.AddPage(1, 4, new ByteArray(new byte[] { 4 }));
+            mf.AddPage(1, 5, new ByteArray(new byte[] { 5 }), new ByteArray(new byte[] { 5, 1 }));
+            mf.AddPage(1, 6, new ByteArray(new byte[] { 6 }), new ByteArray(new byte[] { 6, 1 }));
+            mf.AddPage(1, 4, new ByteArray(new byte[] { 4 }), new ByteArray(new byte[] { 4, 1 }));
 
             PageRecord[] pg = mf.GetPagesAtLevel(1);
             Assert.AreEqual(1, pg[0].Level);
@@ -125,9 +125,9 @@ namespace RazorDBTests {
             mf = new Manifest(path);
 
             mf.ModifyPages(new List<PageRecord>{
-                new PageRecord( 1, 8, new ByteArray( new byte[] { 16 }) ),
-                new PageRecord( 1, 9, new ByteArray( new byte[] { 1 }) ),
-                new PageRecord( 1, 16, new ByteArray( new byte[] { 10 }) )
+                new PageRecord( 1, 8, new ByteArray( new byte[] { 16 }), new ByteArray(new byte[] { 16, 1 }) ),
+                new PageRecord( 1, 9, new ByteArray( new byte[] { 1 }), new ByteArray(new byte[] { 1, 1 }) ),
+                new PageRecord( 1, 16, new ByteArray( new byte[] { 10 }), new ByteArray(new byte[] { 10, 1 }) )
             }, new List<PageRef>{
                 new PageRef{ Level = 1, Version = 6},
                 new PageRef{ Level = 1, Version = 4},

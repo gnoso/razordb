@@ -350,19 +350,25 @@ namespace RazorDB {
             var outputTables = new List<PageRecord>();
             SortedBlockTableWriter writer = null;
 
+            ByteArray firstKey = new ByteArray();
+            ByteArray lastKey = new ByteArray();
             foreach (var pair in EnumerateMergedTables(mf.BaseFileName, tableSpecs)) {
                 if (writer == null) {
                     writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
-                    outputTables.Add(new PageRecord(destinationLevel, writer.Version, pair.Key));
+                    firstKey = pair.Key;
                 }
                 writer.WritePair(pair.Key, pair.Value);
+                lastKey = pair.Key;
                 if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {
                     writer.Close();
+                    outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
                     writer = null;
                 }
             }
-            if (writer != null)
+            if (writer != null) {
                 writer.Close();
+                outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
+            }
 
             return outputTables;
         }

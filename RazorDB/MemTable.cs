@@ -38,6 +38,10 @@ namespace RazorDB {
             get { lock (_tableLock) { return _internalTable.Keys.Min(); } }
         }
 
+        public ByteArray LastKey {
+            get { lock (_tableLock) { return _internalTable.Keys.Max(); } }
+        }
+
         public void WriteToSortedBlockTable(string baseFileName, int level, int version) {
 
             lock (_tableLock) {

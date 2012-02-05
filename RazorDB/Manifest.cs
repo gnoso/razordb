@@ -10,9 +10,11 @@ namespace RazorDB {
 
         public Manifest(string baseFileName) {
             _baseFileName = baseFileName;
-            _pages = new List<PageRecord>[num_levels]; 
+            _pages = new List<PageRecord>[num_levels];
+            _mergeKeys = new ByteArray[num_levels];
             for ( int i=0; i < num_levels; i++) {
                 _pages[i] = new List<PageRecord>();
+                _mergeKeys[i] = new ByteArray( new byte[0] );
             }
             Read();
         }
@@ -105,7 +107,13 @@ namespace RazorDB {
                     writer.Write7BitEncodedInt(page.Version);
                     writer.Write7BitEncodedInt(page.FirstKey.Length);
                     writer.Write(page.FirstKey.InternalBytes);
+                    writer.Write7BitEncodedInt(page.LastKey.Length);
+                    writer.Write(page.LastKey.InternalBytes);
                 }
+            }
+            foreach (var key in _mergeKeys) {
+                writer.Write7BitEncodedInt(key.Length);
+                writer.Write(key.InternalBytes);
             }
 
             int size = (int)(writer.BaseStream.Position - startPos);
@@ -142,9 +150,15 @@ namespace RazorDB {
                         int level = reader.Read7BitEncodedInt();
                         int version = reader.Read7BitEncodedInt();
                         int num_key_bytes = reader.Read7BitEncodedInt();
-                        ByteArray key = new ByteArray(reader.ReadBytes(num_key_bytes));
-                        _pages[j].Add(new PageRecord(level, version, key));
+                        ByteArray startkey = new ByteArray(reader.ReadBytes(num_key_bytes));
+                        num_key_bytes = reader.Read7BitEncodedInt();
+                        ByteArray endkey = new ByteArray(reader.ReadBytes(num_key_bytes));
+                        _pages[j].Add(new PageRecord(level, version, startkey, endkey));
                     }
+                }
+                for (int k = 0; k < num_pages; k++) {
+                    int num_key_bytes = reader.Read7BitEncodedInt();
+                    _mergeKeys[k] = new ByteArray(reader.ReadBytes(num_key_bytes));
                 }
 
             } finally {
@@ -152,11 +166,44 @@ namespace RazorDB {
             }
         }
 
+        public int NumLevels { get { return num_levels; } }
+
         public int GetNumPagesAtLevel(int level) {
             if (level >= num_levels)
                 throw new IndexOutOfRangeException();
             lock (manifestLock) {
                 return _pages[level].Count;
+            }
+        }
+
+        private ByteArray[] _mergeKeys;
+        public PageRecord NextMergePage(int level) {
+            if (level >= num_levels)
+                throw new IndexOutOfRangeException();
+            lock (manifestLock) {
+                var currentKey = _mergeKeys[level];
+                var levelKeys = _pages[level].Select(key => key.FirstKey).ToList();
+                int pageNum = levelKeys.BinarySearch(currentKey);
+                if (pageNum < 0) { pageNum = ~pageNum - 1; }
+                pageNum = Math.Max(0, pageNum);
+
+                int nextPage = pageNum >= levelKeys.Count-1 ? 0 : pageNum + 1;
+                _mergeKeys[level] = _pages[level][nextPage].FirstKey;
+                Write();
+                return _pages[level][pageNum];
+            }
+        }
+
+        public PageRecord[] FindPagesForKeyRange(int level, ByteArray startKey, ByteArray endKey) {
+            if (level >= num_levels)
+                throw new IndexOutOfRangeException();
+            lock (manifestLock) {
+                var levelKeys = _pages[level].Select(key => key.FirstKey).ToList();
+                int startingPage = levelKeys.BinarySearch(startKey);
+                if (startingPage < 0) { startingPage = ~startingPage - 1; }
+                int endingPage = levelKeys.BinarySearch(endKey);
+                if (endingPage < 0) { endingPage = ~endingPage - 1; }
+                return _pages[level].Skip(startingPage).Take(endingPage - startingPage + 1).ToArray();
             }
         }
 
@@ -168,11 +215,11 @@ namespace RazorDB {
             }
         }
 
-        public void AddPage(int level, int version, ByteArray firstKey) {
+        public void AddPage(int level, int version, ByteArray firstKey, ByteArray lastKey) {
             if (level >= num_levels)
                 throw new IndexOutOfRangeException();
             lock (manifestLock) {
-                _pages[level].Add( new PageRecord(level, version, firstKey) );
+                _pages[level].Add(new PageRecord(level, version, firstKey, lastKey));
                 _pages[level].Sort((x, y) => x.FirstKey.CompareTo(y.FirstKey));
                 Write();
             }
@@ -203,11 +250,18 @@ namespace RazorDB {
         public int Version;
     }
 
+    public static class PageRefConverter {
+        public static IEnumerable<PageRef> AsPageRefs(this IEnumerable<PageRecord> pageRecords) {
+            return pageRecords.Select(record => new PageRef { Level = record.Level, Version = record.Version });
+        }
+    }
+
     public struct PageRecord {
-        public PageRecord(int level, int version, ByteArray firstKey) {
+        public PageRecord(int level, int version, ByteArray firstKey, ByteArray lastKey) {
             _level = level;
             _version = version;
             _firstKey = firstKey;
+            _lastKey = lastKey;
         }
         private int _level;
         public int Level { get { return _level; } }
@@ -215,5 +269,7 @@ namespace RazorDB {
         public int Version { get { return _version; } }
         private ByteArray _firstKey;
         public ByteArray FirstKey { get { return _firstKey;  } }
+        private ByteArray _lastKey;
+        public ByteArray LastKey { get { return _lastKey; } }
     }
 }
