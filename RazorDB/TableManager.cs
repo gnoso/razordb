@@ -29,17 +29,22 @@ namespace RazorDB {
                     // Handle level 0 (merge all pages)
                     if (_manifest.GetNumPagesAtLevel(0) >= Config.MaxPagesOnLevel(0)) {
                         mergedDuringLastPass = true;
-                        var inputPageRecords = _manifest.GetPagesAtLevel(0).ToList();
-                        var startKey = inputPageRecords.First().FirstKey;
-                        var endKey = inputPageRecords.Last().LastKey;
+                        var inputPageRecords = _manifest.GetPagesAtLevel(0).Take(Config.MaxPagesOnLevel(0)).ToList();
+                        var startKey = inputPageRecords.Min( p => p.FirstKey );
+                        var endKey = inputPageRecords.Max( p => p.LastKey );
                         var mergePages = _manifest.FindPagesForKeyRange(1, startKey, endKey).AsPageRefs().ToList();
                         var allInputPages = inputPageRecords.AsPageRefs().Concat(mergePages).ToList();
-                        var outputPages = SortedBlockTable.MergeTables(_manifest, 1, allInputPages);
+                        var outputPages = SortedBlockTable.MergeTables(_manifest, 1, allInputPages).ToList();
                         _manifest.ModifyPages(outputPages, allInputPages);
+                        
+                        _manifest.LogMessage("Merge Level 0 => InputPages: {0} OutputPages:{1}", 
+                            string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}",p.Level, p.Version)).ToArray()),
+                            string.Join(",", outputPages.Select(p => string.Format("{0}-{1}",p.Level, p.Version)).ToArray())
+                        ); 
 
-                        foreach (var pageFile in allInputPages) {
-                            File.Delete(Config.SortedBlockTableFile(_manifest.BaseFileName, pageFile.Level, pageFile.Version));
-                        }
+                        //foreach (var pageFile in allInputPages) {
+                        //    File.Delete(Config.SortedBlockTableFile(_manifest.BaseFileName, pageFile.Level, pageFile.Version));
+                        //}
                     }
                     // handle the rest of the levels (merge only one page upwards)
                     for (int level = 1; level < _manifest.NumLevels - 1; level++) {
@@ -51,9 +56,14 @@ namespace RazorDB {
                             var outputPages = SortedBlockTable.MergeTables(_manifest, level + 1, allInputPages);
                             _manifest.ModifyPages(outputPages, allInputPages);
 
-                            foreach (var pageFile in allInputPages) {
-                                File.Delete(Config.SortedBlockTableFile(_manifest.BaseFileName, pageFile.Level, pageFile.Version));
-                            }
+                            _manifest.LogMessage("Merge Level >0 => InputPages: {0} OutputPages:{1}",
+                                string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray()),
+                                string.Join(",", outputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray())
+                            ); 
+
+                            //foreach (var pageFile in allInputPages) {
+                            //    File.Delete(Config.SortedBlockTableFile(_manifest.BaseFileName, pageFile.Level, pageFile.Version));
+                            //}
                         }
                     }
                 } catch (Exception e) {

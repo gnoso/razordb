@@ -13,6 +13,7 @@ namespace RazorDB {
             _manifest = new Manifest(baseFileName);
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
             _tableManager = new TableManager(_manifest);
+            _blockIndexCache = new Cache();
         }
 
         ~KeyValueStore() {
@@ -21,6 +22,9 @@ namespace RazorDB {
 
         private Manifest _manifest;
         private TableManager _tableManager;
+        private Cache _blockIndexCache;
+
+        public Manifest Manifest { get { return _manifest; } }
 
         private volatile JournaledMemTable _currentJournaledMemTable;
 
@@ -41,10 +45,27 @@ namespace RazorDB {
         }
 
         public byte[] Get(byte[] key) {
+            ByteArray lookupKey = new ByteArray(key);
             ByteArray output;
-            if (_currentJournaledMemTable.Lookup(new ByteArray(key), out output)) {
+            if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output.InternalBytes;
             } else {
+                // Must check all pages on level 0
+                var zeroPages = _manifest.GetPagesAtLevel(0);
+                foreach (var page in zeroPages) {
+                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                        return output.InternalBytes;
+                    }
+                }
+                // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
+                for (int level = 1; level < _manifest.NumLevels; level++) {
+                    var pages = _manifest.FindPagesForKeyRange(level, lookupKey, lookupKey);
+                    foreach (var page in pages) {
+                        if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                            return output.InternalBytes;
+                        }
+                    }
+                }
                 return null;
             }
         }

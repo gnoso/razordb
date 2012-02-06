@@ -79,8 +79,10 @@ namespace RazorDBTests {
 
             using (var db = new KeyValueStore(path)) {
 
+                db.Manifest.Logger = (msg) => { Console.WriteLine(msg); };
+
                 timer.Start();
-                for (int i = 0; i < 100000; i++) {
+                for (int i = 0; i < 105000; i++) {
                     var randomKey = ByteArray.Random(40);
                     var randomValue = ByteArray.Random(256);
                     db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
@@ -88,10 +90,13 @@ namespace RazorDBTests {
                     totalSize += randomKey.Length + randomValue.Length;
                 }
                 timer.Stop();
+                Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
             }
 
-            Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
-        }
+            Manifest mf = new Manifest(path);
+            mf.Logger = (msg) => { Console.WriteLine(msg); };
+            mf.LogContents();
+       }
 
         [Test]
         public void BulkThreadedSet() {
@@ -145,26 +150,91 @@ namespace RazorDBTests {
 
             using (var db = new KeyValueStore(path)) {
 
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
                 timer.Start();
-                for (int i = 0; i < 100000; i++) {
+                for (int i = 0; i < 105000; i++) {
                     var randomKey = ByteArray.Random(40);
                     var randomValue = ByteArray.Random(256);
                     db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
 
-                    items[randomKey] = randomValue;
-                    totalSize += randomKey.Length + randomValue.Length;
+                    if (i % 100 == 0) {
+                        items[randomKey] = randomValue;
+                        totalSize += randomKey.Length + randomValue.Length;
+                    }
+                }
+                timer.Stop();
+                Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            }
+            using (var db = new KeyValueStore(path)) {
+                
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                timer.Reset();
+                timer.Start();
+                foreach ( var insertedItem in items) {
+                    try {
+                        byte[] value = db.Get(insertedItem.Key.InternalBytes);
+                        Assert.AreEqual(insertedItem.Value, new ByteArray(value));
+                    } catch (Exception e) {
+                        Console.WriteLine("Key: {0}\n{1}",insertedItem.Key,e);
+                        Debugger.Launch();
+                        db.Get(insertedItem.Key.InternalBytes);
+                        db.Manifest.LogContents();
+                        throw;
+                    }
+                }
+                timer.Stop();
+                Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)items.Count);
+
+            }
+
+        }
+
+        [Test]
+        public void BulkSetGetWhileReMerging() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetGetWhileReMerging");
+            var timer = new Stopwatch();
+            int totalSize = 0;
+
+            var items = new Dictionary<ByteArray, ByteArray>();
+
+            using (var db = new KeyValueStore(path)) {
+
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                timer.Start();
+                for (int i = 0; i < 105000; i++) {
+                    var randomKey = ByteArray.Random(40);
+                    var randomValue = ByteArray.Random(256);
+                    db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
+
+                    if (i % 100 == 0) {
+                        items[randomKey] = randomValue;
+                        totalSize += randomKey.Length + randomValue.Length;
+                    }
                 }
                 timer.Stop();
                 Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
                 timer.Reset();
                 timer.Start();
-                foreach ( var insertedItem in items) {
-                    byte[] value = db.Get(insertedItem.Key.InternalBytes);
-                    Assert.AreEqual(insertedItem.Value, new ByteArray(value));
+                foreach (var insertedItem in items) {
+                    try {
+                        byte[] value = db.Get(insertedItem.Key.InternalBytes);
+                        Assert.AreEqual(insertedItem.Value, new ByteArray(value));
+                    } catch (Exception e) {
+                        Console.WriteLine("Key: {0}\n{1}", insertedItem.Key, e);
+                        Debugger.Launch();
+                        db.Get(insertedItem.Key.InternalBytes);
+                        db.Manifest.LogContents();
+                        throw;
+                    }
                 }
                 timer.Stop();
-                Console.WriteLine("Read items at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+                Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)items.Count);
+
             }
 
         }

@@ -12,9 +12,9 @@ namespace RazorDB {
             _baseFileName = baseFileName;
             _pages = new List<PageRecord>[num_levels];
             _mergeKeys = new ByteArray[num_levels];
-            for ( int i=0; i < num_levels; i++) {
+            for (int i = 0; i < num_levels; i++) {
                 _pages[i] = new List<PageRecord>();
-                _mergeKeys[i] = new ByteArray( new byte[0] );
+                _mergeKeys[i] = new ByteArray(new byte[0]);
             }
             Read();
         }
@@ -31,7 +31,7 @@ namespace RazorDB {
             get { return _manifestVersion; }
         }
 
-        private const int num_levels = 10;
+        private const int num_levels = 8;
         private int[] _versions = new int[num_levels];
         public int CurrentVersion(int level) {
             if (level >= num_levels)
@@ -187,7 +187,7 @@ namespace RazorDB {
                 if (pageNum < 0) { pageNum = ~pageNum - 1; }
                 pageNum = Math.Max(0, pageNum);
 
-                int nextPage = pageNum >= levelKeys.Count-1 ? 0 : pageNum + 1;
+                int nextPage = pageNum >= levelKeys.Count - 1 ? 0 : pageNum + 1;
                 _mergeKeys[level] = _pages[level][nextPage].FirstKey;
                 Write();
                 return _pages[level][pageNum];
@@ -226,7 +226,7 @@ namespace RazorDB {
         }
 
         // Atomically add/remove page specifications to/from the manifest
-        public void ModifyPages( IEnumerable<PageRecord> addPages, IEnumerable<PageRef> removePages ) {
+        public void ModifyPages(IEnumerable<PageRecord> addPages, IEnumerable<PageRef> removePages) {
             lock (manifestLock) {
                 foreach (var page in addPages) {
                     if (page.Level >= num_levels)
@@ -243,6 +243,31 @@ namespace RazorDB {
                 Write();
             }
         }
+
+        public void LogContents() {
+            LogMessage("Manifest Version: {0}", ManifestVersion);
+            LogMessage("Base Filename: {0}", BaseFileName);
+            for (int level = 0; level < NumLevels; level++) {
+                LogMessage("-------------------------------------");
+                LogMessage("Level: {0} NumPages: {1} MaxPages: {2}", level, GetNumPagesAtLevel(level), Config.MaxPagesOnLevel(level));
+                LogMessage("MergeKey: {0}", _mergeKeys[level]);
+                LogMessage("Version: {0}", _versions[level]);
+                var pages = GetPagesAtLevel(level);
+                foreach (var page in pages) {
+                    LogMessage("Page {0}-{1} [{2} -> {3}]", page.Level, page.Version, page.FirstKey, page.LastKey);
+                }
+            }
+        }
+
+
+        public Action<string> Logger { get; set; }
+
+        public void LogMessage(string format, params object[] parms) {
+            if (Logger != null) {
+                Logger( string.Format(format, parms));   
+            }
+        }
+
     }
 
     public struct PageRef {
