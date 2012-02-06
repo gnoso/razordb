@@ -24,11 +24,11 @@ namespace RazorDB {
         private void ThreadMain() {
 
             while (true) {
-                bool output = false;
+                bool mergedDuringLastPass = false;
                 try {
                     // Handle level 0 (merge all pages)
                     if (_manifest.GetNumPagesAtLevel(0) >= Config.MaxPagesOnLevel(0)) {
-                        output = true;
+                        mergedDuringLastPass = true;
                         var inputPageRecords = _manifest.GetPagesAtLevel(0).ToList();
                         var startKey = inputPageRecords.First().FirstKey;
                         var endKey = inputPageRecords.Last().LastKey;
@@ -44,7 +44,7 @@ namespace RazorDB {
                     // handle the rest of the levels (merge only one page upwards)
                     for (int level = 1; level < _manifest.NumLevels - 1; level++) {
                         if (_manifest.GetNumPagesAtLevel(level) >= Config.MaxPagesOnLevel(level)) {
-                            output = true;
+                            mergedDuringLastPass = true;
                             var inputPage = _manifest.NextMergePage(level);
                             var mergePages = _manifest.FindPagesForKeyRange(level + 1, inputPage.FirstKey, inputPage.LastKey).ToList();
                             var allInputPages = mergePages.Concat(new PageRecord[] { inputPage }).AsPageRefs().ToList();
@@ -60,11 +60,12 @@ namespace RazorDB {
                     Console.WriteLine("Error in TableManager: {0}", e);
                 }
 
-                if (!output && _closing)
+                if (!mergedDuringLastPass && _closing)
                     break;
 
                 // Sleep for a bit, this needs to be upgraded to something a bit smarter....
-                Thread.Sleep(0);
+                if (!mergedDuringLastPass)
+                    Thread.Sleep(200);
             }
         }
 

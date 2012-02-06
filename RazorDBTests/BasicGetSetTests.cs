@@ -10,7 +10,7 @@ using System.Collections.Generic;
 namespace RazorDBTests {
 
     [TestFixture]
-    public class BasicGetSetTests {
+    public class GetSetTests {
 
         [TestFixtureSetUp]
         public void Setup() {
@@ -130,6 +130,41 @@ namespace RazorDBTests {
 
                 timer.Stop();
                 Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            }
+
+        }
+
+        [Test]
+        public void BulkSetBulkGet() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetBulkGet");
+            var timer = new Stopwatch();
+            int totalSize = 0;
+
+            var items = new Dictionary<ByteArray, ByteArray>();
+
+            using (var db = new KeyValueStore(path)) {
+
+                timer.Start();
+                for (int i = 0; i < 100000; i++) {
+                    var randomKey = ByteArray.Random(40);
+                    var randomValue = ByteArray.Random(256);
+                    db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
+
+                    items[randomKey] = randomValue;
+                    totalSize += randomKey.Length + randomValue.Length;
+                }
+                timer.Stop();
+                Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                timer.Reset();
+                timer.Start();
+                foreach ( var insertedItem in items) {
+                    byte[] value = db.Get(insertedItem.Key.InternalBytes);
+                    Assert.AreEqual(insertedItem.Value, new ByteArray(value));
+                }
+                timer.Stop();
+                Console.WriteLine("Read items at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
             }
 
         }

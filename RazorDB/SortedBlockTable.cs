@@ -12,7 +12,7 @@ namespace RazorDB {
 
         public SortedBlockTableWriter(string baseFileName, int level, int version) {
             string fileName = Config.SortedBlockTableFile(baseFileName, level, version);
-            _fileStream = new FileStream(fileName, FileMode.CreateNew, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
             _buffer = new byte[Config.SortedBlockSize];
             _bufferPos = 0;
             _pageIndex = new List<ByteArray>();
