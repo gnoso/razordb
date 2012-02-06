@@ -26,7 +26,7 @@ namespace RazorDB {
             if (level == 0) {
                 return 4;
             } else {
-                return 10 ^ level;
+                return (int) Math.Pow(10, level);
             }
         }
     }
