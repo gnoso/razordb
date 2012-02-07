@@ -194,11 +194,27 @@ namespace RazorDB {
             }
         }
 
+        public PageRecord? FindPageForKey(int level, ByteArray key) {
+            if (level >= num_levels)
+                throw new IndexOutOfRangeException();
+            lock (manifestLock) {
+                var levelKeys = _pages[level].Select(p => p.FirstKey).ToList();
+                int startingPage = levelKeys.BinarySearch(key);
+                if (startingPage < 0) { startingPage = ~startingPage - 1; }
+
+                if (startingPage >= 0 && startingPage < _pages[level].Count) {
+                    return _pages[level][startingPage];
+                } else {
+                    return null;
+                }
+            }
+        }
+
         public PageRecord[] FindPagesForKeyRange(int level, ByteArray startKey, ByteArray endKey) {
             if (level >= num_levels)
                 throw new IndexOutOfRangeException();
             lock (manifestLock) {
-                var levelKeys = _pages[level].Select(key => key.FirstKey).ToList();
+                var levelKeys = _pages[level].Select(p => p.FirstKey).ToList();
                 int startingPage = levelKeys.BinarySearch(startKey);
                 if (startingPage < 0) { startingPage = ~startingPage - 1; }
                 int endingPage = levelKeys.BinarySearch(endKey);

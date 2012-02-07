@@ -59,11 +59,9 @@ namespace RazorDB {
                 }
                 // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
                 for (int level = 1; level < _manifest.NumLevels; level++) {
-                    var pages = _manifest.FindPagesForKeyRange(level, lookupKey, lookupKey);
-                    foreach (var page in pages) {
-                        if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
-                            return output.InternalBytes;
-                        }
+                    var page = _manifest.FindPageForKey(level, lookupKey);
+                    if (page.HasValue && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Value.Level, page.Value.Version, _blockIndexCache, lookupKey, out output)) {
+                        return output.InternalBytes;
                     }
                 }
                 return null;

@@ -19,7 +19,7 @@ namespace RazorDB {
             if (_blockTableIndexCache.TryGetValue(fileName, out indexRef)) {
                 object idx = indexRef.Target;
                 if (idx != null)
-                    return (ByteArray[]) idx;
+                    return (ByteArray[])idx;
             }
             var sbt = new SortedBlockTable(baseName, level, version);
             try {

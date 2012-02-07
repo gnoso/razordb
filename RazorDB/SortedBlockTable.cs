@@ -13,7 +13,9 @@ namespace RazorDB {
         public SortedBlockTableWriter(string baseFileName, int level, int version) {
             string fileName = Config.SortedBlockTableFile(baseFileName, level, version);
             _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
-            _buffer = new byte[Config.SortedBlockSize];
+            _bufferA = new byte[Config.SortedBlockSize];
+            _bufferB = new byte[Config.SortedBlockSize];
+            _buffer = _bufferA;
             _bufferPos = 0;
             _pageIndex = new List<ByteArray>();
             Version = version;
@@ -21,7 +23,9 @@ namespace RazorDB {
         }
 
         private FileStream _fileStream;
-        private byte[] _buffer;
+        private byte[] _bufferA;     // pre-allocated bufferB
+        private byte[] _bufferB;     // pre-allocated bufferA
+        private byte[] _buffer;      // current buffer that is being loaded
         private int _bufferPos;
         private IAsyncResult _async;
         private List<ByteArray> _pageIndex;
@@ -31,6 +35,11 @@ namespace RazorDB {
 
         public int Version { get; private set; }
         public int WrittenSize { get; private set; }
+
+        private void SwapBuffers() {
+            _buffer = Object.ReferenceEquals(_buffer, _bufferA) ? _bufferB : _bufferA;
+            Array.Clear(_buffer, 0, _buffer.Length);
+        }
 
         // Write a new key value pair to the output file. This method assumes that the data is being fed in key-sorted order.
         public void WritePair(ByteArray key, ByteArray value) {
@@ -71,7 +80,7 @@ namespace RazorDB {
                 _fileStream.EndWrite(_async);
             }
             _async = _fileStream.BeginWrite(_buffer, 0, Config.SortedBlockSize, null, null);
-            _buffer = new byte[Config.SortedBlockSize];
+            SwapBuffers();
             _bufferPos = 0;
             totalBlocks++;
         }
@@ -153,9 +162,13 @@ namespace RazorDB {
         private int _indexBlocks;
         private int _totalBlocks;
 
-        private IAsyncResult BeginReadBlock(int blockNum) {
+        private void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
+            current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
+            Array.Clear(current, 0, current.Length);
+        }
+        
+        private IAsyncResult BeginReadBlock(byte[] block, int blockNum) {
             _fileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            byte[] block = new byte[Config.SortedBlockSize];
             return _fileStream.BeginRead(block, 0, Config.SortedBlockSize, null, block);
         }
 
@@ -164,16 +177,27 @@ namespace RazorDB {
             return (byte[]) async.AsyncState;
         }
 
-        private byte[] ReadBlock(int blockNum) {
+        private byte[] ReadBlock(byte[] block, int blockNum) {
             _fileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            byte[] block = new byte[Config.SortedBlockSize];
             _fileStream.Read(block, 0, Config.SortedBlockSize);
             return block;
         }
 
+        [ThreadStatic]
+        private static byte[] threadAllocBlock = null;
+
+        private static byte[] LocalThreadAllocatedBlock() {
+            if (threadAllocBlock == null) {
+                threadAllocBlock = new byte[Config.SortedBlockSize];
+            } else {
+                Array.Clear(threadAllocBlock, 0, threadAllocBlock.Length);
+            }
+            return threadAllocBlock;
+        }
+
         private void ReadMetadata() {
             int numBlocks = (int)_fileStream.Length / Config.SortedBlockSize;
-            MemoryStream ms = new MemoryStream(ReadBlock(numBlocks - 1));
+            MemoryStream ms = new MemoryStream(ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1));
             BinaryReader reader = new BinaryReader(ms);
             string checkString = Encoding.ASCII.GetString(reader.ReadBytes(8));
             if (checkString != "@RAZORDB") {
@@ -196,7 +220,7 @@ namespace RazorDB {
                 int dataBlockNum = FindBlockForKey(baseFileName, level, version, indexCache, key);
 
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
-                    byte[] block = sbt.ReadBlock(dataBlockNum);
+                    byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
                     int offset = 0;
                     while (offset >= 0) {
                         var pair = ReadPair(block, ref offset);
@@ -224,7 +248,11 @@ namespace RazorDB {
 
         public IEnumerable<KeyValuePair<ByteArray, ByteArray>> Enumerate() {
 
-            var asyncResult = BeginReadBlock(0);
+            byte[] allocBlockA = new byte[Config.SortedBlockSize];
+            byte[] allocBlockB = new byte[Config.SortedBlockSize];
+            byte[] currentBlock = allocBlockA;
+
+            var asyncResult = BeginReadBlock(currentBlock, 0);
 
             for (int i = 0; i < _dataBlocks; i++) {
                 
@@ -232,8 +260,10 @@ namespace RazorDB {
                 byte[] block = EndReadBlock(asyncResult);
 
                 // Go ahead and kick off the next block read asynchronously while we parse the last one
-                if (i < _dataBlocks)
-                    asyncResult = BeginReadBlock(i + 1);
+                if (i < _dataBlocks) {
+                    SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
+                    asyncResult = BeginReadBlock(currentBlock, i + 1);
+                }
 
                 int offset = 0;
                 while (offset >= 0) {
@@ -249,7 +279,11 @@ namespace RazorDB {
                 startingBlock = 0;
             if (startingBlock < _dataBlocks) {
 
-                var asyncResult = BeginReadBlock(startingBlock);
+                byte[] allocBlockA = new byte[Config.SortedBlockSize];
+                byte[] allocBlockB = new byte[Config.SortedBlockSize];
+                byte[] currentBlock = allocBlockA;
+
+                var asyncResult = BeginReadBlock(currentBlock, startingBlock);
 
                 for (int i = startingBlock; i < _dataBlocks; i++) {
 
@@ -257,8 +291,10 @@ namespace RazorDB {
                     byte[] block = EndReadBlock(asyncResult);
 
                     // Go ahead and kick off the next block read asynchronously while we parse the last one
-                    if (i < _dataBlocks)
-                        asyncResult = BeginReadBlock(i + 1);
+                    if (i < _dataBlocks) {
+                        SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
+                        asyncResult = BeginReadBlock(currentBlock, i + 1);
+                    }
 
                     int offset = 0;
 
@@ -284,7 +320,11 @@ namespace RazorDB {
 
         private IEnumerable<ByteArray> EnumerateIndex() {
 
-            var asyncResult = BeginReadBlock(_dataBlocks);
+            byte[] allocBlockA = new byte[Config.SortedBlockSize];
+            byte[] allocBlockB = new byte[Config.SortedBlockSize];
+            byte[] currentBlock = allocBlockA;
+
+            var asyncResult = BeginReadBlock(currentBlock, _dataBlocks);
             var endIndexBlocks = (_dataBlocks + _indexBlocks);
 
             for (int i = _dataBlocks; i < endIndexBlocks; i++) {
@@ -293,8 +333,10 @@ namespace RazorDB {
                 byte[] block = EndReadBlock(asyncResult);
 
                 // Go ahead and kick off the next block read asynchronously while we parse the last one
-                if (i < endIndexBlocks)
-                    asyncResult = BeginReadBlock(i + 1);
+                if (i < endIndexBlocks) {
+                    SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
+                    asyncResult = BeginReadBlock(currentBlock, i + 1);
+                }
 
                 int offset = 0;
                 while (offset >= 0) {

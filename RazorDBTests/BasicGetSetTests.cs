@@ -145,6 +145,7 @@ namespace RazorDBTests {
             string path = Path.GetFullPath("TestData\\BulkSetBulkGet");
             var timer = new Stopwatch();
             int totalSize = 0;
+            int readSize = 0;
 
             var items = new Dictionary<ByteArray, ByteArray>();
 
@@ -158,10 +159,9 @@ namespace RazorDBTests {
                     var randomValue = ByteArray.Random(256);
                     db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
 
-                    if (i % 100 == 0) {
-                        items[randomKey] = randomValue;
-                        totalSize += randomKey.Length + randomValue.Length;
-                    }
+                    items[randomKey] = randomValue;
+                    readSize += randomKey.Length + randomValue.Length;
+                    totalSize += randomKey.Length + randomValue.Length;
                 }
                 timer.Stop();
                 Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
@@ -171,6 +171,7 @@ namespace RazorDBTests {
                 db.Manifest.Logger = (msg) => Console.WriteLine(msg);
 
                 timer.Reset();
+                Console.WriteLine("Begin randomized read back.");
                 timer.Start();
                 foreach ( var insertedItem in items) {
                     try {
@@ -185,7 +186,7 @@ namespace RazorDBTests {
                     }
                 }
                 timer.Stop();
-                Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)items.Count);
+                Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)readSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)items.Count);
 
             }
 
@@ -210,10 +211,10 @@ namespace RazorDBTests {
                     var randomValue = ByteArray.Random(256);
                     db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
 
-                    if (i % 100 == 0) {
+                    //if (i % 10 == 0) {
                         items[randomKey] = randomValue;
                         totalSize += randomKey.Length + randomValue.Length;
-                    }
+                    //}
                 }
                 timer.Stop();
                 Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
