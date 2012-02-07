@@ -166,6 +166,7 @@ namespace RazorDBTests {
                 timer.Stop();
                 Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
             }
+            // Close and re-open the database to force all the sstable merging to complete.
             using (var db = new KeyValueStore(path)) {
                 
                 db.Manifest.Logger = (msg) => Console.WriteLine(msg);
@@ -211,15 +212,14 @@ namespace RazorDBTests {
                     var randomValue = ByteArray.Random(256);
                     db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
 
-                    //if (i % 10 == 0) {
-                        items[randomKey] = randomValue;
-                        totalSize += randomKey.Length + randomValue.Length;
-                    //}
+                    items[randomKey] = randomValue;
+                    totalSize += randomKey.Length + randomValue.Length;
                 }
                 timer.Stop();
                 Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
                 timer.Reset();
+                Console.WriteLine("Begin randomized read back.");
                 timer.Start();
                 foreach (var insertedItem in items) {
                     try {
