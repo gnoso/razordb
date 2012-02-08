@@ -28,6 +28,23 @@ namespace RazorDB {
 
         private volatile JournaledMemTable _currentJournaledMemTable;
 
+        public void Truncate() {
+            _currentJournaledMemTable.Close();
+            _tableManager.Close();
+
+            string basePath = Path.GetFullPath(Manifest.BaseFileName);
+            string dir = Path.GetDirectoryName(basePath);
+            string pattern = Path.GetFileNameWithoutExtension(basePath) + "*.*";
+            foreach (string file in Directory.GetFiles(dir, pattern, SearchOption.TopDirectoryOnly)) {
+                File.Delete(file);
+            }
+
+            _manifest = new Manifest(basePath);
+            _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
+            _tableManager = new TableManager(_manifest);
+            _blockIndexCache = new Cache();
+        }
+
         public void Set(byte[] key, byte[] value) {
             var k = new ByteArray(key);
             var v = new ByteArray(value);

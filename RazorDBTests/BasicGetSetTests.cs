@@ -23,6 +23,7 @@ namespace RazorDBTests {
         public void BasicGetAndSet() {
 
             using (var db = new KeyValueStore("TestData\\GetAndSet")) {
+                db.Truncate();
 
                 for (int i = 0; i < 10; i++) {
                     byte[] key = BitConverter.GetBytes(i);
@@ -48,6 +49,7 @@ namespace RazorDBTests {
 
             string path = Path.GetFullPath("TestData\\GetAndSet");
             using (var db = new KeyValueStore(path)) {
+                db.Truncate();
 
                 for (int i = 0; i < 10; i++) {
                     byte[] key = BitConverter.GetBytes(i);
@@ -78,6 +80,7 @@ namespace RazorDBTests {
             int totalSize = 0;
 
             using (var db = new KeyValueStore(path)) {
+                db.Truncate();
 
                 db.Manifest.Logger = (msg) => { Console.WriteLine(msg); };
 
@@ -109,6 +112,7 @@ namespace RazorDBTests {
 
             List<Thread> threads = new List<Thread>();
             using (var db = new KeyValueStore(path)) {
+                db.Truncate();
 
                 for (int j = 0; j < numThreads; j++) {
                     threads.Add(new Thread( (num) => {
@@ -150,6 +154,7 @@ namespace RazorDBTests {
             var items = new Dictionary<ByteArray, ByteArray>();
 
             using (var db = new KeyValueStore(path)) {
+                db.Truncate();
 
                 db.Manifest.Logger = (msg) => Console.WriteLine(msg);
 
@@ -203,6 +208,7 @@ namespace RazorDBTests {
             var items = new Dictionary<ByteArray, ByteArray>();
 
             using (var db = new KeyValueStore(path)) {
+                db.Truncate();
 
                 db.Manifest.Logger = (msg) => Console.WriteLine(msg);
 
