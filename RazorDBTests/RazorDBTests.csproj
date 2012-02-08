@@ -38,7 +38,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BasicGetSetTests.cs" />
+    <Compile Include="KeyValueStoreTests.cs" />
     <Compile Include="ByteArrayTests.cs" />
     <Compile Include="JournalTests.cs" />
     <Compile Include="LevelMergeTests.cs" />

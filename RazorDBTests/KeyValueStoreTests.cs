@@ -11,7 +11,7 @@ using System.Linq;
 namespace RazorDBTests {
 
     [TestFixture]
-    public class GetSetTests {
+    public class KeyValueStoreTests {
 
         [TestFixtureSetUp]
         public void Setup() {
@@ -72,6 +72,67 @@ namespace RazorDBTests {
                 }
             }
         }
+
+        [Test]
+        public void GetAndSetWithDelete() {
+
+            string path = Path.GetFullPath("TestData\\GetAndSetWithDelete");
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                for (int i = 0; i < 10; i++) {
+                    byte[] key = BitConverter.GetBytes(i);
+                    byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
+                    db.Set(key, value);
+                }
+
+                db.Delete(BitConverter.GetBytes(3));
+                db.Delete(BitConverter.GetBytes(30));
+                db.Delete(BitConverter.GetBytes(7));
+                db.Delete(BitConverter.GetBytes(1));
+                db.Delete(BitConverter.GetBytes(3));
+            }
+
+            using (var db = new KeyValueStore(path)) {
+                for (int j = 0; j < 15; j++) {
+                    byte[] key = BitConverter.GetBytes(j);
+
+                    byte[] value = db.Get(key);
+                    if (j == 3 || j == 1 || j == 7) {
+                        Assert.IsNull(value);
+                    } else if (j < 10) {
+                        Assert.AreEqual(Encoding.UTF8.GetBytes("Number " + j.ToString()), value);
+                    } else {
+                        Assert.IsNull(value);
+                    }
+                }
+            }
+        }
+
+        [Test]
+        public void BulkSetWithDelete() {
+
+            Debugger.Launch();
+
+            string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                for (int i = 0; i < 100000; i++) {
+                    byte[] key = BitConverter.GetBytes(i);
+                    byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
+                    db.Set(key, value);
+                }
+
+                for (int j = 0; j < 100000; j++) {
+                    byte[] key = BitConverter.GetBytes(j);
+
+                    byte[] value = db.Get(key);
+                    Assert.AreEqual(Encoding.UTF8.GetBytes("Number " + j.ToString()), value);
+                }
+            }
+        }
+
 
         [Test]
         public void BulkSet() {
