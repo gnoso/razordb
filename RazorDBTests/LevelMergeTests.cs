@@ -5,6 +5,7 @@ using System.Text;
 using NUnit.Framework;
 using RazorDB;
 using System.Diagnostics;
+using System.IO;
 
 namespace RazorDBTests {
 
@@ -54,6 +55,10 @@ namespace RazorDBTests {
         [Test]
         public void LevelMergeReadTest() {
 
+            string path = Path.GetFullPath("TestData\\LevelMergeReadTest");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
             int num_tables_to_merge = 4;
             int items_per_table = 2500;
             int totalData = 0;
@@ -64,13 +69,13 @@ namespace RazorDBTests {
                     var randVal = ByteArray.Random(512);
                     mt.Add(randKey, randVal);
                 }
-                mt.WriteToSortedBlockTable("LevelMergeReadTest", 0, i);
+                mt.WriteToSortedBlockTable("TestData\\LevelMergeReadTest", 0, i);
                 totalData += mt.Size;
             }
             var tables = new List<IEnumerable<KeyValuePair<ByteArray,ByteArray>>>();
             var sbts = new List<SortedBlockTable>();
             for (int j=0; j < num_tables_to_merge; j++) {
-                var sbt = new SortedBlockTable("LevelMergeReadTest", 0, j);
+                var sbt = new SortedBlockTable("TestData\\LevelMergeReadTest", 0, j);
                 tables.Add(sbt.Enumerate());
                 sbts.Add(sbt);
             }
@@ -94,6 +99,10 @@ namespace RazorDBTests {
         [Test]
         public void LevelMergeReadTest2() {
 
+            string path = Path.GetFullPath("TestData\\LevelMergeReadTest2");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+            
             int num_tables_to_merge = 4;
             int items_per_table = 2500;
             int totalData = 0;
@@ -104,7 +113,7 @@ namespace RazorDBTests {
                     var randVal = ByteArray.Random(512);
                     mt.Add(randKey, randVal);
                 }
-                mt.WriteToSortedBlockTable("LevelMergeReadTest2", 0, i);
+                mt.WriteToSortedBlockTable("TestData\\LevelMergeReadTest2", 0, i);
                 totalData += mt.Size;
             }
 
@@ -112,7 +121,7 @@ namespace RazorDBTests {
             ByteArray key = new ByteArray(new byte[] { 0 });
             var timer = new Stopwatch();
             timer.Start();
-            foreach (var pair in SortedBlockTable.EnumerateMergedTables("LevelMergeReadTest2", 
+            foreach (var pair in SortedBlockTable.EnumerateMergedTables("TestData\\LevelMergeReadTest2", 
                 new List<PageRef>{
                                                               new PageRef { Level = 0, Version = 0},
                                                               new PageRef { Level = 0, Version = 1},
@@ -131,6 +140,10 @@ namespace RazorDBTests {
         [Test]
         public void LevelMergeOutputTest() {
 
+            string path = Path.GetFullPath("TestData\\LevelMergeOutputTest");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+            
             int num_tables_to_merge = 4;
             int items_per_table = 2500;
             int totalData = 0;
@@ -141,15 +154,15 @@ namespace RazorDBTests {
                     var randVal = ByteArray.Random(512);
                     mt.Add(randKey, randVal);
                 }
-                mt.WriteToSortedBlockTable("LevelMergeOutputTest", 0, i);
+                mt.WriteToSortedBlockTable("TestData\\LevelMergeOutputTest", 0, i);
                 totalData += mt.Size;
             }
 
             ByteArray key = new ByteArray(new byte[] { 0 });
             var timer = new Stopwatch();
             timer.Start();
-            
-            Manifest mf = new Manifest("LevelMergeOutputTest");
+
+            Manifest mf = new Manifest("TestData\\LevelMergeOutputTest");
             var outputTables = SortedBlockTable.MergeTables(mf, 1, new List<PageRef>{
                                                                                                 new PageRef { Level = 0, Version = 0},
                                                                                                 new PageRef { Level = 0, Version = 1},

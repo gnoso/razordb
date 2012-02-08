@@ -66,6 +66,10 @@ namespace RazorDBTests {
         [Test]
         public void WriteMemTableToSsTable() {
 
+            string path = Path.GetFullPath("TestData\\WriteMemTableToSsTable");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
             MemTable mt = new MemTable();
 
             for (int i = 0; i < 10000; i++) {
@@ -77,7 +81,7 @@ namespace RazorDBTests {
 
             var timer = new Stopwatch();
             timer.Start();
-            mt.WriteToSortedBlockTable("WriteMemTableToSsTable",0,1);
+            mt.WriteToSortedBlockTable("TestData\\WriteMemTableToSsTable", 0, 1);
             timer.Stop();
             
             Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double) mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0) );
@@ -86,7 +90,11 @@ namespace RazorDBTests {
         [Test]
         public void AddAndLookupItemsPersisted() {
 
-            JournalWriter jw = new JournalWriter("AddAndLookupItemsPersisted", 523, false);
+            string path = Path.GetFullPath("TestData\\AddAndLookupItemsPersisted");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
+            JournalWriter jw = new JournalWriter("TestData\\AddAndLookupItemsPersisted", 523, false);
 
             List<KeyValuePair<ByteArray, ByteArray>> values = new List<KeyValuePair<ByteArray, ByteArray>>();
 
@@ -100,7 +108,7 @@ namespace RazorDBTests {
             jw.Close();
 
             MemTable mtl = new MemTable();
-            mtl.ReadFromJournal("AddAndLookupItemsPersisted", 523);
+            mtl.ReadFromJournal("TestData\\AddAndLookupItemsPersisted", 523);
 
             ByteArray value;
             foreach (var pair in values) {

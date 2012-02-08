@@ -47,7 +47,7 @@ namespace RazorDBTests {
         [Test]
         public void BasicPersistentGetAndSet() {
 
-            string path = Path.GetFullPath("TestData\\GetAndSet");
+            string path = Path.GetFullPath("TestData\\BasicPersistentGetAndSet");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
 

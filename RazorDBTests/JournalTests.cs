@@ -14,7 +14,9 @@ namespace RazorDBTests {
         [Test]
         public void ReadAndWriteJournalFile() {
 
-            string path = Path.GetFullPath("RWJournal");
+            string path = Path.GetFullPath("TestData\\RWJournal");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
             JournalWriter jw = new JournalWriter(path, 324, false);
 
             List<KeyValuePair<ByteArray, ByteArray>> items = new List<KeyValuePair<ByteArray, ByteArray>>();
@@ -39,7 +41,9 @@ namespace RazorDBTests {
         [Test]
         public void ReadAndWriteJournalFileWithAppend() {
 
-            string path = Path.GetFullPath("RWJournalAppend");
+            string path = Path.GetFullPath("TestData\\RWJournalAppend");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
             JournalWriter jw = new JournalWriter(path, 324, false);
 
             List<KeyValuePair<ByteArray, ByteArray>> items = new List<KeyValuePair<ByteArray, ByteArray>>();

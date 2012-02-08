@@ -10,6 +10,9 @@ namespace RazorDB {
     public class KeyValueStore : IDisposable {
 
         public KeyValueStore(string baseFileName) {
+            if (!Directory.Exists(baseFileName)) {
+                Directory.CreateDirectory(baseFileName);
+            }
             _manifest = new Manifest(baseFileName);
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
             _tableManager = new TableManager(_manifest);
@@ -33,9 +36,7 @@ namespace RazorDB {
             _tableManager.Close();
 
             string basePath = Path.GetFullPath(Manifest.BaseFileName);
-            string dir = Path.GetDirectoryName(basePath);
-            string pattern = Path.GetFileNameWithoutExtension(basePath) + "*.*";
-            foreach (string file in Directory.GetFiles(dir, pattern, SearchOption.TopDirectoryOnly)) {
+            foreach (string file in Directory.GetFiles(basePath, "*.*", SearchOption.TopDirectoryOnly)) {
                 File.Delete(file);
             }
 

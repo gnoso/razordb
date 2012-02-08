@@ -14,13 +14,13 @@ namespace RazorDB {
         public static int ManifestVersionCount = 1000;          // Number of manifests to append before rolling the file over
 
         public static string SortedBlockTableFile(string baseName, int level, int version) {
-            return string.Format("{0}-{1}-{2}.sbt", baseName, level, version);
+            return string.Format("{0}\\{1}-{2}.sbt", baseName, level, version);
         }
         public static string JournalFile(string baseName, int version) {
-            return string.Format("{0}-{1}.jf", baseName, version);
+            return string.Format("{0}\\{1}.jf", baseName, version);
         }
         public static string ManifestFile(string baseName) {
-            return string.Format("{0}.mf", baseName);
+            return string.Format("{0}\\0.mf", baseName);
         }
         public static int MaxPagesOnLevel(int level) {
             if (level == 0) {

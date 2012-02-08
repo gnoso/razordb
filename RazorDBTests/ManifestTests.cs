@@ -16,10 +16,12 @@ namespace RazorDBTests {
         [Test]
         public void WriteAndReadManifest() {
 
-            var path = Path.GetFullPath("WriteAndReadManifest");
+            var path = Path.GetFullPath("TestData\\WriteAndReadManifest");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
             // Remove the file if it exists
-            var filename = Path.ChangeExtension(path, "mf");
+            var filename = Config.ManifestFile(path);
             if (File.Exists(filename)) 
                 File.Delete(filename);
 
@@ -41,10 +43,12 @@ namespace RazorDBTests {
         [Test]
         public void WriteAndReadManifestMany() {
 
-            var path = Path.GetFullPath("WriteAndReadManifestMany");
+            var path = Path.GetFullPath("TestData\\WriteAndReadManifestMany");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
             // Remove the file if it exists
-            var filename = Path.ChangeExtension(path, "mf");
+            var filename = Config.ManifestFile(path);
             if (File.Exists(filename))
                 File.Delete(filename);
 
@@ -67,10 +71,12 @@ namespace RazorDBTests {
         [Test]
         public void WriteAndReadManifestThreaded() {
 
-            var path = Path.GetFullPath("WriteAndReadManifestMany");
+            var path = Path.GetFullPath("TestData\\WriteAndReadManifestMulti");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
             // Remove the file if it exists
-            var filename = Path.ChangeExtension(path, "mf");
+            var filename = Config.ManifestFile(path);
             if (File.Exists(filename))
                 File.Delete(filename);
 
@@ -102,10 +108,12 @@ namespace RazorDBTests {
         [Test]
         public void ManifestAddPages() {
 
-            var path = Path.GetFullPath("ManifestAddPages");
+            var path = Path.GetFullPath("TestData\\ManifestAddPages");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
             // Remove the file if it exists
-            var filename = Path.ChangeExtension(path, "mf");
+            var filename = Config.ManifestFile(path);
             if (File.Exists(filename))
                 File.Delete(filename);
 
@@ -149,21 +157,23 @@ namespace RazorDBTests {
         [Test]
         public void TestManifestSnapshot() {
 
-            var path = Path.GetFullPath("TestManifestSnapshot");
+            var path = Path.GetFullPath("TestData\\TestManifestSnapshot");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
             // Remove the file if it exists
-            var filename = Path.ChangeExtension(path, "mf");
+            var filename = Config.ManifestFile(path);
             if (File.Exists(filename))
                 File.Delete(filename);
 
             var mf = new Manifest(path);
             // Add pages and dummy files to represent their contents
             mf.AddPage(1, 5, new ByteArray(new byte[] { 5 }), new ByteArray(new byte[] { 5, 1 }));
-            using (var file = new StreamWriter(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 5))) { file.Write("Test"); }
+            using (var file = new StreamWriter(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 5))) { file.Write("Test"); }
             mf.AddPage(1, 6, new ByteArray(new byte[] { 6 }), new ByteArray(new byte[] { 6, 1 }));
-            using (var file = new StreamWriter(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 6))) { file.Write("Test"); }
+            using (var file = new StreamWriter(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 6))) { file.Write("Test"); }
             mf.AddPage(1, 4, new ByteArray(new byte[] { 4 }), new ByteArray(new byte[] { 4, 1 }));
-            using (var file = new StreamWriter(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 4))) { file.Write("Test"); }
+            using (var file = new StreamWriter(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 4))) { file.Write("Test"); }
 
             using (var manifestSnapshot = mf.GetSnapshot()) {
 
@@ -184,14 +194,14 @@ namespace RazorDBTests {
                 Assert.AreEqual(1, pg[2].Level);
                 Assert.AreEqual(6, pg[2].Version);
                 // The files should still exist for now
-                Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 4)));
-                Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 5)));
-                Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 6)));
+                Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 4)));
+                Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 5)));
+                Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 6)));
             }
             // The files should be deleted now since we closed the snapshot
-            Assert.IsFalse(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 4)));
-            Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 5)));
-            Assert.IsFalse(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 6)));
+            Assert.IsFalse(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 4)));
+            Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 5)));
+            Assert.IsFalse(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 6)));
 
         }
     }
