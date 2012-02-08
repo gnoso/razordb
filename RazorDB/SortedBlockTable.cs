@@ -221,14 +221,7 @@ namespace RazorDB {
 
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
                     byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
-                    int offset = 0;
-                    while (offset >= 0) {
-                        var pair = ReadPair(block, ref offset);
-                        if (pair.Key.Equals(key)) {
-                            value = pair.Value;
-                            return true;
-                        }
-                    }
+                    return ScanBlockForKey(block, key, out value);
                 } 
             } finally {
                 sbt.Close();
@@ -361,6 +354,30 @@ namespace RazorDB {
             return key;
         }
 
+        private static bool ScanBlockForKey(byte[] block, ByteArray key, out ByteArray value) {
+            int offset = 0;
+            value = new ByteArray();
+
+            while (block[offset] != 0 && offset < Config.SortedBlockSize) {
+                int startingOffset = offset;
+                int keySize = Helper.Decode7BitInt(block, ref offset);
+                int cmp = key.CompareTo(block, offset, keySize);
+                if (cmp == 0) {
+                    // Found it
+                    var pair = ReadPair(block, ref startingOffset);
+                    value = pair.Value;
+                    return true;
+                } else if (cmp < 0) {
+                    return false;
+                }
+                offset += keySize;
+                // Skip past the value
+                int valueSize = Helper.Decode7BitInt(block, ref offset);
+                offset += valueSize;
+            }
+            return false;
+        }
+
         private static KeyValuePair<ByteArray, ByteArray> ReadPair(byte[] block, ref int offset) {
             int keySize = Helper.Decode7BitInt(block, ref offset);
             var key = ByteArray.From(block, offset, keySize);
@@ -394,6 +411,7 @@ namespace RazorDB {
 
             ByteArray firstKey = new ByteArray();
             ByteArray lastKey = new ByteArray();
+
             foreach (var pair in EnumerateMergedTables(mf.BaseFileName, tableSpecs)) {
                 if (writer == null) {
                     writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
@@ -403,13 +421,13 @@ namespace RazorDB {
                 lastKey = pair.Key;
                 if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {
                     writer.Close();
-                    outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
+                    outputTables.Add(new PageRecord(mf, destinationLevel, writer.Version, firstKey, lastKey));
                     writer = null;
                 }
             }
             if (writer != null) {
                 writer.Close();
-                outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
+                outputTables.Add(new PageRecord(mf, destinationLevel, writer.Version, firstKey, lastKey));
             }
 
             return outputTables;

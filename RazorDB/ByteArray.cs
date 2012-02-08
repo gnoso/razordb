@@ -25,6 +25,10 @@ namespace RazorDB {
             return CompareMemCmp(_bytes, other._bytes);
         }
 
+        public int CompareTo(byte[] other, int offset, int length) {
+            return CompareMemCmp(_bytes, 0, other, offset, Math.Min(_bytes.Length, length));
+        }
+
         public static bool operator ==(ByteArray a, ByteArray b) {
             return CompareMemCmp(a._bytes, b._bytes) == 0;
         }
@@ -66,7 +70,7 @@ namespace RazorDB {
         public static int CompareMemCmp(byte[] left, byte[] right) {
             int l = left.Length;
             int r = right.Length;
-            int comparison = memcmp(left, right, Math.Min(l, r));
+            int comparison = CompareMemCmp(left, 0, right, 0, Math.Min(l, r));
             if (comparison == 0 && l != r) {
                 return l.CompareTo(r);
             } else {
@@ -74,12 +78,18 @@ namespace RazorDB {
             }
         }
 
+        public static unsafe int CompareMemCmp(byte[] buffer1, int offset1, byte[] buffer2, int offset2, int count) {
+            fixed (byte* b1 = buffer1, b2 = buffer2) {
+                return memcmp(b1 + offset1, b2 + offset2, count);
+            }
+        }
+
         public override string ToString() {
             return string.Concat(_bytes.Select((b) => b.ToString("X2")).ToArray());
         }
 
-        [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int memcmp(byte[] arr1, byte[] arr2, int cnt);
+        [DllImport("msvcrt.dll")]
+        private static extern unsafe int memcmp(byte* b1, byte* b2, int count);
 
         public static ByteArray From(byte[] block, int offset, int size) {
             byte[] bytes = new byte[size];
