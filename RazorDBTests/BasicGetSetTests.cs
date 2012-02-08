@@ -6,6 +6,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Threading;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace RazorDBTests {
 
@@ -239,6 +240,71 @@ namespace RazorDBTests {
                         throw;
                     }
                 }
+                timer.Stop();
+                Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)items.Count);
+
+            }
+
+        }
+         
+        [Test]
+        public void BulkSetThreadedGetWhileReMerging() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetThreadedGetWhileReMerging");
+            var timer = new Stopwatch();
+            int totalSize = 0;
+
+            var items = new Dictionary<ByteArray, ByteArray>();
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                timer.Start();
+                int totalItems = 105000;
+                for (int i = 0; i < totalItems; i++) {
+                    var randomKey = ByteArray.Random(40);
+                    var randomValue = ByteArray.Random(256);
+                    db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
+
+                    items[randomKey] = randomValue;
+                    totalSize += randomKey.Length + randomValue.Length;
+                }
+                timer.Stop();
+                Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                List<KeyValuePair<ByteArray,ByteArray>> itemsList = items.ToList();
+                int numThreads = 10;
+                List<Thread> threads = new List<Thread>();
+
+                for (int j = 0; j < numThreads; j++) {
+                    threads.Add(new Thread((num) => {
+                        int itemsPerThread = totalItems / numThreads;
+                        for (int i = 0; i < itemsPerThread; i++) {
+                            try {
+                                int idx = i * (int)num;
+                                byte[] value = db.Get(itemsList[idx].Key.InternalBytes);
+                                Assert.AreEqual(itemsList[idx].Value, new ByteArray(value));
+                            } catch (Exception /*e*/) {
+                                //Console.WriteLine("Key: {0}\n{1}", insertedItem.Key, e);
+                                //Debugger.Launch();
+                                //db.Get(insertedItem.Key.InternalBytes);
+                                //db.Manifest.LogContents();
+                                throw;
+                            }
+                        }
+                    }));
+                }
+
+
+                timer.Reset();
+                Console.WriteLine("Begin randomized read back.");
+                timer.Start();
+                for (int k=0; k < numThreads; k++) {
+                    threads[k].Start(k);
+                }
+                threads.ForEach(t => t.Join());
                 timer.Stop();
                 Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)items.Count);
 
