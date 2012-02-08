@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Threading;
 
 namespace RazorDB {
 
@@ -16,6 +17,7 @@ namespace RazorDB {
                 _pages[i] = new List<PageRecord>();
                 _mergeKeys[i] = new ByteArray(new byte[0]);
             }
+            _snapshot = false;
             Read();
         }
         private object manifestLock = new object();
@@ -53,6 +55,9 @@ namespace RazorDB {
         }
 
         private void Write() {
+
+            // Check for mutability here because any operation that changes the snapshot must commit the writes in order to work properly.
+            VerifyMutability();
 
             string manifestFile = Config.ManifestFile(_baseFileName);
             string tempManifestFile = manifestFile + "~";
@@ -120,6 +125,82 @@ namespace RazorDB {
             writer.Write(size);
         }
 
+        private void ReadManifestContents(BinaryReader reader) {
+            ReadManifestContents(reader, this);
+        }
+
+        private void ReadManifestContents(BinaryReader reader, Manifest owner) {
+            _manifestVersion = reader.Read7BitEncodedInt();
+            int num_versions = reader.Read7BitEncodedInt();
+            for (int i = 0; i < num_versions; i++) {
+                _versions[i] = reader.Read7BitEncodedInt();
+            }
+            int num_pages = reader.Read7BitEncodedInt();
+            for (int j = 0; j < num_pages; j++) {
+                int num_page_entries = reader.Read7BitEncodedInt();
+                for (int k = 0; k < num_page_entries; k++) {
+                    int level = reader.Read7BitEncodedInt();
+                    int version = reader.Read7BitEncodedInt();
+                    int num_key_bytes = reader.Read7BitEncodedInt();
+                    ByteArray startkey = new ByteArray(reader.ReadBytes(num_key_bytes));
+                    num_key_bytes = reader.Read7BitEncodedInt();
+                    ByteArray endkey = new ByteArray(reader.ReadBytes(num_key_bytes));
+                    _pages[j].Add(new PageRecord(owner, level, version, startkey, endkey));
+                }
+            }
+            for (int k = 0; k < num_pages; k++) {
+                int num_key_bytes = reader.Read7BitEncodedInt();
+                _mergeKeys[k] = new ByteArray(reader.ReadBytes(num_key_bytes));
+            }
+        }
+
+        private Manifest GetSnapshotInstance() {
+            // Clone this copy of the manifest
+            Manifest clone = new Manifest(BaseFileName);
+            clone._manifestVersion = _manifestVersion;
+            for (int v=0; v < _versions.Length; v++) {
+                clone._versions[v] = _versions[v];
+            }
+            for (int p = 0; p < _pages.Length; p++) {
+                clone._pages[p] = new List<PageRecord>();
+                foreach (var page in _pages[p]) {
+                    clone._pages[p].Add(page);
+                }
+            }
+            clone._snapshot = true; // Don't allow the user to change the snapshot instance
+            return clone;
+        }
+
+        public bool IsSnapshot {
+            get { return _snapshot; }
+        }
+        private bool _snapshot; // This flag is set for snapshots so we can throw an error if it's modified
+        private void VerifyMutability() {
+            if (_snapshot)
+                throw new InvalidOperationException("Cannot modify an immutable manifest instance.");
+        }
+
+        internal void AddRefAllPages() {
+            foreach (var level in _pages) {
+                foreach (var page in level) {
+                    page.AddRef();
+                }
+            }
+        }
+        internal void ReleaseAllPages() {
+            foreach (var level in _pages) {
+                foreach (var page in level) {
+                    page.Release();
+                }
+            }
+        }
+
+        public ManifestSnapshot GetSnapshot() {
+            lock (manifestLock) {
+                return new ManifestSnapshot(this, GetSnapshotInstance());
+            }
+        }
+
         private void Read() {
 
             string manifestFile = Config.ManifestFile(_baseFileName);
@@ -130,37 +211,15 @@ namespace RazorDB {
             FileStream fs = new FileStream(manifestFile, FileMode.Open, FileAccess.Read, FileShare.None, 1024, false);
             BinaryReader reader = new BinaryReader(fs);
 
-            // Get the size of the last manifest block
-            reader.BaseStream.Seek(-4, SeekOrigin.End);
-            int size = reader.ReadInt32();
-
-            // Now seek to that position and read it
-            reader.BaseStream.Seek(-size - 4, SeekOrigin.End);
-
             try {
-                _manifestVersion = reader.Read7BitEncodedInt();
-                int num_versions = reader.Read7BitEncodedInt();
-                for (int i = 0; i < num_versions; i++) {
-                    _versions[i] = reader.Read7BitEncodedInt();
-                }
-                int num_pages = reader.Read7BitEncodedInt();
-                for (int j = 0; j < num_pages; j++) {
-                    int num_page_entries = reader.Read7BitEncodedInt();
-                    for (int k = 0; k < num_page_entries; k++) {
-                        int level = reader.Read7BitEncodedInt();
-                        int version = reader.Read7BitEncodedInt();
-                        int num_key_bytes = reader.Read7BitEncodedInt();
-                        ByteArray startkey = new ByteArray(reader.ReadBytes(num_key_bytes));
-                        num_key_bytes = reader.Read7BitEncodedInt();
-                        ByteArray endkey = new ByteArray(reader.ReadBytes(num_key_bytes));
-                        _pages[j].Add(new PageRecord(level, version, startkey, endkey));
-                    }
-                }
-                for (int k = 0; k < num_pages; k++) {
-                    int num_key_bytes = reader.Read7BitEncodedInt();
-                    _mergeKeys[k] = new ByteArray(reader.ReadBytes(num_key_bytes));
-                }
+                // Get the size of the last manifest block
+                reader.BaseStream.Seek(-4, SeekOrigin.End);
+                int size = reader.ReadInt32();
 
+                // Now seek to that position and read it
+                reader.BaseStream.Seek(-size - 4, SeekOrigin.End);
+
+                ReadManifestContents(reader);
             } finally {
                 reader.Close();
             }
@@ -194,7 +253,7 @@ namespace RazorDB {
             }
         }
 
-        public PageRecord? FindPageForKey(int level, ByteArray key) {
+        public PageRecord FindPageForKey(int level, ByteArray key) {
             if (level >= num_levels)
                 throw new IndexOutOfRangeException();
             lock (manifestLock) {
@@ -235,7 +294,9 @@ namespace RazorDB {
             if (level >= num_levels)
                 throw new IndexOutOfRangeException();
             lock (manifestLock) {
-                _pages[level].Add(new PageRecord(level, version, firstKey, lastKey));
+                var page = new PageRecord(this, level, version, firstKey, lastKey);
+                page.AddRef();
+                _pages[level].Add(page);
                 _pages[level].Sort((x, y) => x.FirstKey.CompareTo(y.FirstKey));
                 Write();
             }
@@ -247,16 +308,26 @@ namespace RazorDB {
                 foreach (var page in addPages) {
                     if (page.Level >= num_levels)
                         throw new IndexOutOfRangeException();
+                    page.AddRef();
                     _pages[page.Level].Add(page);
                     _pages[page.Level].Sort((x, y) => x.FirstKey.CompareTo(y.FirstKey));
                 }
                 foreach (var pageRef in removePages) {
                     if (pageRef.Level >= num_levels)
                         throw new IndexOutOfRangeException();
-                    _pages[pageRef.Level].RemoveAll(p => p.Version == pageRef.Version);
+                    var page = _pages[pageRef.Level].Where(p => p.Version == pageRef.Version).First();
+                    _pages[pageRef.Level].Remove(page);
                     _pages[pageRef.Level].Sort((x, y) => x.FirstKey.CompareTo(y.FirstKey));
+                    page.Release();
                 }
                 Write();
+            }
+        }
+
+        internal void NotifyPageRelease(PageRecord releasedPage) {
+            string fileName = Config.SortedBlockTableFile(BaseFileName, releasedPage.Level, releasedPage.Version);
+            if (File.Exists(fileName)) {
+                File.Delete(fileName);
             }
         }
 
@@ -275,7 +346,6 @@ namespace RazorDB {
             }
         }
 
-
         public Action<string> Logger { get; set; }
 
         public void LogMessage(string format, params object[] parms) {
@@ -283,7 +353,24 @@ namespace RazorDB {
                 Logger( string.Format(format, parms));   
             }
         }
+    }
 
+    public class ManifestSnapshot : IDisposable {
+
+        public ManifestSnapshot(Manifest owner, Manifest manifest) {
+            _owner = owner;
+            _manifest = manifest;
+            _manifest.AddRefAllPages();
+        }
+        private Manifest _owner;
+        private Manifest _manifest;
+
+        public Manifest Owner { get { return _owner; } }
+        public Manifest Manifest { get { return _manifest; } }
+
+        public void Dispose() {
+            _manifest.ReleaseAllPages();
+        }
     }
 
     public struct PageRef {
@@ -297,12 +384,17 @@ namespace RazorDB {
         }
     }
 
-    public struct PageRecord {
-        public PageRecord(int level, int version, ByteArray firstKey, ByteArray lastKey) {
+    public class PageRecord {
+        public PageRecord(Manifest owner, int level, int version, ByteArray firstKey, ByteArray lastKey) {
             _level = level;
             _version = version;
             _firstKey = firstKey;
             _lastKey = lastKey;
+
+            if (owner.IsSnapshot)
+                throw new InvalidOperationException("PageRecord owner cannot be a snapshot manifest.");
+            _snapshotReferenceCount = 0;
+            _owner = owner;
         }
         private int _level;
         public int Level { get { return _level; } }
@@ -312,5 +404,17 @@ namespace RazorDB {
         public ByteArray FirstKey { get { return _firstKey;  } }
         private ByteArray _lastKey;
         public ByteArray LastKey { get { return _lastKey; } }
+
+        private Manifest _owner;
+        private int _snapshotReferenceCount;
+        public void AddRef() {
+            Interlocked.Increment(ref _snapshotReferenceCount);
+        }
+        public void Release() {
+            int count = Interlocked.Decrement(ref _snapshotReferenceCount);
+            if (count == 0) {
+                _owner.NotifyPageRelease(this);
+            }
+        }
     }
 }

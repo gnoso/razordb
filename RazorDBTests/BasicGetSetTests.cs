@@ -178,11 +178,11 @@ namespace RazorDBTests {
                     try {
                         byte[] value = db.Get(insertedItem.Key.InternalBytes);
                         Assert.AreEqual(insertedItem.Value, new ByteArray(value));
-                    } catch (Exception e) {
-                        Console.WriteLine("Key: {0}\n{1}",insertedItem.Key,e);
-                        Debugger.Launch();
-                        db.Get(insertedItem.Key.InternalBytes);
-                        db.Manifest.LogContents();
+                    } catch (Exception /*e*/) {
+                        //Console.WriteLine("Key: {0}\n{1}",insertedItem.Key,e);
+                        //Debugger.Launch();
+                        //db.Get(insertedItem.Key.InternalBytes);
+                        //db.Manifest.LogContents();
                         throw;
                     }
                 }
@@ -225,11 +225,11 @@ namespace RazorDBTests {
                     try {
                         byte[] value = db.Get(insertedItem.Key.InternalBytes);
                         Assert.AreEqual(insertedItem.Value, new ByteArray(value));
-                    } catch (Exception e) {
-                        Console.WriteLine("Key: {0}\n{1}", insertedItem.Key, e);
-                        Debugger.Launch();
-                        db.Get(insertedItem.Key.InternalBytes);
-                        db.Manifest.LogContents();
+                    } catch (Exception /*e*/) {
+                        //Console.WriteLine("Key: {0}\n{1}", insertedItem.Key, e);
+                        //Debugger.Launch();
+                        //db.Get(insertedItem.Key.InternalBytes);
+                        //db.Manifest.LogContents();
                         throw;
                     }
                 }

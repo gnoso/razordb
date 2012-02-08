@@ -41,10 +41,6 @@ namespace RazorDB {
                             string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}",p.Level, p.Version)).ToArray()),
                             string.Join(",", outputPages.Select(p => string.Format("{0}-{1}",p.Level, p.Version)).ToArray())
                         ); 
-
-                        //foreach (var pageFile in allInputPages) {
-                        //    File.Delete(Config.SortedBlockTableFile(_manifest.BaseFileName, pageFile.Level, pageFile.Version));
-                        //}
                     }
                     // handle the rest of the levels (merge only one page upwards)
                     for (int level = 1; level < _manifest.NumLevels - 1; level++) {
@@ -60,10 +56,6 @@ namespace RazorDB {
                                 string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray()),
                                 string.Join(",", outputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray())
                             ); 
-
-                            //foreach (var pageFile in allInputPages) {
-                            //    File.Delete(Config.SortedBlockTableFile(_manifest.BaseFileName, pageFile.Level, pageFile.Version));
-                            //}
                         }
                     }
                 } catch (Exception e) {

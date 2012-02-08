@@ -50,21 +50,23 @@ namespace RazorDB {
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output.InternalBytes;
             } else {
-                // Must check all pages on level 0
-                var zeroPages = _manifest.GetPagesAtLevel(0);
-                foreach (var page in zeroPages) {
-                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
-                        return output.InternalBytes;
+                using (var manifestSnapshot = _manifest.GetSnapshot()) {
+                    // Must check all pages on level 0
+                    var zeroPages = _manifest.GetPagesAtLevel(0);
+                    foreach (var page in zeroPages) {
+                        if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                            return output.InternalBytes;
+                        }
                     }
-                }
-                // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
-                for (int level = 1; level < _manifest.NumLevels; level++) {
-                    var page = _manifest.FindPageForKey(level, lookupKey);
-                    if (page.HasValue && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Value.Level, page.Value.Version, _blockIndexCache, lookupKey, out output)) {
-                        return output.InternalBytes;
+                    // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
+                    for (int level = 1; level < _manifest.NumLevels; level++) {
+                        var page = _manifest.FindPageForKey(level, lookupKey);
+                        if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                            return output.InternalBytes;
+                        }
                     }
+                    return null;
                 }
-                return null;
             }
         }
 

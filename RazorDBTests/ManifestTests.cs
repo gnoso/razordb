@@ -125,9 +125,9 @@ namespace RazorDBTests {
             mf = new Manifest(path);
 
             mf.ModifyPages(new List<PageRecord>{
-                new PageRecord( 1, 8, new ByteArray( new byte[] { 16 }), new ByteArray(new byte[] { 16, 1 }) ),
-                new PageRecord( 1, 9, new ByteArray( new byte[] { 1 }), new ByteArray(new byte[] { 1, 1 }) ),
-                new PageRecord( 1, 16, new ByteArray( new byte[] { 10 }), new ByteArray(new byte[] { 10, 1 }) )
+                new PageRecord(mf, 1, 8, new ByteArray( new byte[] { 16 }), new ByteArray(new byte[] { 16, 1 }) ),
+                new PageRecord(mf, 1, 9, new ByteArray( new byte[] { 1 }), new ByteArray(new byte[] { 1, 1 }) ),
+                new PageRecord(mf, 1, 16, new ByteArray( new byte[] { 10 }), new ByteArray(new byte[] { 10, 1 }) )
             }, new List<PageRef>{
                 new PageRef{ Level = 1, Version = 6},
                 new PageRef{ Level = 1, Version = 4},
@@ -144,6 +144,55 @@ namespace RazorDBTests {
             Assert.AreEqual(16,pg[2].Version);
             Assert.AreEqual(1, pg[3].Level);
             Assert.AreEqual(8, pg[3].Version);
+        }
+
+        [Test]
+        public void TestManifestSnapshot() {
+
+            var path = Path.GetFullPath("TestManifestSnapshot");
+
+            // Remove the file if it exists
+            var filename = Path.ChangeExtension(path, "mf");
+            if (File.Exists(filename))
+                File.Delete(filename);
+
+            var mf = new Manifest(path);
+            // Add pages and dummy files to represent their contents
+            mf.AddPage(1, 5, new ByteArray(new byte[] { 5 }), new ByteArray(new byte[] { 5, 1 }));
+            using (var file = new StreamWriter(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 5))) { file.Write("Test"); }
+            mf.AddPage(1, 6, new ByteArray(new byte[] { 6 }), new ByteArray(new byte[] { 6, 1 }));
+            using (var file = new StreamWriter(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 6))) { file.Write("Test"); }
+            mf.AddPage(1, 4, new ByteArray(new byte[] { 4 }), new ByteArray(new byte[] { 4, 1 }));
+            using (var file = new StreamWriter(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 4))) { file.Write("Test"); }
+
+            using (var manifestSnapshot = mf.GetSnapshot()) {
+
+                mf.ModifyPages(new List<PageRecord>{
+                    new PageRecord(mf, 1, 8, new ByteArray( new byte[] { 16 }), new ByteArray(new byte[] { 16, 1 }) ),
+                    new PageRecord(mf, 1, 9, new ByteArray( new byte[] { 1 }), new ByteArray(new byte[] { 1, 1 }) ),
+                    new PageRecord(mf, 1, 16, new ByteArray( new byte[] { 10 }), new ByteArray(new byte[] { 10, 1 }) )
+                }, new List<PageRef>{
+                    new PageRef{ Level = 1, Version = 6},
+                    new PageRef{ Level = 1, Version = 4},
+                });
+
+                PageRecord[] pg = manifestSnapshot.Manifest.GetPagesAtLevel(1);
+                Assert.AreEqual(1, pg[0].Level);
+                Assert.AreEqual(4, pg[0].Version);
+                Assert.AreEqual(1, pg[1].Level);
+                Assert.AreEqual(5, pg[1].Version);
+                Assert.AreEqual(1, pg[2].Level);
+                Assert.AreEqual(6, pg[2].Version);
+                // The files should still exist for now
+                Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 4)));
+                Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 5)));
+                Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 6)));
+            }
+            // The files should be deleted now since we closed the snapshot
+            Assert.IsFalse(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 4)));
+            Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 5)));
+            Assert.IsFalse(File.Exists(Config.SortedBlockTableFile("TestManifestSnapshot", 1, 6)));
+
         }
     }
 }
