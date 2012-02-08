@@ -152,6 +152,7 @@ namespace RazorDB {
                 int num_key_bytes = reader.Read7BitEncodedInt();
                 _mergeKeys[k] = new ByteArray(reader.ReadBytes(num_key_bytes));
             }
+            AddRefAllPages();
         }
 
         private Manifest GetSnapshotInstance() {

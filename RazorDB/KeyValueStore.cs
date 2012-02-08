@@ -52,16 +52,16 @@ namespace RazorDB {
             } else {
                 using (var manifestSnapshot = _manifest.GetSnapshot()) {
                     // Must check all pages on level 0
-                    var zeroPages = _manifest.GetPagesAtLevel(0);
+                    var zeroPages = manifestSnapshot.Manifest.GetPagesAtLevel(0);
                     foreach (var page in zeroPages) {
-                        if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                        if (SortedBlockTable.Lookup(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
                             return output.InternalBytes;
                         }
                     }
                     // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
-                    for (int level = 1; level < _manifest.NumLevels; level++) {
-                        var page = _manifest.FindPageForKey(level, lookupKey);
-                        if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                    for (int level = 1; level < manifestSnapshot.Manifest.NumLevels; level++) {
+                        var page = manifestSnapshot.Manifest.FindPageForKey(level, lookupKey);
+                        if (page != null && SortedBlockTable.Lookup(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
                             return output.InternalBytes;
                         }
                     }
