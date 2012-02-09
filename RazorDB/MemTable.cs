@@ -6,23 +6,51 @@ namespace RazorDB {
 
     public class MemTable {
 
-        private Dictionary<ByteArray, ByteArray> _internalTable = new Dictionary<ByteArray,ByteArray>();
+        internal class VersionedValue {
+            internal VersionedValue(ByteArray value, int sequenceNum) {
+                Value = value;
+                SequenceNum = sequenceNum;
+            }
+            public ByteArray Value { get; private set; }
+            public int SequenceNum { get; private set; }
+        }
+
+        private Dictionary<ByteArray, List<VersionedValue> > _internalTable = new Dictionary<ByteArray, List<VersionedValue> >();
         private int _totalKeySize = 0;
         private int _totalValueSize = 0;
+        private int _sequenceNum = 0;
         private object _tableLock = new object();
 
-        public void Add(ByteArray key, ByteArray value) {
-            _totalKeySize += key.Length;
-            _totalValueSize += value.Length;
+        public int SequenceNum {
+            get { lock (_tableLock) { return _sequenceNum; } }
+        }
 
+        public void Add(ByteArray key, ByteArray value) {
             lock (_tableLock) {
-                _internalTable[key] = value;
+                _totalKeySize += key.Length;
+                _totalValueSize += value.Length;
+                List<VersionedValue> values;
+                if (_internalTable.TryGetValue(key, out values)) {
+                    values.Add(new VersionedValue(value, _sequenceNum));
+                } else {
+                    values = new List<VersionedValue>();
+                    values.Add(new VersionedValue(value, _sequenceNum));
+                    _internalTable.Add(key, values);
+                }
+                _sequenceNum++;
             }
         }
 
         public bool Lookup(ByteArray key, out ByteArray value) {
             lock (_tableLock) {
-                return _internalTable.TryGetValue(key, out value);
+                List<VersionedValue> values;
+                if (_internalTable.TryGetValue(key, out values)) {
+                    value = values.Last().Value;
+                    return true;
+                } else {
+                    value = new ByteArray();
+                    return false;
+                }
             }
         }
 
@@ -49,7 +77,7 @@ namespace RazorDB {
                 try {
                     tableWriter = new SortedBlockTableWriter(baseFileName, level, version);
 
-                    foreach (var pair in _internalTable.OrderBy((pair) => pair.Key)) {
+                    foreach (var pair in _internalTable.Select(pair => new KeyValuePair<ByteArray,ByteArray>(pair.Key, pair.Value.Last().Value)).OrderBy((pair) => pair.Key) ) {
                         tableWriter.WritePair(pair.Key, pair.Value);
                     }
                 } finally {

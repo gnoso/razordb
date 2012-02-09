@@ -59,7 +59,7 @@ namespace RazorDB {
             while ((b & 0x80) != 0);
             return val;
         }
-                public static int Read7BitEncodedInt(this BinaryReader rdr) {
+        public static int Read7BitEncodedInt(this BinaryReader rdr) {
             return (int) rdr.Read7BitEncodedUInt();
         }
 

@@ -93,15 +93,18 @@ namespace RazorDB {
         }
 
         private object memTableRotationLock = new object();
+        private JournaledMemTable _oldMemTable = null;
+        private ManualResetEvent _rotationEvent = new ManualResetEvent(true);
 
         public void RotateMemTable() {
             lock (memTableRotationLock) {
                 // Double check the flag in case we have multiple threads that make it into this routine
                 if (_currentJournaledMemTable.Full) {
+                    _rotationEvent.Reset();
                     #pragma warning disable 420
-                    var oldMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
+                    _oldMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
                     #pragma warning restore 420
-                    oldMemTable.AsyncWriteToSortedBlockTable(_manifest);
+                    _oldMemTable.AsyncWriteToSortedBlockTable(_manifest, _rotationEvent);
                 }
             }
         }
@@ -111,6 +114,9 @@ namespace RazorDB {
         }
 
         public void Close() {
+            if (!_rotationEvent.WaitOne(30000)) {
+                throw new TimeoutException("Timed out waiting for memtable rotation to complete.");
+            }
             if (_tableManager != null) {
                 _tableManager.Close();
                 _tableManager = null;

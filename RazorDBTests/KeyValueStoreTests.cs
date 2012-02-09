@@ -110,10 +110,9 @@ namespace RazorDBTests {
         }
 
         [Test]
-        public void BulkSetWithDelete() {
+        public void RotationShutdownRaceTest() {
 
-            Debugger.Launch();
-
+            // Test to be sure that the rotation page has definitely been written by the time we exit the dispose region (the db must wait for that to occur).
             string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -123,12 +122,37 @@ namespace RazorDBTests {
                     byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
                     db.Set(key, value);
                 }
+                // There is a chance that this could happen fast
+                // enough to make this assertion fail on some machines, but I haven't seen it happen yet.
+                Assert.IsFalse(db.Manifest.GetPagesAtLevel(0).Length > 0);
+            }
+            using (var db = new KeyValueStore(path)) {
+                Assert.IsTrue(db.Manifest.GetPagesAtLevel(0).Length > 0);
+            }
+        }
+
+        [Test]
+        public void BulkSetWithDelete() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
+            using (var db = new KeyValueStore(path)) {
+                db.Manifest.Logger = msg => Console.WriteLine(msg);
+                db.Truncate();
+
+                for (int i = 0; i < 100000; i++) {
+                    byte[] key = BitConverter.GetBytes(i);
+                    byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
+                    db.Set(key, value);
+                }
+            }
+            using (var db = new KeyValueStore(path)) {
+                db.Manifest.Logger = msg => Console.WriteLine(msg);
 
                 for (int j = 0; j < 100000; j++) {
                     byte[] key = BitConverter.GetBytes(j);
 
                     byte[] value = db.Get(key);
-                    Assert.AreEqual(Encoding.UTF8.GetBytes("Number " + j.ToString()), value);
+                    Assert.AreEqual(Encoding.UTF8.GetBytes("Number " + j.ToString()), value, string.Format("{0}", j));
                 }
             }
         }

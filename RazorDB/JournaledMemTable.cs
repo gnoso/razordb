@@ -37,6 +37,7 @@ namespace RazorDB {
         private string _baseFileName;
         private int _version;
 
+        public MemTable InternalMemTable { get { return _memTable; } }
         public int Version { get { return _version; } }
 
         public bool Add(ByteArray key, ByteArray value) {
@@ -69,11 +70,12 @@ namespace RazorDB {
             get { return _memTable.LastKey; }
         }
 
-        public void AsyncWriteToSortedBlockTable(Manifest manifest) {
+        public void AsyncWriteToSortedBlockTable(Manifest manifest, ManualResetEvent completed) {
             // Close the journal file, we don't need it anymore
             _journal.Close();
             ThreadPool.QueueUserWorkItem((o) => {
                 WriteToSortedBlockTable(manifest);
+                completed.Set();
             });
         }
 
