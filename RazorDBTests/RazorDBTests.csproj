@@ -45,6 +45,7 @@
     <Compile Include="ManifestTests.cs" />
     <Compile Include="MemTableTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SkipListTests.cs" />
     <Compile Include="SortedBlockTableTests.cs" />
   </ItemGroup>
   <ItemGroup>
