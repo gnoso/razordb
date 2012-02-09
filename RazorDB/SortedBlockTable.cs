@@ -387,7 +387,7 @@ namespace RazorDB {
             offset += valueSize;
 
             // if the next keySize bit is zero then we have exhausted this block. Set to -1 to terminate enumeration
-            if (block[offset] == 0)
+            if (offset >= Config.SortedBlockSize || block[offset] == 0)
                 offset = -1;
 
             return new KeyValuePair<ByteArray,ByteArray>(key,val);
