@@ -102,34 +102,36 @@ namespace RazorDB {
         }
 
         private object memTableRotationLock = new object();
-        private JournaledMemTable _rotatedJournaledMemTable = null;
+        private JournaledMemTable _rotatedJournaledMemTable;
+        private AutoResetEvent _rotationGate = new AutoResetEvent(true);
 
+#pragma warning disable 420
         public void RotateMemTable() {
             lock (memTableRotationLock) {
                 // Double check the flag in case we have multiple threads that make it into this routine
                 if (_currentJournaledMemTable.Full) {
-                    #pragma warning disable 420
+                    _rotationGate.WaitOne();    // Wait for the rotation gate to be open, and automatically reset once a single thread gets through.
+
                     _rotatedJournaledMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
-                    #pragma warning restore 420
 
                     ThreadPool.QueueUserWorkItem((o) => {
-                        lock (memTableRotationLock) {
-                            _rotatedJournaledMemTable.WriteToSortedBlockTable(_manifest);
-                            _rotatedJournaledMemTable = null;
-                        }
+                        _rotatedJournaledMemTable.WriteToSortedBlockTable(_manifest);
+                        _rotatedJournaledMemTable = null;
+                        _rotationGate.Set(); // Open the gate for the next rotation
                     });
                 }
             }
         }
+#pragma warning restore 420
 
         public void Dispose() {
             Close();
         }
 
         public void Close() {
-            lock (memTableRotationLock) {
-                // Make sure any inflight rotations have occurred before shutting down.
-            }
+            // Make sure any inflight rotations have occurred before shutting down.
+            _rotationGate.WaitOne();
+
             if (_tableManager != null) {
                 _tableManager.Close();
                 _tableManager = null;
