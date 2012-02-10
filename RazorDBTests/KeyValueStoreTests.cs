@@ -122,14 +122,42 @@ namespace RazorDBTests {
                     byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
                     db.Set(key, value);
                 }
-                // There is a chance that this could happen fast
-                // enough to make this assertion fail on some machines, but I haven't seen it happen yet.
+                // There is a chance that this could happen fast enough to make this assertion fail on some machines, but it should be unlikely.
+                // The goal is to reproduce the race condition. If this assert succeeds then we have reproduced it.
                 Assert.IsFalse(db.Manifest.GetPagesAtLevel(0).Length > 0);
             }
             using (var db = new KeyValueStore(path)) {
                 Assert.IsTrue(db.Manifest.GetPagesAtLevel(0).Length > 0);
             }
         }
+
+        [Test]
+        public void RotationReadRaceTest() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                for (int i = 0; i < 100000; i++) {
+                    byte[] key = BitConverter.GetBytes(i);
+                    byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
+                    db.Set(key, value);
+                }
+                // Even though the page is rotated, but not written to disk yet, we should be able to query for the data anyway.
+                {
+                    byte[] key = BitConverter.GetBytes(0);
+                    byte[] value = db.Get(key);
+                    Assert.AreEqual(Encoding.UTF8.GetBytes("Number 0"), value);
+                }
+                // There is a chance that this could happen fast enough to make this assertion fail on some machines, but it should be unlikely.
+                // The goal is to reproduce the race condition. If this assert succeeds then we have reproduced it.
+                Assert.IsFalse(db.Manifest.GetPagesAtLevel(0).Length > 0);
+            }
+            using (var db = new KeyValueStore(path)) {
+                Assert.IsTrue(db.Manifest.GetPagesAtLevel(0).Length > 0);
+            }
+        }
+
 
         [Test]
         public void BulkSetWithDelete() {

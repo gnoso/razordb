@@ -65,27 +65,36 @@ namespace RazorDB {
         public byte[] Get(byte[] key) {
             ByteArray lookupKey = new ByteArray(key);
             ByteArray output;
+            // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output.Length == 0 ? null : output.InternalBytes;
-            } else {
-                using (var manifestSnapshot = _manifest.GetSnapshot()) {
-                    // Must check all pages on level 0
-                    var zeroPages = manifestSnapshot.Manifest.GetPagesAtLevel(0);
-                    foreach (var page in zeroPages) {
-                        if (SortedBlockTable.Lookup(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
-                            return output.Length == 0 ? null : output.InternalBytes;
-                        }
-                    }
-                    // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
-                    for (int level = 1; level < manifestSnapshot.Manifest.NumLevels; level++) {
-                        var page = manifestSnapshot.Manifest.FindPageForKey(level, lookupKey);
-                        if (page != null && SortedBlockTable.Lookup(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
-                            return output.Length == 0 ? null : output.InternalBytes;
-                        }
-                    }
-                    return null;
+            }
+            // Capture copy of the rotated table if there is one
+            var rotatedMemTable = _rotatedJournaledMemTable;
+            if (rotatedMemTable != null) {
+                if (rotatedMemTable.Lookup(lookupKey, out output)) {
+                    return output.Length == 0 ? null : output.InternalBytes;
                 }
             }
+            // Now check the files on disk
+            using (var manifestSnapshot = _manifest.GetSnapshot()) {
+                // Must check all pages on level 0
+                var zeroPages = manifestSnapshot.Manifest.GetPagesAtLevel(0);
+                foreach (var page in zeroPages) {
+                    if (SortedBlockTable.Lookup(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                        return output.Length == 0 ? null : output.InternalBytes;
+                    }
+                }
+                // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
+                for (int level = 1; level < manifestSnapshot.Manifest.NumLevels; level++) {
+                    var page = manifestSnapshot.Manifest.FindPageForKey(level, lookupKey);
+                    if (page != null && SortedBlockTable.Lookup(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                        return output.Length == 0 ? null : output.InternalBytes;
+                    }
+                }
+            }
+            // OK, not found anywhere, return null
+            return null;
         }
 
         public void Delete(byte[] key) {
@@ -93,18 +102,22 @@ namespace RazorDB {
         }
 
         private object memTableRotationLock = new object();
-        private JournaledMemTable _oldMemTable = null;
-        private ManualResetEvent _rotationEvent = new ManualResetEvent(true);
+        private JournaledMemTable _rotatedJournaledMemTable = null;
 
         public void RotateMemTable() {
             lock (memTableRotationLock) {
                 // Double check the flag in case we have multiple threads that make it into this routine
                 if (_currentJournaledMemTable.Full) {
-                    _rotationEvent.Reset();
                     #pragma warning disable 420
-                    _oldMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
+                    _rotatedJournaledMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
                     #pragma warning restore 420
-                    _oldMemTable.AsyncWriteToSortedBlockTable(_manifest, _rotationEvent);
+
+                    ThreadPool.QueueUserWorkItem((o) => {
+                        lock (memTableRotationLock) {
+                            _rotatedJournaledMemTable.WriteToSortedBlockTable(_manifest);
+                            _rotatedJournaledMemTable = null;
+                        }
+                    });
                 }
             }
         }
@@ -114,8 +127,8 @@ namespace RazorDB {
         }
 
         public void Close() {
-            if (!_rotationEvent.WaitOne(30000)) {
-                throw new TimeoutException("Timed out waiting for memtable rotation to complete.");
+            lock (memTableRotationLock) {
+                // Make sure any inflight rotations have occurred before shutting down.
             }
             if (_tableManager != null) {
                 _tableManager.Close();

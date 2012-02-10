@@ -70,16 +70,9 @@ namespace RazorDB {
             get { return _memTable.LastKey; }
         }
 
-        public void AsyncWriteToSortedBlockTable(Manifest manifest, ManualResetEvent completed) {
+        public void WriteToSortedBlockTable(Manifest manifest) {
             // Close the journal file, we don't need it anymore
             _journal.Close();
-            ThreadPool.QueueUserWorkItem((o) => {
-                WriteToSortedBlockTable(manifest);
-                completed.Set();
-            });
-        }
-
-        public void WriteToSortedBlockTable(Manifest manifest) {
             // Write out the contents of the memtable to our level-0 sbt log
             _memTable.WriteToSortedBlockTable(_baseFileName, 0, _version);
             // Commit the new pages to the manifest
