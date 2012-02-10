@@ -162,25 +162,36 @@ namespace RazorDBTests {
         [Test]
         public void BulkSetWithDelete() {
 
+            int numItems = 1000000;
             string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
             using (var db = new KeyValueStore(path)) {
                 db.Manifest.Logger = msg => Console.WriteLine(msg);
                 db.Truncate();
 
-                for (int i = 0; i < 100000; i++) {
+                for (int i = 0; i < numItems; i++) {
                     byte[] key = BitConverter.GetBytes(i);
                     byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
                     db.Set(key, value);
                 }
-            }
-            using (var db = new KeyValueStore(path)) {
-                db.Manifest.Logger = msg => Console.WriteLine(msg);
 
-                for (int j = 0; j < 100000; j++) {
-                    byte[] key = BitConverter.GetBytes(j);
+                int skip = 10000;
+                // Delete every skip-th item in reverse order,
+                for (int j = numItems; j >= 0; j--) {
+                    if (j % skip == 0) {
+                        byte[] key = BitConverter.GetBytes(j);
+                        db.Delete(key);
+                    }
+                }
 
+                // Now check all the results
+                for (int k = 0; k < numItems; k++) {
+                    byte[] key = BitConverter.GetBytes(i);
                     byte[] value = db.Get(key);
-                    Assert.AreEqual(Encoding.UTF8.GetBytes("Number " + j.ToString()), value, string.Format("{0}", j));
+                    if (k % skip == 0) {
+                        Assert.IsNull(value);
+                    } else {
+                        Assert.AreEqual(Encoding.UTF8.GetBytes("Number " + k.ToString()), value, string.Format("{0}", k));
+                    }
                 }
             }
         }
