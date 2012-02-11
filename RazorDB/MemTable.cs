@@ -87,6 +87,12 @@ namespace RazorDB {
             }
         }
 
+        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> Enumerate() {
+            return _internalTable
+                .Select(pair => new KeyValuePair<ByteArray, ByteArray>(pair.Key, pair.Value.Last().Value))
+                .OrderBy((pair) => pair.Key);
+        }
+
         public void ReadFromJournal(string fileName, int version) {
             lock (_tableLock) {
                 JournalReader jr = new JournalReader(fileName, version);

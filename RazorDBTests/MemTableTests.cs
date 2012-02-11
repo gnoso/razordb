@@ -42,7 +42,7 @@ namespace RazorDBTests {
         public void SetItemsMultipleTimes() {
 
             MemTable mt = new MemTable();
-
+            
             Dictionary<ByteArray, ByteArray> values = new Dictionary<ByteArray, ByteArray>();
 
             for (int i = 0; i < 10000; i++) {
@@ -59,7 +59,8 @@ namespace RazorDBTests {
                 Assert.AreEqual(pair.Value, value);
             }
             Assert.IsFalse(mt.Lookup(ByteArray.Random(4), out value));
-
+            Assert.AreEqual(10, mt.Enumerate().Count());
+            Assert.AreEqual(10, values.Count);
             Assert.AreEqual(10000 * (4 + 256), mt.Size);
         }
 

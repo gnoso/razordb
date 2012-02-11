@@ -185,7 +185,7 @@ namespace RazorDBTests {
 
                 // Now check all the results
                 for (int k = 0; k < numItems; k++) {
-                    byte[] key = BitConverter.GetBytes(i);
+                    byte[] key = BitConverter.GetBytes(k);
                     byte[] value = db.Get(key);
                     if (k % skip == 0) {
                         Assert.IsNull(value);
@@ -221,9 +221,6 @@ namespace RazorDBTests {
                 Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
             }
 
-            Manifest mf = new Manifest(path);
-            mf.Logger = (msg) => { Console.WriteLine(msg); };
-            mf.LogContents();
        }
 
         [Test]
