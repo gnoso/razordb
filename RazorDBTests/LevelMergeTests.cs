@@ -174,5 +174,55 @@ namespace RazorDBTests {
             Console.WriteLine("Wrote a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
 
+        [Test]
+        public void LevelMergeDuplicateValuesTest() {
+
+            string path = Path.GetFullPath("TestData\\LevelMergeDuplicateValuesTest");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+            foreach (string file in Directory.GetFiles(path)) {
+                File.Delete(file);
+            }
+            
+            int num_tables_to_merge = 4;
+            int items_per_table = 2500;
+            int totalData = 0;
+            for (int i = 0; i < num_tables_to_merge; i++) {
+                var mt = new MemTable();
+                for (int j = 0; j < items_per_table; j++) {
+                    int numToStore = j % 100;
+                    var key = new ByteArray(BitConverter.GetBytes(numToStore));
+                    var value = new ByteArray(BitConverter.GetBytes(j));
+                    mt.Add(key, value);
+                }
+                mt.WriteToSortedBlockTable("TestData\\LevelMergeDuplicateValuesTest", 0, i);
+                totalData += mt.Size;
+            }
+
+            var timer = new Stopwatch();
+            timer.Start();
+
+            Manifest mf = new Manifest("TestData\\LevelMergeDuplicateValuesTest");
+            var outputTables = SortedBlockTable.MergeTables(mf, 1, new List<PageRef>{
+                                                                                                new PageRef { Level = 0, Version = 0},
+                                                                                                new PageRef { Level = 0, Version = 1},
+                                                                                                new PageRef { Level = 0, Version = 2},
+                                                                                                new PageRef { Level = 0, Version = 3}
+                                                                                            });
+            timer.Stop();
+
+            // Open the block table and scan it to check the stored values
+            var sbt = new SortedBlockTable(mf.BaseFileName, 1, 1);
+            try {
+                var pairs = sbt.Enumerate().ToList();
+                Assert.AreEqual(100, pairs.Count());
+                Assert.AreEqual(2400, BitConverter.ToInt32(pairs.First().Value.InternalBytes,0) );
+            } finally {
+                sbt.Close();
+            }
+
+            Console.WriteLine("Wrote a multilevel merge with duplicates at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+        }
+
     }
 }
