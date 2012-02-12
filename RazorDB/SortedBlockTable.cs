@@ -393,26 +393,29 @@ namespace RazorDB {
             return new KeyValuePair<ByteArray,ByteArray>(key,val);
         }
 
-        public static IEnumerable<KeyValuePair<ByteArray,ByteArray>> EnumerateMergedTables(string baseFileName, IEnumerable<PageRef> tableSpecs) {
-            var tables = new List<SortedBlockTable>();
-            foreach (var ts in tableSpecs) {
-                tables.Add(new SortedBlockTable(baseFileName, ts.Level, ts.Version));
+        public static IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateMergedTables(string baseFileName, IEnumerable<PageRef> tableSpecs) {
+            var tables = tableSpecs
+                .Select(pageRef => new SortedBlockTable(baseFileName, pageRef.Level, pageRef.Version))
+                .ToList();
+            try {
+                foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), p => p)) {
+                    yield return pair;
+                }
+            } finally {
+                tables.ForEach(t => t.Close());
             }
-            foreach (var pair in MergeEnumerator.Merge(tables.Select( t => t.Enumerate() ), p => p.Key)) {
-                yield return pair;
-            }
-            tables.ForEach(t => t.Close());
         }
 
         public static IEnumerable<PageRecord> MergeTables(Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs) {
 
+            var orderedTableSpecs = tableSpecs.OrderByPagePriority();
             var outputTables = new List<PageRecord>();
             SortedBlockTableWriter writer = null;
 
             ByteArray firstKey = new ByteArray();
             ByteArray lastKey = new ByteArray();
 
-            foreach (var pair in EnumerateMergedTables(mf.BaseFileName, tableSpecs)) {
+            foreach (var pair in EnumerateMergedTables(mf.BaseFileName, orderedTableSpecs)) {
                 if (writer == null) {
                     writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
                     firstKey = pair.Key;
