@@ -374,9 +374,22 @@ namespace RazorDB {
         }
     }
 
-    public struct PageRef {
+    public struct PageRef : IComparable<PageRef> {
         public int Level;
         public int Version;
+
+        // Define the order of pages by the merging priority
+        // Higher priority is "less than"
+        public int CompareTo(PageRef other) {
+            // compare first on level, lower level is higher priority and "less than"
+            int r = Level.CompareTo(other.Level);
+            if (r == 0) {
+                // compare next on version, higher version is higher priority and "less than"
+                return -Version.CompareTo(other.Version);
+            } else {
+                return r;
+            }
+        }
     }
 
     public static class PageRefConverter {
