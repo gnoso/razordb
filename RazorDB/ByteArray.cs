@@ -22,6 +22,13 @@ namespace RazorDB {
         }
 
         public int CompareTo(ByteArray other) {
+            if (_bytes == null && other._bytes != null) {
+                return -1;
+            } else if (_bytes != null && other._bytes == null) {
+                return 1;
+            } else if (_bytes == null && other._bytes == null) {
+                return 0;
+            }
             return CompareMemCmp(_bytes, other._bytes);
         }
 
