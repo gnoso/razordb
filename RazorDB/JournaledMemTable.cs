@@ -37,7 +37,15 @@ namespace RazorDB {
         private string _baseFileName;
         private int _version;
 
-        public MemTable InternalMemTable { get { return _memTable; } }
+        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateSnapshot() {
+            // Grab sorted copy of the internal memtable contents
+            return _memTable.Enumerate().ToList();
+        }
+        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateSnapshotFromKey(ByteArray key) {
+            // Grab sorted copy of the internal memtable contents
+            return _memTable.Enumerate().ToList().Where( pair => pair.Key.CompareTo(key) > 0 );
+        }
+
         public int Version { get { return _version; } }
 
         public bool Add(ByteArray key, ByteArray value) {

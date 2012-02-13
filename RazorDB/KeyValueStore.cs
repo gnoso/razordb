@@ -108,12 +108,12 @@ namespace RazorDB {
             // Now check the files on disk
             using (var manifestSnapshot = _manifest.GetSnapshot()) {
                 // Main MemTable
-                enumerators.Add(_currentJournaledMemTable.InternalMemTable.Enumerate());
+                enumerators.Add(_currentJournaledMemTable.EnumerateSnapshot());
 
                 // Capture copy of the rotated table if there is one
                 var rotatedMemTable = _rotatedJournaledMemTable;
                 if (rotatedMemTable != null) {
-                    enumerators.Add(_currentJournaledMemTable.InternalMemTable.Enumerate());
+                    enumerators.Add(rotatedMemTable.EnumerateSnapshot());
                 }
 
                 for (int i = 0; i < manifestSnapshot.Manifest.NumLevels; i++) {
@@ -128,6 +128,36 @@ namespace RazorDB {
                 }
             }
         }
+
+        public IEnumerable<KeyValuePair<byte[], byte[]>> EnumerateFromKey(byte[] startingKey) {
+
+            var enumerators = new List<IEnumerable<KeyValuePair<ByteArray, ByteArray>>>();
+            ByteArray key = new ByteArray(startingKey);
+
+            // Now check the files on disk
+            using (var manifestSnapshot = _manifest.GetSnapshot()) {
+                // Main MemTable
+                enumerators.Add(_currentJournaledMemTable.EnumerateSnapshotFromKey(key));
+
+                // Capture copy of the rotated table if there is one
+                var rotatedMemTable = _rotatedJournaledMemTable;
+                if (rotatedMemTable != null) {
+                    enumerators.Add(rotatedMemTable.EnumerateSnapshotFromKey(key));
+                }
+
+                for (int i = 0; i < manifestSnapshot.Manifest.NumLevels; i++) {
+                    var pages = manifestSnapshot.Manifest.GetPagesAtLevel(i)
+                        .OrderByDescending(page => page.Level)
+                        .Select(page => new SortedBlockTable(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version).EnumerateFromKey(_blockIndexCache, key));
+                    enumerators.AddRange(pages);
+                }
+
+                foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
+                    yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                }
+            }
+        }
+
 
         private object memTableRotationLock = new object();
         private JournaledMemTable _rotatedJournaledMemTable;

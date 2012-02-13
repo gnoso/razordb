@@ -6,3 +6,5 @@ External/*
 *.pidb
 */test-results/*
 test-results/*
+NDependOut/*
+RazorDB.ndproj
