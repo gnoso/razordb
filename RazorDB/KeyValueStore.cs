@@ -101,6 +101,34 @@ namespace RazorDB {
             Set(key, new byte[0]);
         }
 
+        public IEnumerable<KeyValuePair<byte[], byte[]>> Enumerate() {
+
+            var enumerators = new List<IEnumerable<KeyValuePair<ByteArray, ByteArray>>>();
+            
+            // Now check the files on disk
+            using (var manifestSnapshot = _manifest.GetSnapshot()) {
+                // Main MemTable
+                enumerators.Add(_currentJournaledMemTable.InternalMemTable.Enumerate());
+
+                // Capture copy of the rotated table if there is one
+                var rotatedMemTable = _rotatedJournaledMemTable;
+                if (rotatedMemTable != null) {
+                    enumerators.Add(_currentJournaledMemTable.InternalMemTable.Enumerate());
+                }
+
+                for (int i = 0; i < manifestSnapshot.Manifest.NumLevels; i++) {
+                    var pages = manifestSnapshot.Manifest.GetPagesAtLevel(i)
+                        .OrderByDescending(page => page.Level)
+                        .Select(page => new SortedBlockTable(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version).Enumerate());
+                    enumerators.AddRange(pages);
+                }
+
+                foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
+                    yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                }
+            }
+        }
+
         private object memTableRotationLock = new object();
         private JournaledMemTable _rotatedJournaledMemTable;
         private AutoResetEvent _rotationGate = new AutoResetEvent(true);
