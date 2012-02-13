@@ -392,7 +392,26 @@ namespace RazorDB {
         }
     }
 
+    public struct Ranked<T> {
+        public Ranked(T value, int rank) {
+            Value = value;
+            Rank = rank;
+        }
+        public T Value;
+        public int Rank;
+    }
+
     public static class PageRefConverter {
+        public static IEnumerable<Ranked<T>> AsRanked<T>(this IEnumerable<T> items) {
+            int i = 0;
+            foreach (var item in items) {
+                yield return new Ranked<T>(item, i);
+                i++;
+            }
+        }
+        public static IEnumerable<PageRef> OrderByPagePriority(this IEnumerable<PageRef> pages) {
+            return pages.OrderBy(page => page);
+        }
         public static IEnumerable<PageRef> AsPageRefs(this IEnumerable<PageRecord> pageRecords) {
             return pageRecords.Select(record => new PageRef { Level = record.Level, Version = record.Version });
         }

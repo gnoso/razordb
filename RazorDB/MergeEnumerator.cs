@@ -14,35 +14,53 @@ namespace RazorDB {
             return Merge(enumerables, o => o);
         }
 
-        public static IEnumerable<T> Merge<T,TKey>(IEnumerable<IEnumerable<T>> enumerables, Func<T,TKey> keySelector) {
+        public static IEnumerable<T> Merge<T,TKey>(IEnumerable<IEnumerable<T>> enumerables, Func<T,TKey> keyExtractor) {
 
             // Get enumerators for each enumerable
-            var enumerators = enumerables.Select( e => e.GetEnumerator() );
-            var nonEmptyEnums = new List<IEnumerator<T>>();
+            var enumerators = enumerables.Select( e => e.GetEnumerator() ).AsRanked();
+            var nonEmptyEnums = new List<Ranked<IEnumerator<T>>>();
 
             // move ahead and prune out empty enumerators
             foreach (var e in enumerators) {
-                if (e.MoveNext()) {
+                if (e.Value.MoveNext()) {
                     nonEmptyEnums.Add(e);
                 } else {
-                    e.Dispose();
+                    e.Value.Dispose();
                 }
             }
 
+            // Construct the expression to compare the enumerators, taking rank into account
+            Comparison<Ranked<IEnumerator<T>>> comparer = (x, y) => {
+                int c = Comparer<TKey>.Default.Compare( keyExtractor(x.Value.Current), keyExtractor(y.Value.Current) );
+                if (c == 0) {
+                    // If they are equal, then compare the ranks
+                    return x.Rank.CompareTo(y.Rank);
+                } else {
+                    return c;
+                }
+            };
+
             // order them by the first (current) element and put into a linked list
-            nonEmptyEnums.Sort( (x,y) => Comparer<TKey>.Default.Compare( keySelector(x.Current), keySelector(y.Current) ) );
-            var workingEnums = new LinkedList<IEnumerator<T>>(nonEmptyEnums);
+            nonEmptyEnums.Sort( comparer );
+            var workingEnums = new LinkedList<Ranked<IEnumerator<T>>>(nonEmptyEnums);
 
             int totalEnumerators = workingEnums.Count;
+            TKey lastKeyValue = default(TKey);
             while (totalEnumerators > 0) {
 
                 var firstEnum = workingEnums.First;
-                yield return firstEnum.Value.Current;
+                T yieldValue = firstEnum.Value.Value.Current;
+
+                // Yield the value if the key isn't the same as the previously yielded value
+                if (Comparer<TKey>.Default.Compare(keyExtractor(yieldValue), lastKeyValue) != 0) {
+                    yield return yieldValue;
+                }
+                lastKeyValue = keyExtractor(yieldValue);
 
                 // advance this enumerator to the next spot
-                if (!firstEnum.Value.MoveNext()) {
+                if (!firstEnum.Value.Value.MoveNext()) {
                     // ok this enumerator is done, so remove it
-                    firstEnum.Value.Dispose();
+                    firstEnum.Value.Value.Dispose();
                     workingEnums.RemoveFirst();
                     totalEnumerators--;
                 } else {
@@ -55,7 +73,7 @@ namespace RazorDB {
                             workingEnums.AddLast(e);
                             break;
                         }
-                        if (Comparer<TKey>.Default.Compare( keySelector(currentNode.Value.Current), keySelector(e.Current) ) >= 0) {
+                        if (comparer(currentNode.Value, e) >= 0) {
                             workingEnums.AddBefore(currentNode, e);
                             break;
                         }

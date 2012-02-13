@@ -398,7 +398,7 @@ namespace RazorDB {
                 .Select(pageRef => new SortedBlockTable(baseFileName, pageRef.Level, pageRef.Version))
                 .ToList();
             try {
-                foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), p => p)) {
+                foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), t => t.Key)) {
                     yield return pair;
                 }
             } finally {

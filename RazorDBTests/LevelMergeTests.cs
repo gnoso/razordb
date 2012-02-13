@@ -84,7 +84,7 @@ namespace RazorDBTests {
             ByteArray key = new ByteArray(new byte[]{0});
             var timer = new Stopwatch();
             timer.Start();
-            foreach (var pair in MergeEnumerator.Merge(tables, pair => pair.Key )) {
+            foreach (var pair in MergeEnumerator.Merge(tables, p => p.Key)) {
                 Assert.True(key.CompareTo(pair.Key) < 0);
                 key = pair.Key;
                 ct++;
