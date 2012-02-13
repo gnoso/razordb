@@ -61,7 +61,6 @@ namespace RazorDBTests {
             Assert.IsFalse(mt.Lookup(ByteArray.Random(4), out value));
             Assert.AreEqual(10, mt.Enumerate().Count());
             Assert.AreEqual(10, values.Count);
-            Assert.AreEqual(10000 * (4 + 256), mt.Size);
         }
 
         [Test]

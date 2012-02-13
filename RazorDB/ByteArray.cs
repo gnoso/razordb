@@ -18,7 +18,7 @@ namespace RazorDB {
         public byte[] InternalBytes { get { return _bytes; } }
 
         public int Length {
-            get { return _bytes.Length; }
+            get { return _bytes == null ? 0 : _bytes.Length; }
         }
 
         public int CompareTo(ByteArray other) {
