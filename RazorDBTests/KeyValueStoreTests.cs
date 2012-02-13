@@ -427,6 +427,61 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void BulkSetEnumerateAll2() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetEnumerateAll2");
+            var timer = new Stopwatch();
+            int totalSize = 0;
+            int readSize = 0;
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                timer.Start();
+                for (int i = 0; i < 105000; i++) {
+                    var randomKey = BitConverter.GetBytes(i);
+                    var randomValue = BitConverter.GetBytes(i);
+                    db.Set(randomKey, randomValue);
+
+                    readSize += randomKey.Length + randomValue.Length;
+                    totalSize += randomKey.Length + randomValue.Length;
+                }
+                timer.Stop();
+                Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                timer.Reset();
+                Console.WriteLine("Begin enumeration.");
+                timer.Start();
+                ByteArray lastKey = new ByteArray();
+                int ct = 0;
+                foreach (var pair in db.Enumerate()) {
+                    try {
+                        ByteArray k = new ByteArray(pair.Key);
+                        ByteArray v = new ByteArray(pair.Value);
+                        Assert.AreEqual(k, v);
+                        Assert.True(lastKey.CompareTo(k) < 0);
+                        lastKey = k;
+                        ct++;
+                    } catch (Exception /*e*/) {
+                        //Console.WriteLine("Key: {0}\n{1}",insertedItem.Key,e);
+                        //Debugger.Launch();
+                        //db.Get(insertedItem.Key.InternalBytes);
+                        //db.Manifest.LogContents();
+                        throw;
+                    }
+                }
+                timer.Stop();
+                Assert.AreEqual(105000, ct, "105000 items should be enumerated.");
+
+                Console.WriteLine("Enumerated read throughput of {0} MB/s (avg {1} ms per 1000 items)", (double)readSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)105);
+            }
+
+        }
+
+
+        [Test]
         public void BulkSetEnumerateFromKey() {
 
             string path = Path.GetFullPath("TestData\\BulkSetEnumerateFromKey");
@@ -450,11 +505,6 @@ namespace RazorDBTests {
                 }
                 timer.Stop();
                 Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
-            }
-            // Close and re-open the database to force all the sstable merging to complete.
-            using (var db = new KeyValueStore(path)) {
-
-                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
 
                 timer.Reset();
                 Console.WriteLine("Begin enumeration.");
