@@ -173,9 +173,12 @@ namespace RazorDB {
                     _rotatedJournaledMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
 
                     ThreadPool.QueueUserWorkItem((o) => {
-                        _rotatedJournaledMemTable.WriteToSortedBlockTable(_manifest);
-                        _rotatedJournaledMemTable = null;
-                        _rotationGate.Set(); // Open the gate for the next rotation
+                        try {
+                            _rotatedJournaledMemTable.WriteToSortedBlockTable(_manifest);
+                            _rotatedJournaledMemTable = null;
+                        } finally {
+                            _rotationGate.Set(); // Open the gate for the next rotation
+                        }
                     });
                 }
             }
