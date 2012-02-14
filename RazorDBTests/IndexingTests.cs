@@ -70,7 +70,52 @@ namespace RazorDBTests {
                 Assert.AreEqual("2", Encoding.UTF8.GetString(seqs[1]));
                 Assert.AreEqual("3", Encoding.UTF8.GetString(seqs[2]));
                 Assert.AreEqual("4", Encoding.UTF8.GetString(seqs[3]));
+
+                var fib = db.Find("NumberType", Encoding.UTF8.GetBytes("Fib")).ToList();
+                Assert.AreEqual(4, seqs.Count());
+                Assert.AreEqual("1123", Encoding.UTF8.GetString(fib[0]));
+                Assert.AreEqual("112", Encoding.UTF8.GetString(fib[1]));
+                Assert.AreEqual("11235", Encoding.UTF8.GetString(fib[2]));
+                Assert.AreEqual("112358", Encoding.UTF8.GetString(fib[3]));
+
+                var non = db.Find("NoIndex", new byte[] { 23 }).ToList();
+                Assert.AreEqual(0, non.Count());
+                non = db.Find("NumberType", Encoding.UTF8.GetBytes("Unfound")).ToList();
+                Assert.AreEqual(0, non.Count());
             }
         }
+
+        [Test]
+        public void AddObjectsAndLookupWhileMerging() {
+
+            string path = Path.GetFullPath("TestData\\AddObjectsAndLookup");
+            var timer = new Stopwatch();
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+                int totalSize = 0;
+                db.Manifest.Logger = msg => Console.WriteLine(msg);
+
+                var indexed = new SortedDictionary<string, byte[]>();
+                int num_items = 1000000;
+                timer.Start();
+                for (int i = 0; i < num_items; i++) {
+                    indexed["Mod"] = BitConverter.GetBytes(i % 100);
+                    db.Set(BitConverter.GetBytes(i), BitConverter.GetBytes(i * 1000), indexed);
+                    totalSize += 8 + 4;
+                }
+                timer.Stop();
+
+                Console.WriteLine("Wrote data (with indexing) at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                timer.Reset();
+                timer.Start();
+                var ctModZeros = db.Find("Mod", BitConverter.GetBytes(0)).Select( bytes => BitConverter.ToInt32(bytes,0)).Count();
+                timer.Stop();
+                Assert.AreEqual(10000, ctModZeros);
+                Console.WriteLine("Scanned index at a throughput of {0} items/s", (double) ctModZeros / timer.Elapsed.TotalSeconds);
+            }
+        }
+
     }
 }

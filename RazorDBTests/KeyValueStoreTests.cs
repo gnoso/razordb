@@ -480,6 +480,39 @@ namespace RazorDBTests {
 
         }
 
+        [Test]
+        public void BulkSetEnumerateAll3() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetEnumerateAll3");
+            var timer = new Stopwatch();
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+                int totalSize = 0;
+                db.Manifest.Logger = msg => Console.WriteLine(msg);
+
+                int num_items = 1000000;
+                timer.Start();
+                for (int i = 0; i < num_items; i++) {
+                    byte[] key = new byte[8];
+                    BitConverter.GetBytes(i % 100).CopyTo(key,0);
+                    BitConverter.GetBytes(i).CopyTo(key,4);
+                    byte[] value = BitConverter.GetBytes(i);
+                    db.Set(key, value);
+                    totalSize += 8 + 4;
+                }
+                timer.Stop();
+
+                Console.WriteLine("Wrote data (with indexing) at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                timer.Reset();
+                timer.Start();
+                var ctModZeros = db.EnumerateFromKey(BitConverter.GetBytes(0)).Count();
+                timer.Stop();
+                
+                Console.WriteLine("Scanned index at a throughput of {0} items/s", (double) ctModZeros / timer.Elapsed.TotalSeconds);
+            }
+        }
 
         [Test]
         public void BulkSetEnumerateFromKey() {

@@ -53,6 +53,8 @@ namespace RazorDB {
             _tableManager = new TableManager(_manifest);
             _blockIndexCache = new Cache();
             _secondaryIndexes = new Dictionary<string, KeyValueStore>();
+
+            Manifest.LogMessage("Database Truncated.");
         }
 
         public void Set(byte[] key, byte[] value) {
@@ -98,6 +100,9 @@ namespace RazorDB {
             lock (_secondaryIndexes) {
                 if (!_secondaryIndexes.TryGetValue(IndexName, out indexStore)) {
                     indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName));
+                    if (Manifest.Logger != null) {
+                        indexStore.Manifest.Logger = msg => Manifest.Logger(string.Format("{0}: {1}", IndexName, msg));
+                    }
                     _secondaryIndexes.Add(IndexName, indexStore);
                 }
             }
@@ -147,8 +152,11 @@ namespace RazorDB {
                 var key = pair.Key;
                 var value = pair.Value;
                 // construct our index key pattern (lookupvalue | key)
-                if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0 &&
-                    ByteArray.CompareMemCmp(key, lookupValue.Length, value, 0, value.Length) == 0) {
+                if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+                    if (ByteArray.CompareMemCmp(key, lookupValue.Length, value, 0, value.Length) != 0) {
+                        throw new InvalidDataException("Key data is invalid.");
+                    }
+
                     // Lookup the value of the actual object using the key that was found
                     var primaryValue = Get(value);
                     if (primaryValue != null)

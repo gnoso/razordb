@@ -9,8 +9,8 @@ namespace RazorDB {
 
     public class Manifest {
 
-        public Manifest(string baseFileName) {
-            _baseFileName = baseFileName;
+        // private constructor for making a clone without going through all the other constructor stuff
+        private Manifest() {
             _pages = new List<PageRecord>[num_levels];
             _mergeKeys = new ByteArray[num_levels];
             for (int i = 0; i < num_levels; i++) {
@@ -18,6 +18,10 @@ namespace RazorDB {
                 _mergeKeys[i] = new ByteArray(new byte[0]);
             }
             _snapshot = false;
+        }
+
+        public Manifest(string baseFileName) : this() {
+            _baseFileName = baseFileName;
             Read();
         }
         private object manifestLock = new object();
@@ -157,7 +161,8 @@ namespace RazorDB {
 
         private Manifest GetSnapshotInstance() {
             // Clone this copy of the manifest
-            Manifest clone = new Manifest(BaseFileName);
+            Manifest clone = new Manifest();
+            clone._baseFileName = _baseFileName;
             clone._manifestVersion = _manifestVersion;
             for (int v=0; v < _versions.Length; v++) {
                 clone._versions[v] = _versions[v];
@@ -165,6 +170,7 @@ namespace RazorDB {
             for (int p = 0; p < _pages.Length; p++) {
                 clone._pages[p] = new List<PageRecord>();
                 foreach (var page in _pages[p]) {
+                    page.AddRef();
                     clone._pages[p].Add(page);
                 }
             }
@@ -347,7 +353,11 @@ namespace RazorDB {
             }
         }
 
-        public Action<string> Logger { get; set; }
+        private Action<string> _logger;
+        public Action<string> Logger {
+            get { return _logger; }
+            set { _logger = value; } 
+        }
 
         public void LogMessage(string format, params object[] parms) {
             if (Logger != null) {
