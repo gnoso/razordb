@@ -44,6 +44,9 @@ namespace RazorDB {
             foreach (string file in Directory.GetFiles(basePath, "*.*", SearchOption.AllDirectories)) {
                 File.Delete(file);
             }
+            foreach (string dir in Directory.GetDirectories(basePath, "*.*", SearchOption.AllDirectories)) {
+                Directory.Delete(dir,true);
+            }
 
             _manifest = new Manifest(basePath);
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));

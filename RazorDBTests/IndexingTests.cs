@@ -13,6 +13,28 @@ namespace RazorDBTests {
     public class IndexingTests {
 
         [Test]
+        public void TruncateTest() {
+
+            string path = Path.GetFullPath("TestData\\TruncateTest");
+            using (var db = new KeyValueStore(path)) {
+                var indexed = new SortedDictionary<string, byte[]>();
+                for ( int i=0; i < 15000; i++) {
+                    indexed["RandomIndex"] = ByteArray.Random(20).InternalBytes;
+                    var randKey = ByteArray.Random(40);
+                    var randValue = ByteArray.Random(256);
+                    db.Set(randKey.InternalBytes, randValue.InternalBytes, indexed);
+                }
+            }
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+            }
+            var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
+            Assert.AreEqual(new string[] { Path.GetFullPath(Path.Combine(path,"0.jf")) }, files);
+            var dirs = Directory.GetDirectories(path, "*.*", SearchOption.AllDirectories);
+            Assert.AreEqual(new string[0], dirs);
+        }
+
+        [Test]
         public void AddObjectsAndLookup() {
 
             string path = Path.GetFullPath("TestData\\AddObjectsAndLookup");
