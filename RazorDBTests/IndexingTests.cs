@@ -110,7 +110,7 @@ namespace RazorDBTests {
 
                 timer.Reset();
                 timer.Start();
-                var ctModZeros = db.Find("Mod", BitConverter.GetBytes(0)).Select( bytes => BitConverter.ToInt32(bytes,0)).Count();
+                var ctModZeros = db.Find("Mod", BitConverter.GetBytes((int)0)).Count();
                 timer.Stop();
                 Assert.AreEqual(10000, ctModZeros);
                 Console.WriteLine("Scanned index at a throughput of {0} items/s", (double) ctModZeros / timer.Elapsed.TotalSeconds);
