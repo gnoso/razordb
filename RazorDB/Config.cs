@@ -22,6 +22,9 @@ namespace RazorDB {
         public static string ManifestFile(string baseName) {
             return string.Format("{0}\\0.mf", baseName);
         }
+        public static string IndexBaseName(string baseName, string indexName) {
+            return string.Format("{0}\\{1}", baseName, indexName);
+        }
         public static int MaxPagesOnLevel(int level) {
             if (level == 0) {
                 return 4;

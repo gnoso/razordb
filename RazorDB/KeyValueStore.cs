@@ -27,6 +27,7 @@ namespace RazorDB {
         private Manifest _manifest;
         private TableManager _tableManager;
         private Cache _blockIndexCache;
+        private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string,KeyValueStore>();
 
         public Manifest Manifest { get { return _manifest; } }
 
@@ -35,9 +36,12 @@ namespace RazorDB {
         public void Truncate() {
             _currentJournaledMemTable.Close();
             _tableManager.Close();
+            foreach (var pair in _secondaryIndexes) {
+                pair.Value.Close();
+            }
 
             string basePath = Path.GetFullPath(Manifest.BaseFileName);
-            foreach (string file in Directory.GetFiles(basePath, "*.*", SearchOption.TopDirectoryOnly)) {
+            foreach (string file in Directory.GetFiles(basePath, "*.*", SearchOption.AllDirectories)) {
                 File.Delete(file);
             }
 
@@ -45,9 +49,14 @@ namespace RazorDB {
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
             _tableManager = new TableManager(_manifest);
             _blockIndexCache = new Cache();
+            _secondaryIndexes = new Dictionary<string, KeyValueStore>();
         }
 
         public void Set(byte[] key, byte[] value) {
+            Set(key, value, null);
+        }
+
+        public void Set(byte[] key, byte[] value, IDictionary<string, byte[]> indexedValues) {
             var k = new ByteArray(key);
             var v = new ByteArray(value);
 
@@ -57,10 +66,39 @@ namespace RazorDB {
                 if (adds <= 0)
                     throw new InvalidOperationException("Failed too many times trying to add an item to the JournaledMemTable");
             }
+            // Add secondary index values if they were provided
+            if (indexedValues != null)
+                AddToIndex(key, indexedValues);
 
             if (_currentJournaledMemTable.Full) {
                 RotateMemTable();
             }
+        }
+
+        private void AddToIndex(byte[] key, IDictionary<string, byte[]> indexedValues) {
+            foreach (var pair in indexedValues) {
+                string IndexName = pair.Key;
+
+                // Construct Index key by concatenating the indexed value and the target key
+                byte[] indexValue = pair.Value;
+                byte[] indexKey = new byte[key.Length + indexValue.Length];
+                indexValue.CopyTo(indexKey, 0);
+                key.CopyTo(indexKey, indexValue.Length);
+
+                KeyValueStore indexStore = GetSecondaryIndex(IndexName);
+                indexStore.Set(indexKey, key);
+            }
+        }
+
+        private KeyValueStore GetSecondaryIndex(string IndexName) {
+            KeyValueStore indexStore = null;
+            lock (_secondaryIndexes) {
+                if (!_secondaryIndexes.TryGetValue(IndexName, out indexStore)) {
+                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName));
+                    _secondaryIndexes.Add(IndexName, indexStore);
+                }
+            }
+            return indexStore;
         }
 
         public byte[] Get(byte[] key) {
@@ -96,6 +134,27 @@ namespace RazorDB {
             }
             // OK, not found anywhere, return null
             return null;
+        }
+
+        public IEnumerable<byte[]> Find(string indexName, byte[] lookupValue) {
+
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+            // Loop over the values
+            foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
+                var key = pair.Key;
+                var value = pair.Value;
+                // construct our index key pattern (lookupvalue | key)
+                if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0 &&
+                    ByteArray.CompareMemCmp(key, lookupValue.Length, value, 0, value.Length) == 0) {
+                    // Lookup the value of the actual object using the key that was found
+                    var primaryValue = Get(value);
+                    if (primaryValue != null)
+                        yield return primaryValue;
+                } else {
+                    // if the above condition was not met then we must have enumerated past the end of the indexed value
+                    yield break;
+                }
+            }
         }
 
         public void Delete(byte[] key) {
@@ -205,6 +264,13 @@ namespace RazorDB {
                 _currentJournaledMemTable.Close();
                 _currentJournaledMemTable = null;
             }
+
+            if (_secondaryIndexes != null) {
+                foreach (var idx in _secondaryIndexes) {
+                    idx.Value.Close();
+                }
+            }
+
             // Don't finalize since we already closed it.
             GC.SuppressFinalize(this);
         }

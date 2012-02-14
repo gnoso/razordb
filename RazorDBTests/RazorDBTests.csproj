@@ -38,6 +38,7 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IndexingTests.cs" />
     <Compile Include="KeyValueStoreTests.cs" />
     <Compile Include="ByteArrayTests.cs" />
     <Compile Include="JournalTests.cs" />
