@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Threading;
+using System.Diagnostics;
 
 namespace RazorDB {
 
@@ -164,6 +165,8 @@ namespace RazorDB {
             Manifest clone = new Manifest();
             clone._baseFileName = _baseFileName;
             clone._manifestVersion = _manifestVersion;
+            clone._logger = _logger;
+
             for (int v=0; v < _versions.Length; v++) {
                 clone._versions[v] = _versions[v];
             }
@@ -348,7 +351,7 @@ namespace RazorDB {
                 LogMessage("Version: {0}", _versions[level]);
                 var pages = GetPagesAtLevel(level);
                 foreach (var page in pages) {
-                    LogMessage("Page {0}-{1} [{2} -> {3}]", page.Level, page.Version, page.FirstKey, page.LastKey);
+                    LogMessage("Page {0}-{1} [{2} -> {3}] Ref({4})", page.Level, page.Version, page.FirstKey, page.LastKey, page.RefCount);
                 }
             }
         }
@@ -364,6 +367,13 @@ namespace RazorDB {
                 Logger( string.Format(format, parms));   
             }
         }
+
+        [Conditional("DEBUG")]
+        public void DebugMessage(string format, params object[] parms) {
+            if (Logger != null) {
+                Logger(string.Format(format, parms));
+            }
+        }
     }
 
     public class ManifestSnapshot : IDisposable {
@@ -371,7 +381,6 @@ namespace RazorDB {
         public ManifestSnapshot(Manifest owner, Manifest manifest) {
             _owner = owner;
             _manifest = manifest;
-            _manifest.AddRefAllPages();
         }
         private Manifest _owner;
         private Manifest _manifest;
@@ -450,6 +459,8 @@ namespace RazorDB {
 
         private Manifest _owner;
         private int _snapshotReferenceCount;
+        public int RefCount { get { return _snapshotReferenceCount; } }
+
         public void AddRef() {
             Interlocked.Increment(ref _snapshotReferenceCount);
         }

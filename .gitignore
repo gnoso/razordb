@@ -8,3 +8,4 @@ External/*
 test-results/*
 NDependOut/*
 RazorDB.ndproj
+Release/*
