@@ -124,18 +124,18 @@ namespace RazorDB {
                 }
             }
             // Now check the files on disk
-            using (var manifestSnapshot = _manifest.GetSnapshot()) {
+            using (var manifest = _manifest.GetLatestManifest()) {
                 // Must check all pages on level 0
-                var zeroPages = manifestSnapshot.Manifest.GetPagesAtLevel(0);
+                var zeroPages = manifest.GetPagesAtLevel(0);
                 foreach (var page in zeroPages) {
-                    if (SortedBlockTable.Lookup(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
                         return output.Length == 0 ? null : output.InternalBytes;
                     }
                 }
                 // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
-                for (int level = 1; level < manifestSnapshot.Manifest.NumLevels; level++) {
-                    var page = manifestSnapshot.Manifest.FindPageForKey(level, lookupKey);
-                    if (page != null && SortedBlockTable.Lookup(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                for (int level = 1; level < manifest.NumLevels; level++) {
+                    var page = manifest.FindPageForKey(level, lookupKey);
+                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
                         return output.Length == 0 ? null : output.InternalBytes;
                     }
                 }
@@ -177,7 +177,7 @@ namespace RazorDB {
             var enumerators = new List<IEnumerable<KeyValuePair<ByteArray, ByteArray>>>();
             
             // Now check the files on disk
-            using (var manifestSnapshot = _manifest.GetSnapshot()) {
+            using (var manifestSnapshot = _manifest.GetLatestManifest()) {
                 // Main MemTable
                 enumerators.Add(_currentJournaledMemTable.EnumerateSnapshot());
 
@@ -187,10 +187,10 @@ namespace RazorDB {
                     enumerators.Add(rotatedMemTable.EnumerateSnapshot());
                 }
 
-                for (int i = 0; i < manifestSnapshot.Manifest.NumLevels; i++) {
-                    var pages = manifestSnapshot.Manifest.GetPagesAtLevel(i)
+                for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
+                    var pages = manifestSnapshot.GetPagesAtLevel(i)
                         .OrderByDescending(page => page.Level)
-                        .Select(page => new SortedBlockTable(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version).Enumerate());
+                        .Select(page => new SortedBlockTable(_manifest.BaseFileName, page.Level, page.Version).Enumerate());
                     enumerators.AddRange(pages);
                 }
 
@@ -208,7 +208,7 @@ namespace RazorDB {
             ByteArray key = new ByteArray(startingKey);
 
             // Now check the files on disk
-            using (var manifestSnapshot = _manifest.GetSnapshot()) {
+            using (var manifestSnapshot = _manifest.GetLatestManifest()) {
                 // Main MemTable
                 enumerators.Add(_currentJournaledMemTable.EnumerateSnapshotFromKey(key));
 
@@ -218,10 +218,10 @@ namespace RazorDB {
                     enumerators.Add(rotatedMemTable.EnumerateSnapshotFromKey(key));
                 }
 
-                for (int i = 0; i < manifestSnapshot.Manifest.NumLevels; i++) {
-                    var pages = manifestSnapshot.Manifest.GetPagesAtLevel(i)
+                for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
+                    var pages = manifestSnapshot.GetPagesAtLevel(i)
                         .OrderByDescending(page => page.Level)
-                        .Select(page => new SortedBlockTable(manifestSnapshot.Manifest.BaseFileName, page.Level, page.Version).EnumerateFromKey(_blockIndexCache, key));
+                        .Select(page => new SortedBlockTable(_manifest.BaseFileName, page.Level, page.Version).EnumerateFromKey(_blockIndexCache, key));
                     enumerators.AddRange(pages);
                 }
 

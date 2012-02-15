@@ -33,11 +33,11 @@ namespace RazorDBTests {
             Assert.AreEqual(1, mf.ManifestVersion);
 
             var mf2 = new Manifest(path);
-            Assert.AreEqual(1, mf2.ManifestVersion);
+            Assert.AreEqual(0, mf2.ManifestVersion);
             Assert.AreEqual(1, mf2.CurrentVersion(0));
             Assert.AreEqual(2, mf2.NextVersion(0));
             Assert.AreEqual(2, mf2.CurrentVersion(0));
-            Assert.AreEqual(2, mf2.ManifestVersion);
+            Assert.AreEqual(1, mf2.ManifestVersion);
         }
 
         [Test]
@@ -122,20 +122,22 @@ namespace RazorDBTests {
             mf.AddPage(1, 6, new ByteArray(new byte[] { 6 }), new ByteArray(new byte[] { 6, 1 }));
             mf.AddPage(1, 4, new ByteArray(new byte[] { 4 }), new ByteArray(new byte[] { 4, 1 }));
 
-            PageRecord[] pg = mf.GetPagesAtLevel(1);
-            Assert.AreEqual(1, pg[0].Level);
-            Assert.AreEqual(4, pg[0].Version);
-            Assert.AreEqual(1, pg[1].Level);
-            Assert.AreEqual(5, pg[1].Version);
-            Assert.AreEqual(1, pg[2].Level);
-            Assert.AreEqual(6, pg[2].Version);
+            using (var mfSnap = mf.GetLatestManifest()) {
+                PageRecord[] pg = mfSnap.GetPagesAtLevel(1);
+                Assert.AreEqual(1, pg[0].Level);
+                Assert.AreEqual(4, pg[0].Version);
+                Assert.AreEqual(1, pg[1].Level);
+                Assert.AreEqual(5, pg[1].Version);
+                Assert.AreEqual(1, pg[2].Level);
+                Assert.AreEqual(6, pg[2].Version);
+            }
 
             mf = new Manifest(path);
 
             mf.ModifyPages(new List<PageRecord>{
-                new PageRecord(mf, 1, 8, new ByteArray( new byte[] { 16 }), new ByteArray(new byte[] { 16, 1 }) ),
-                new PageRecord(mf, 1, 9, new ByteArray( new byte[] { 1 }), new ByteArray(new byte[] { 1, 1 }) ),
-                new PageRecord(mf, 1, 16, new ByteArray( new byte[] { 10 }), new ByteArray(new byte[] { 10, 1 }) )
+                new PageRecord(1, 8, new ByteArray( new byte[] { 16 }), new ByteArray(new byte[] { 16, 1 }) ),
+                new PageRecord(1, 9, new ByteArray( new byte[] { 1 }), new ByteArray(new byte[] { 1, 1 }) ),
+                new PageRecord(1, 16, new ByteArray( new byte[] { 10 }), new ByteArray(new byte[] { 10, 1 }) )
             }, new List<PageRef>{
                 new PageRef{ Level = 1, Version = 6},
                 new PageRef{ Level = 1, Version = 4},
@@ -143,15 +145,17 @@ namespace RazorDBTests {
 
             mf = new Manifest(path);
 
-            pg = mf.GetPagesAtLevel(1);
-            Assert.AreEqual(1, pg[0].Level);
-            Assert.AreEqual(9, pg[0].Version);
-            Assert.AreEqual(1, pg[1].Level);
-            Assert.AreEqual(5, pg[1].Version);
-            Assert.AreEqual(1, pg[2].Level);
-            Assert.AreEqual(16,pg[2].Version);
-            Assert.AreEqual(1, pg[3].Level);
-            Assert.AreEqual(8, pg[3].Version);
+            using (var mfSnap = mf.GetLatestManifest()) {
+                var pg = mfSnap.GetPagesAtLevel(1);
+                Assert.AreEqual(1, pg[0].Level);
+                Assert.AreEqual(9, pg[0].Version);
+                Assert.AreEqual(1, pg[1].Level);
+                Assert.AreEqual(5, pg[1].Version);
+                Assert.AreEqual(1, pg[2].Level);
+                Assert.AreEqual(16, pg[2].Version);
+                Assert.AreEqual(1, pg[3].Level);
+                Assert.AreEqual(8, pg[3].Version);
+            }
         }
 
         [Test]
@@ -175,24 +179,25 @@ namespace RazorDBTests {
             mf.AddPage(1, 4, new ByteArray(new byte[] { 4 }), new ByteArray(new byte[] { 4, 1 }));
             using (var file = new StreamWriter(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 4))) { file.Write("Test"); }
 
-            using (var manifestSnapshot = mf.GetSnapshot()) {
+            using (var manifestSnapshot = mf.GetLatestManifest()) {
 
                 mf.ModifyPages(new List<PageRecord>{
-                    new PageRecord(mf, 1, 8, new ByteArray( new byte[] { 16 }), new ByteArray(new byte[] { 16, 1 }) ),
-                    new PageRecord(mf, 1, 9, new ByteArray( new byte[] { 1 }), new ByteArray(new byte[] { 1, 1 }) ),
-                    new PageRecord(mf, 1, 16, new ByteArray( new byte[] { 10 }), new ByteArray(new byte[] { 10, 1 }) )
+                    new PageRecord(1, 8, new ByteArray( new byte[] { 16 }), new ByteArray(new byte[] { 16, 1 }) ),
+                    new PageRecord(1, 9, new ByteArray( new byte[] { 1 }), new ByteArray(new byte[] { 1, 1 }) ),
+                    new PageRecord(1, 16, new ByteArray( new byte[] { 10 }), new ByteArray(new byte[] { 10, 1 }) )
                 }, new List<PageRef>{
                     new PageRef{ Level = 1, Version = 6},
                     new PageRef{ Level = 1, Version = 4},
                 });
 
-                PageRecord[] pg = manifestSnapshot.Manifest.GetPagesAtLevel(1);
+                PageRecord[] pg = manifestSnapshot.GetPagesAtLevel(1);
                 Assert.AreEqual(1, pg[0].Level);
                 Assert.AreEqual(4, pg[0].Version);
                 Assert.AreEqual(1, pg[1].Level);
                 Assert.AreEqual(5, pg[1].Version);
                 Assert.AreEqual(1, pg[2].Level);
                 Assert.AreEqual(6, pg[2].Version);
+
                 // The files should still exist for now
                 Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 4)));
                 Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 5)));

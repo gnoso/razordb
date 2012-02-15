@@ -424,13 +424,13 @@ namespace RazorDB {
                 lastKey = pair.Key;
                 if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {
                     writer.Close();
-                    outputTables.Add(new PageRecord(mf, destinationLevel, writer.Version, firstKey, lastKey));
+                    outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
                     writer = null;
                 }
             }
             if (writer != null) {
                 writer.Close();
-                outputTables.Add(new PageRecord(mf, destinationLevel, writer.Version, firstKey, lastKey));
+                outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
             }
 
             return outputTables;

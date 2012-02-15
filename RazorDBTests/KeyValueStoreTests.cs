@@ -124,10 +124,14 @@ namespace RazorDBTests {
                 }
                 // There is a chance that this could happen fast enough to make this assertion fail on some machines, but it should be unlikely.
                 // The goal is to reproduce the race condition. If this assert succeeds then we have reproduced it.
-                Assert.IsFalse(db.Manifest.GetPagesAtLevel(0).Length > 0);
+                using (var mf = db.Manifest.GetLatestManifest()) {
+                    Assert.IsFalse(mf.GetPagesAtLevel(0).Length > 0);
+                }
             }
             using (var db = new KeyValueStore(path)) {
-                Assert.IsTrue(db.Manifest.GetPagesAtLevel(0).Length > 0);
+                using (var mf = db.Manifest.GetLatestManifest()) {
+                    Assert.IsTrue(mf.GetPagesAtLevel(0).Length > 0);
+                }
             }
         }
 
@@ -151,10 +155,14 @@ namespace RazorDBTests {
                 }
                 // There is a chance that this could happen fast enough to make this assertion fail on some machines, but it should be unlikely.
                 // The goal is to reproduce the race condition. If this assert succeeds then we have reproduced it.
-                Assert.IsFalse(db.Manifest.GetPagesAtLevel(0).Length > 0);
+                using (var mf = db.Manifest.GetLatestManifest()) {
+                    Assert.IsFalse(mf.GetPagesAtLevel(0).Length > 0);
+                }
             }
             using (var db = new KeyValueStore(path)) {
-                Assert.IsTrue(db.Manifest.GetPagesAtLevel(0).Length > 0);
+                using (var mf = db.Manifest.GetLatestManifest()) {
+                    Assert.IsTrue(mf.GetPagesAtLevel(0).Length > 0);
+                }
             }
         }
 

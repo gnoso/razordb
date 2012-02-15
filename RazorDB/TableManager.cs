@@ -26,36 +26,39 @@ namespace RazorDB {
             while (true) {
                 bool mergedDuringLastPass = false;
                 try {
-                    // Handle level 0 (merge all pages)
-                    if (_manifest.GetNumPagesAtLevel(0) >= Config.MaxPagesOnLevel(0)) {
-                        mergedDuringLastPass = true;
-                        var inputPageRecords = _manifest.GetPagesAtLevel(0).Take(Config.MaxPagesOnLevel(0)).ToList();
-                        var startKey = inputPageRecords.Min( p => p.FirstKey );
-                        var endKey = inputPageRecords.Max( p => p.LastKey );
-                        var mergePages = _manifest.FindPagesForKeyRange(1, startKey, endKey).AsPageRefs().ToList();
-                        var allInputPages = inputPageRecords.AsPageRefs().Concat(mergePages).ToList();
-                        var outputPages = SortedBlockTable.MergeTables(_manifest, 1, allInputPages).ToList();
-                        _manifest.ModifyPages(outputPages, allInputPages);
-                        
-                        _manifest.LogMessage("Merge Level 0 => InputPages: {0} OutputPages:{1}", 
-                            string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}",p.Level, p.Version)).ToArray()),
-                            string.Join(",", outputPages.Select(p => string.Format("{0}-{1}",p.Level, p.Version)).ToArray())
-                        ); 
-                    }
-                    // handle the rest of the levels (merge only one page upwards)
-                    for (int level = 1; level < _manifest.NumLevels - 1; level++) {
-                        if (_manifest.GetNumPagesAtLevel(level) >= Config.MaxPagesOnLevel(level)) {
+                    using (var manifest = _manifest.GetLatestManifest()) {
+                        // Handle level 0 (merge all pages)
+                        if (manifest.GetNumPagesAtLevel(0) >= Config.MaxPagesOnLevel(0)) {
                             mergedDuringLastPass = true;
-                            var inputPage = _manifest.NextMergePage(level);
-                            var mergePages = _manifest.FindPagesForKeyRange(level + 1, inputPage.FirstKey, inputPage.LastKey).ToList();
-                            var allInputPages = mergePages.Concat(new PageRecord[] { inputPage }).AsPageRefs().ToList();
-                            var outputPages = SortedBlockTable.MergeTables(_manifest, level + 1, allInputPages);
+                            var inputPageRecords = manifest.GetPagesAtLevel(0).Take(Config.MaxPagesOnLevel(0)).ToList();
+                            var startKey = inputPageRecords.Min(p => p.FirstKey);
+                            var endKey = inputPageRecords.Max(p => p.LastKey);
+                            var mergePages = manifest.FindPagesForKeyRange(1, startKey, endKey).AsPageRefs().ToList();
+                            var allInputPages = inputPageRecords.AsPageRefs().Concat(mergePages).ToList();
+
+                            var outputPages = SortedBlockTable.MergeTables(_manifest, 1, allInputPages).ToList();
                             _manifest.ModifyPages(outputPages, allInputPages);
 
-                            _manifest.LogMessage("Merge Level >0 => InputPages: {0} OutputPages:{1}",
+                            _manifest.LogMessage("Merge Level 0 => InputPages: {0} OutputPages:{1}",
                                 string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray()),
                                 string.Join(",", outputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray())
-                            ); 
+                            );
+                        }
+                        // handle the rest of the levels (merge only one page upwards)
+                        for (int level = 1; level < manifest.NumLevels - 1; level++) {
+                            if (manifest.GetNumPagesAtLevel(level) >= Config.MaxPagesOnLevel(level)) {
+                                mergedDuringLastPass = true;
+                                var inputPage = _manifest.NextMergePage(level);
+                                var mergePages = manifest.FindPagesForKeyRange(level + 1, inputPage.FirstKey, inputPage.LastKey).ToList();
+                                var allInputPages = mergePages.Concat(new PageRecord[] { inputPage }).AsPageRefs().ToList();
+                                var outputPages = SortedBlockTable.MergeTables(_manifest, level + 1, allInputPages);
+                                _manifest.ModifyPages(outputPages, allInputPages);
+
+                                _manifest.LogMessage("Merge Level >0 => InputPages: {0} OutputPages:{1}",
+                                    string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray()),
+                                    string.Join(",", outputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray())
+                                );
+                            }
                         }
                     }
                 } catch (Exception e) {
