@@ -144,7 +144,7 @@ namespace RazorDB {
             return null;
         }
 
-        public IEnumerable<byte[]> Find(string indexName, byte[] lookupValue) {
+        public IEnumerable<KeyValuePair<byte[], byte[]>> Find(string indexName, byte[] lookupValue) {
 
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
             // Loop over the values
@@ -160,7 +160,7 @@ namespace RazorDB {
                     // Lookup the value of the actual object using the key that was found
                     var primaryValue = Get(value);
                     if (primaryValue != null)
-                        yield return primaryValue;
+                        yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
                 } else {
                     // if the above condition was not met then we must have enumerated past the end of the indexed value
                     yield break;
@@ -195,7 +195,9 @@ namespace RazorDB {
                 }
 
                 foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
-                    yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                    if (pair.Value.Length > 0) {
+                        yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                    }
                 }
             }
         }
@@ -224,7 +226,9 @@ namespace RazorDB {
                 }
 
                 foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
-                    yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                    if (pair.Value.Length > 0) {
+                        yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                    }
                 }
             }
         }

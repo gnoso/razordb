@@ -198,6 +198,7 @@ namespace RazorDBTests {
                 Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 5)));
                 Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 6)));
             }
+
             // The files should be deleted now since we closed the snapshot
             Assert.IsFalse(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 4)));
             Assert.IsTrue(File.Exists(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 5)));

@@ -62,21 +62,21 @@ namespace RazorDBTests {
             using (var db = new KeyValueStore(path)) {
                 var zeros = db.Find("NumberType", Encoding.UTF8.GetBytes("Zero")).ToList();
                 Assert.AreEqual(1, zeros.Count() );
-                Assert.AreEqual("0", Encoding.UTF8.GetString(zeros[0]));
+                Assert.AreEqual("0", Encoding.UTF8.GetString(zeros[0].Value));
 
                 var seqs = db.Find("NumberType", Encoding.UTF8.GetBytes("Seq")).ToList();
                 Assert.AreEqual(4, seqs.Count());
-                Assert.AreEqual("1", Encoding.UTF8.GetString(seqs[0]));
-                Assert.AreEqual("2", Encoding.UTF8.GetString(seqs[1]));
-                Assert.AreEqual("3", Encoding.UTF8.GetString(seqs[2]));
-                Assert.AreEqual("4", Encoding.UTF8.GetString(seqs[3]));
+                Assert.AreEqual("1", Encoding.UTF8.GetString(seqs[0].Value));
+                Assert.AreEqual("2", Encoding.UTF8.GetString(seqs[1].Value));
+                Assert.AreEqual("3", Encoding.UTF8.GetString(seqs[2].Value));
+                Assert.AreEqual("4", Encoding.UTF8.GetString(seqs[3].Value));
 
                 var fib = db.Find("NumberType", Encoding.UTF8.GetBytes("Fib")).ToList();
                 Assert.AreEqual(4, seqs.Count());
-                Assert.AreEqual("1123", Encoding.UTF8.GetString(fib[0]));
-                Assert.AreEqual("112", Encoding.UTF8.GetString(fib[1]));
-                Assert.AreEqual("11235", Encoding.UTF8.GetString(fib[2]));
-                Assert.AreEqual("112358", Encoding.UTF8.GetString(fib[3]));
+                Assert.AreEqual("1123", Encoding.UTF8.GetString(fib[0].Value));
+                Assert.AreEqual("112", Encoding.UTF8.GetString(fib[1].Value));
+                Assert.AreEqual("11235", Encoding.UTF8.GetString(fib[2].Value));
+                Assert.AreEqual("112358", Encoding.UTF8.GetString(fib[3].Value));
 
                 var non = db.Find("NoIndex", new byte[] { 23 }).ToList();
                 Assert.AreEqual(0, non.Count());
