@@ -30,7 +30,6 @@ namespace RazorDB {
             for (int p = 0; p < _pages.Length; p++) {
                 clone._pages[p] = new List<PageRecord>();
                 foreach (var page in _pages[p]) {
-                    page.AddRef();
                     clone._pages[p].Add(page);
                 }
             }
@@ -119,6 +118,7 @@ namespace RazorDB {
             if (level >= MaxLevels)
                 throw new IndexOutOfRangeException();
             var page = new PageRecord(level, version, firstKey, lastKey);
+            page.AddRef();
             var m = Clone();
             m._pages[level].Add(page);
             m._pages[level].Sort((x, y) => x.FirstKey.CompareTo(y.FirstKey));
@@ -131,6 +131,7 @@ namespace RazorDB {
             foreach (var page in addPages) {
                 if (page.Level >= MaxLevels)
                     throw new IndexOutOfRangeException();
+                page.AddRef();
                 m._pages[page.Level].Add(page);
                 m._pages[page.Level].Sort((x, y) => x.FirstKey.CompareTo(y.FirstKey));
             }
@@ -140,6 +141,7 @@ namespace RazorDB {
                 var page = _pages[pageRef.Level].Where(p => p.Version == pageRef.Version).First();
                 m._pages[pageRef.Level].Remove(page);
                 m._pages[pageRef.Level].Sort((x, y) => x.FirstKey.CompareTo(y.FirstKey));
+                page.Release();
             }
             return m;
         }
@@ -189,7 +191,9 @@ namespace RazorDB {
                     ByteArray startkey = new ByteArray(reader.ReadBytes(num_key_bytes));
                     num_key_bytes = reader.Read7BitEncodedInt();
                     ByteArray endkey = new ByteArray(reader.ReadBytes(num_key_bytes));
-                    _pages[j].Add(new PageRecord(level, version, startkey, endkey));
+                    var page = new PageRecord(level, version, startkey, endkey);
+                    page.AddRef();
+                    _pages[j].Add(page);
                 }
             }
             for (int k = 0; k < num_pages; k++) {
@@ -471,9 +475,12 @@ namespace RazorDB {
         public int RefCount { get { return _snapshotReferenceCount; } }
 
         public void AddRef() {
+            string.Join(":",new StackTrace().GetFrames().Select( frame => frame.GetMethod().Name ).ToArray());
+            Console.WriteLine("AddRef => Page {0}-{1} : {2} {3}", Level, Version, _snapshotReferenceCount, string.Join(":", new StackTrace().GetFrames().Select(frame => frame.GetMethod().Name).ToArray()));
             Interlocked.Increment(ref _snapshotReferenceCount);
         }
         public int Release() {
+            Console.WriteLine("Release => Page {0}-{1} : {2} {3}", Level, Version, _snapshotReferenceCount, string.Join(":", new StackTrace().GetFrames().Select(frame => frame.GetMethod().Name).ToArray()));
             return Interlocked.Decrement(ref _snapshotReferenceCount);
         }
     }
