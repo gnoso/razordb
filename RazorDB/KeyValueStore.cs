@@ -187,17 +187,24 @@ namespace RazorDB {
                     enumerators.Add(rotatedMemTable.EnumerateSnapshot());
                 }
 
-                for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
-                    var pages = manifestSnapshot.GetPagesAtLevel(i)
-                        .OrderByDescending(page => page.Level)
-                        .Select(page => new SortedBlockTable(_manifest.BaseFileName, page.Level, page.Version).Enumerate());
-                    enumerators.AddRange(pages);
-                }
-
-                foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
-                    if (pair.Value.Length > 0) {
-                        yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                List<SortedBlockTable> tables = new List<SortedBlockTable>();
+                try {
+                    for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
+                        var pages = manifestSnapshot.GetPagesAtLevel(i)
+                            .OrderByDescending(page => page.Level)
+                            .Select(page => new SortedBlockTable(_manifest.BaseFileName, page.Level, page.Version));
+                        tables.AddRange(pages);
                     }
+                    enumerators.AddRange(tables.Select( t => t.Enumerate()));
+
+                    foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
+                        if (pair.Value.Length > 0) {
+                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                        }
+                    }
+                } finally {
+                    // make sure all the tables get closed
+                    tables.ForEach(table => table.Close());
                 }
             }
         }
@@ -218,17 +225,24 @@ namespace RazorDB {
                     enumerators.Add(rotatedMemTable.EnumerateSnapshotFromKey(key));
                 }
 
-                for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
-                    var pages = manifestSnapshot.GetPagesAtLevel(i)
-                        .OrderByDescending(page => page.Level)
-                        .Select(page => new SortedBlockTable(_manifest.BaseFileName, page.Level, page.Version).EnumerateFromKey(_blockIndexCache, key));
-                    enumerators.AddRange(pages);
-                }
-
-                foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
-                    if (pair.Value.Length > 0) {
-                        yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                List<SortedBlockTable> tables = new List<SortedBlockTable>();
+                try {
+                    for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
+                        var pages = manifestSnapshot.GetPagesAtLevel(i)
+                            .OrderByDescending(page => page.Level)
+                            .Select(page => new SortedBlockTable(_manifest.BaseFileName, page.Level, page.Version));
+                        tables.AddRange(pages);
                     }
+                    enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_blockIndexCache, key)));
+
+                    foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
+                        if (pair.Value.Length > 0) {
+                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                        }
+                    }
+                } finally {
+                    // make sure all the tables get closed
+                    tables.ForEach(table => table.Close());
                 }
             }
         }
