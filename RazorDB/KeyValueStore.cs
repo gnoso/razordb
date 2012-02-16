@@ -153,14 +153,12 @@ namespace RazorDB {
                 var value = pair.Value;
                 // construct our index key pattern (lookupvalue | key)
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
-                    if (ByteArray.CompareMemCmp(key, lookupValue.Length, value, 0, value.Length) != 0) {
-                        throw new InvalidDataException("Key data is invalid.");
+                    if (key.Length == (value.Length + lookupValue.Length) && ByteArray.CompareMemCmp(key, lookupValue.Length, value, 0, value.Length) == 0) {
+                        // Lookup the value of the actual object using the key that was found
+                        var primaryValue = Get(value);
+                        if (primaryValue != null)
+                            yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
                     }
-
-                    // Lookup the value of the actual object using the key that was found
-                    var primaryValue = Get(value);
-                    if (primaryValue != null)
-                        yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
                 } else {
                     // if the above condition was not met then we must have enumerated past the end of the indexed value
                     yield break;
