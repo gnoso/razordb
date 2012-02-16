@@ -240,36 +240,19 @@ namespace RazorDB {
         }
 
         public IEnumerable<KeyValuePair<ByteArray, ByteArray>> Enumerate() {
-
-            byte[] allocBlockA = new byte[Config.SortedBlockSize];
-            byte[] allocBlockB = new byte[Config.SortedBlockSize];
-            byte[] currentBlock = allocBlockA;
-
-            var asyncResult = BeginReadBlock(currentBlock, 0);
-
-            for (int i = 0; i < _dataBlocks; i++) {
-                
-                // wait on last block read to complete so we can start processing the data
-                byte[] block = EndReadBlock(asyncResult);
-
-                // Go ahead and kick off the next block read asynchronously while we parse the last one
-                if (i < _dataBlocks) {
-                    SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
-                    asyncResult = BeginReadBlock(currentBlock, i + 1);
-                }
-
-                int offset = 0;
-                while (offset >= 0) {
-                    yield return ReadPair(block, ref offset);
-                }
-            }
+            return EnumerateFromKey(null, ByteArray.Empty);
         }
 
         public IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateFromKey(Cache indexCache, ByteArray key) {
 
-            int startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key);
-            if (startingBlock < 0)
+            int startingBlock;
+            if (key.Length == 0) {
                 startingBlock = 0;
+            } else {
+                startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key);
+                if (startingBlock < 0)
+                    startingBlock = 0;
+            }
             if (startingBlock < _dataBlocks) {
 
                 byte[] allocBlockA = new byte[Config.SortedBlockSize];
@@ -291,8 +274,8 @@ namespace RazorDB {
 
                     int offset = 0;
 
-                    // On the first block, we need to seek to the key first
-                    if ( i == startingBlock) {
+                    // On the first block, we need to seek to the key first (if we don't have an empty key)
+                    if (i == startingBlock && key.Length != 0) {
                         while (offset >= 0) {
                             var pair = ReadPair(block, ref offset);
                             if (pair.Key.CompareTo(key) >= 0) {
@@ -394,16 +377,16 @@ namespace RazorDB {
         }
 
         public static IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateMergedTables(string baseFileName, IEnumerable<PageRef> tableSpecs) {
-            var tables = tableSpecs
-                .Select(pageRef => new SortedBlockTable(baseFileName, pageRef.Level, pageRef.Version))
-                .ToList();
-            try {
-                foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), t => t.Key)) {
-                    yield return pair;
-                }
-            } finally {
-                tables.ForEach(t => t.Close());
-            }
+             var tables = tableSpecs
+               .Select(pageRef => new SortedBlockTable(baseFileName, pageRef.Level, pageRef.Version))
+               .ToList();
+             try {
+                 foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), t => t.Key)) {
+                     yield return pair;
+                 }
+             } finally {
+                 tables.ForEach(t => t.Close());
+             }
         }
 
         public static IEnumerable<PageRecord> MergeTables(Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs) {

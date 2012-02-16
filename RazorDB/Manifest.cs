@@ -475,12 +475,9 @@ namespace RazorDB {
         public int RefCount { get { return _snapshotReferenceCount; } }
 
         public void AddRef() {
-            string.Join(":",new StackTrace().GetFrames().Select( frame => frame.GetMethod().Name ).ToArray());
-            Console.WriteLine("AddRef => Page {0}-{1} : {2} {3}", Level, Version, _snapshotReferenceCount, string.Join(":", new StackTrace().GetFrames().Select(frame => frame.GetMethod().Name).ToArray()));
             Interlocked.Increment(ref _snapshotReferenceCount);
         }
         public int Release() {
-            Console.WriteLine("Release => Page {0}-{1} : {2} {3}", Level, Version, _snapshotReferenceCount, string.Join(":", new StackTrace().GetFrames().Select(frame => frame.GetMethod().Name).ToArray()));
             return Interlocked.Decrement(ref _snapshotReferenceCount);
         }
     }

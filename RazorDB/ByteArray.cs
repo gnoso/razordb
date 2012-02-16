@@ -70,6 +70,10 @@ namespace RazorDB {
             }
         }
 
+        public static ByteArray Empty {
+            get { return new ByteArray(new byte[0]); }
+        }
+
         public override int GetHashCode() {
             return (int)MurmurHash2Unsafe.Default.Hash(_bytes);
         }
