@@ -152,7 +152,7 @@ namespace RazorDB {
             _version = version;
             string path = Config.SortedBlockTableFile(baseFileName, level, version);
             _fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, FileOptions.Asynchronous);
-            ReadMetadata();
+            ReadMetadata(path);
         }
         private FileStream _fileStream;
         private string _baseFileName;
@@ -161,6 +161,8 @@ namespace RazorDB {
         private int _dataBlocks;
         private int _indexBlocks;
         private int _totalBlocks;
+
+        private static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
 
         private void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
             current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
@@ -195,7 +197,27 @@ namespace RazorDB {
             return threadAllocBlock;
         }
 
-        private void ReadMetadata() {
+        public class Metadata {
+            public int dataBlocks;
+            public int indexBlocks;
+            public int totalBlocks;
+        }
+        private static Dictionary<string, Metadata> _cachedMetadata = new Dictionary<string, Metadata>();
+
+        private void ReadMetadata(string fileName) {
+            lock (_cachedMetadata) {
+                Metadata md;
+                if (!_cachedMetadata.TryGetValue(fileName, out md)) {
+                    md = ReadMetadataFromDisk();
+                    _cachedMetadata.Add(fileName, md);
+                }
+                _dataBlocks = md.dataBlocks;
+                _indexBlocks = md.indexBlocks;
+                _totalBlocks = md.totalBlocks;
+            }
+        }
+
+        private Metadata ReadMetadataFromDisk() {
             int numBlocks = (int)_fileStream.Length / Config.SortedBlockSize;
             MemoryStream ms = new MemoryStream(ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1));
             BinaryReader reader = new BinaryReader(ms);
@@ -203,15 +225,17 @@ namespace RazorDB {
             if (checkString != "@RAZORDB") {
                 throw new InvalidDataException("This does not appear to be a valid table file.");
             }
-            _totalBlocks = reader.Read7BitEncodedInt();
-            _dataBlocks = reader.Read7BitEncodedInt();
-            _indexBlocks = reader.Read7BitEncodedInt();
-            if (_totalBlocks != numBlocks) {
+            var metadata = new Metadata();
+            metadata.totalBlocks = reader.Read7BitEncodedInt();
+            metadata.dataBlocks = reader.Read7BitEncodedInt();
+            metadata.indexBlocks = reader.Read7BitEncodedInt();
+            if (metadata.totalBlocks != numBlocks) {
                 throw new InvalidDataException("The file size does not match the metadata size.");
             }
-            if (_totalBlocks != (_dataBlocks + _indexBlocks + 1)) {
+            if (metadata.totalBlocks != (metadata.dataBlocks + metadata.indexBlocks + 1)) {
                 throw new InvalidDataException("Corrupted metadata.");
             }
+            return metadata;
         }
 
         public static bool Lookup(string baseFileName, int level, int version, Cache indexCache, ByteArray key, out ByteArray value) {
