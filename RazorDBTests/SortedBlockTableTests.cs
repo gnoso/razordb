@@ -14,6 +14,45 @@ namespace RazorDBTests {
     public class SortedBlockTableTests {
 
         [Test]
+        public void TestFileOpenSpeed() {
+            
+            string path = Path.GetFullPath("TestData\\TestFileOpenSpeed");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
+            var mt = new MemTable();
+            for (int i = 0; i < 10000; i++) {
+                var k0 = ByteArray.Random(40);
+                var v0 = ByteArray.Random(200);
+                mt.Add(k0, v0);
+            }
+
+            mt.WriteToSortedBlockTable("TestData\\TestFileOpenSpeed", 0, 10);
+
+            var openTables = new List<SortedBlockTable>();
+
+            var timer = new Stopwatch();
+            timer.Start();
+            for (int j = 0; j < 10000; j++) {
+                var sbt = new SortedBlockTable("TestData\\TestFileOpenSpeed", 0, 10);
+                openTables.Add(sbt);
+            }
+            timer.Stop();
+
+            Console.WriteLine("Open block table {0} ms", timer.Elapsed.TotalMilliseconds / 10000);
+
+            timer.Reset();
+            timer.Start();
+            for (int k = 0; k < 10000; k++) {
+                openTables[k].Close();
+            }
+            timer.Stop();
+
+            Console.WriteLine("Close block table {0} ms", timer.Elapsed.TotalMilliseconds / 10000);
+
+        }
+
+        [Test]
         public void ReadKeys() {
 
             string path = Path.GetFullPath("TestData\\ReadKeys");
