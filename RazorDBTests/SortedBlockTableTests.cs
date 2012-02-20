@@ -115,7 +115,7 @@ namespace RazorDBTests {
             var sbt = new SortedBlockTable("TestData\\EnumerateFromKeys", 10, 10);
 
             try {
-                var indexCache = new Cache();
+                var indexCache = new RazorCache();
 
                 var timer = new Stopwatch();
                 timer.Start();
@@ -163,7 +163,7 @@ namespace RazorDBTests {
 
             var sbt = new SortedBlockTable("TestData\\RandomizedKeys", 10, 10);
 
-            var indexCache = new Cache();
+            var indexCache = new RazorCache();
 
             var timer = new Stopwatch();
             timer.Start();
@@ -206,7 +206,7 @@ namespace RazorDBTests {
 
             var sbt = new SortedBlockTable("TestData\\RandomizedThreadedLookups", 10, 10);
 
-            var indexCache = new Cache();
+            var indexCache = new RazorCache();
 
             List<Thread> threads = new List<Thread>();
             for (int t = 0; t < 10; t++) {
