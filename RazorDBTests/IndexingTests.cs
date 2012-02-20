@@ -88,7 +88,7 @@ namespace RazorDBTests {
         [Test]
         public void AddObjectsAndLookupWhileMerging() {
 
-            string path = Path.GetFullPath("TestData\\AddObjectsAndLookup");
+            string path = Path.GetFullPath("TestData\\AddObjectsAndLookupWhileMerging");
             var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {

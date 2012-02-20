@@ -6,7 +6,7 @@ using System.Text;
 namespace RazorDB {
 
     internal class CacheEntry<T> {
-        internal ByteArray Key;
+        internal string Key;
         internal T Value;
         internal int Size;
         internal LinkedListNode<CacheEntry<T>> ListNode;
@@ -24,11 +24,11 @@ namespace RazorDB {
         }
         private Func<T, int> _sizer;
 
-        private Dictionary<ByteArray, CacheEntry<T>> _hash = new Dictionary<ByteArray, CacheEntry<T>>();
+        private Dictionary<string, CacheEntry<T>> _hash = new Dictionary<string, CacheEntry<T>>();
         private LinkedList<CacheEntry<T>> _list = new LinkedList<CacheEntry<T>>();
         private object _lock = new object();
 
-        public bool TryGetValue(ByteArray key, out T value) {
+        public bool TryGetValue(string key, out T value) {
             lock (_lock) {
                 CacheEntry<T> val;
                 bool exists = _hash.TryGetValue(key, out val);
@@ -43,7 +43,7 @@ namespace RazorDB {
             }
         }
 
-        public void Set(ByteArray key, T value) {
+        public void Set(string key, T value) {
             lock (_lock) {
 
                 // If the hash already contains the key, we are probably in a race condition, so go ahead and abort.
@@ -87,16 +87,15 @@ namespace RazorDB {
         public ByteArray[] GetBlockTableIndex(string baseName, int level, int version) {
 
             string fileName = Config.SortedBlockTableFile(baseName, level, version);
-            ByteArray key = new ByteArray(Encoding.UTF8.GetBytes(fileName));
             ByteArray[] index;
 
-            if (_blockIndexCache.TryGetValue(key, out index)) {
+            if (_blockIndexCache.TryGetValue(fileName, out index)) {
                 return index;
             }
-            var sbt = new SortedBlockTable(baseName, level, version);
+            var sbt = new SortedBlockTable(null, baseName, level, version);
             try {
                 index = sbt.GetIndex();
-                _blockIndexCache.Set(key, index);
+                _blockIndexCache.Set(fileName, index);
                 return index;
             } finally {
                 sbt.Close();

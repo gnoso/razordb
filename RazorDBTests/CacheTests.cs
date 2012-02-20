@@ -14,13 +14,13 @@ namespace RazorDBTests {
         public void BasicAdd() {
 
             var cache = new Cache<ByteArray>(500 * 1024, ba => ba.Length );
-            var items = new List<KeyValuePair<ByteArray, ByteArray>>();
+            var items = new List<KeyValuePair<string, ByteArray>>();
 
             for (int i = 0; i < 100; i++) {
-                var key = ByteArray.Random(40);
+                var key = ByteArray.Random(40).ToString();
                 var val = ByteArray.Random(256);
                 cache.Set(key, val);
-                items.Add(new KeyValuePair<ByteArray, ByteArray>(key, val));
+                items.Add(new KeyValuePair<string, ByteArray>(key, val));
             }
 
             ByteArray oval;
@@ -29,7 +29,7 @@ namespace RazorDBTests {
                 Assert.IsTrue(cache.TryGetValue(data.Key, out oval));
                 Assert.AreEqual(data.Value, oval);
             }
-            Assert.IsFalse(cache.TryGetValue(ByteArray.Random(40), out oval));
+            Assert.IsFalse(cache.TryGetValue(ByteArray.Random(40).ToString(), out oval));
         }
 
         [Test]
@@ -39,7 +39,7 @@ namespace RazorDBTests {
 
             int size = 0;
             for (int i = 0; i < 100; i++) {
-                var key = ByteArray.Random(40);
+                var key = ByteArray.Random(40).ToString();
                 var val = ByteArray.Random(256);
                 cache.Set(key, val);
                 size += val.Length;
@@ -52,11 +52,11 @@ namespace RazorDBTests {
 
             int limit = 100 * 256;
             var cache = new Cache<ByteArray>(limit, ba => ba.Length);
-            var items = new List<ByteArray>();
+            var items = new List<string>();
 
             int size = 0;
             for (int i = 0; i < 200; i++) {
-                var key = ByteArray.Random(40);
+                var key = ByteArray.Random(40).ToString();
                 var val = ByteArray.Random(256);
                 cache.Set(key, val);
                 size += val.Length;
@@ -82,10 +82,10 @@ namespace RazorDBTests {
 
             int limit = 100 * 256;
             var cache = new Cache<ByteArray>(limit, ba => ba.Length);
-            var items = new List<ByteArray>();
+            var items = new List<string>();
 
             for (int i = 0; i < 100; i++) {
-                var key = ByteArray.Random(40);
+                var key = ByteArray.Random(40).ToString();
                 var val = ByteArray.Random(256);
                 cache.Set(key, val);
 
@@ -100,7 +100,7 @@ namespace RazorDBTests {
 
             // Add 10 more items
             for (int i = 0; i < 10; i++) {
-                var key = ByteArray.Random(40);
+                var key = ByteArray.Random(40).ToString();
                 var val = ByteArray.Random(256);
                 cache.Set(key, val);
 
