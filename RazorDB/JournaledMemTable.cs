@@ -39,11 +39,11 @@ namespace RazorDB {
 
         public IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateSnapshot() {
             // Grab sorted copy of the internal memtable contents
-            return _memTable.Enumerate().ToList();
+            return _memTable.GetEnumerableSnapshot();
         }
         public IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateSnapshotFromKey(ByteArray key) {
             // Grab sorted copy of the internal memtable contents
-            return _memTable.Enumerate().ToList().Where( pair => pair.Key.CompareTo(key) > 0 );
+            return _memTable.GetEnumerableSnapshot().Where(pair => pair.Key.CompareTo(key) > 0);
         }
 
         public int Version { get { return _version; } }
