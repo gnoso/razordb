@@ -150,11 +150,21 @@ namespace RazorDB {
             _baseFileName = baseFileName;
             _level = level;
             _version = version;
-            string path = Config.SortedBlockTableFile(baseFileName, level, version);
-            _fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, FileOptions.Asynchronous);
-            ReadMetadata(path);
+            _path = Config.SortedBlockTableFile(baseFileName, level, version);
+            ReadMetadata();
         }
+        private string _path;
+
+        // Lazy open the filestream
         private FileStream _fileStream;
+        private FileStream internalFileStream {
+            get {
+                if (_fileStream == null)
+                    _fileStream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, FileOptions.Asynchronous);
+                return _fileStream; 
+            }
+        }
+
         private string _baseFileName;
         private int _level;
         private int _version;
@@ -170,18 +180,18 @@ namespace RazorDB {
         }
         
         private IAsyncResult BeginReadBlock(byte[] block, int blockNum) {
-            _fileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            return _fileStream.BeginRead(block, 0, Config.SortedBlockSize, null, block);
+            internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+            return internalFileStream.BeginRead(block, 0, Config.SortedBlockSize, null, block);
         }
 
         private byte[] EndReadBlock(IAsyncResult async) {
-            _fileStream.EndRead(async);
+            internalFileStream.EndRead(async);
             return (byte[]) async.AsyncState;
         }
 
         private byte[] ReadBlock(byte[] block, int blockNum) {
-            _fileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            _fileStream.Read(block, 0, Config.SortedBlockSize);
+            internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+            internalFileStream.Read(block, 0, Config.SortedBlockSize);
             return block;
         }
 
@@ -204,12 +214,12 @@ namespace RazorDB {
         }
         private static Dictionary<string, Metadata> _cachedMetadata = new Dictionary<string, Metadata>();
 
-        private void ReadMetadata(string fileName) {
+        private void ReadMetadata() {
             lock (_cachedMetadata) {
                 Metadata md;
-                if (!_cachedMetadata.TryGetValue(fileName, out md)) {
+                if (!_cachedMetadata.TryGetValue(_path, out md)) {
                     md = ReadMetadataFromDisk();
-                    _cachedMetadata.Add(fileName, md);
+                    _cachedMetadata.Add(_path, md);
                 }
                 _dataBlocks = md.dataBlocks;
                 _indexBlocks = md.indexBlocks;
@@ -218,7 +228,7 @@ namespace RazorDB {
         }
 
         private Metadata ReadMetadataFromDisk() {
-            int numBlocks = (int)_fileStream.Length / Config.SortedBlockSize;
+            int numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
             MemoryStream ms = new MemoryStream(ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1));
             BinaryReader reader = new BinaryReader(ms);
             string checkString = Encoding.ASCII.GetString(reader.ReadBytes(8));
@@ -238,7 +248,7 @@ namespace RazorDB {
             return metadata;
         }
 
-        public static bool Lookup(string baseFileName, int level, int version, Cache indexCache, ByteArray key, out ByteArray value) {
+        public static bool Lookup(string baseFileName, int level, int version, RazorCache indexCache, ByteArray key, out ByteArray value) {
             SortedBlockTable sbt = new SortedBlockTable(baseFileName, level, version);
             try {
                 int dataBlockNum = FindBlockForKey(baseFileName, level, version, indexCache, key);
@@ -254,7 +264,7 @@ namespace RazorDB {
             return false;
         }
 
-        private static int FindBlockForKey(string baseFileName, int level, int version, Cache indexCache, ByteArray key) {
+        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, ByteArray key) {
             ByteArray[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
             int dataBlockNum = Array.BinarySearch(index, key);
             if (dataBlockNum < 0) {
@@ -267,7 +277,7 @@ namespace RazorDB {
             return EnumerateFromKey(null, ByteArray.Empty);
         }
 
-        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateFromKey(Cache indexCache, ByteArray key) {
+        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateFromKey(RazorCache indexCache, ByteArray key) {
 
             int startingBlock;
             if (key.Length == 0) {
@@ -444,7 +454,7 @@ namespace RazorDB {
         }
         
         public void Close() {
-            _fileStream.Close();
+            internalFileStream.Close();
             _fileStream = null;
         }
     }
