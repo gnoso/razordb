@@ -451,12 +451,13 @@ namespace RazorDB {
         }
 
         private static bool SearchBlockForKey(byte[] block, ByteArray key, out ByteArray value) {
-            int offset = BitConverter.ToUInt16(block, 0);
+            int offset = BitConverter.ToUInt16(block, 0); // grab the tree root
             value = new ByteArray();
 
-            while (block[offset] != 0 && offset < Config.SortedBlockSize) {
+            while (block[offset] == (byte) RecordHeaderFlag.Record && offset < Config.SortedBlockSize) {
                 int startingOffset = offset;
-                offset += 4;
+                offset += 1; // skip header
+                offset += 4; // skip tree pointers
                 int keySize = Helper.Decode7BitInt(block, ref offset);
                 int cmp = key.CompareTo(block, offset, keySize);
                 if (cmp == 0) {
@@ -465,11 +466,11 @@ namespace RazorDB {
                     value = pair.Value;
                     return true;
                 } else if (cmp < 0) {
-                    // key < node => explore right side
-                    offset = BitConverter.ToUInt16(block, startingOffset+2);
+                    // key < node => explore left side
+                    offset = BitConverter.ToUInt16(block, startingOffset + 1);
                 } else if (cmp > 0) {
-                    // key > node => explore left side
-                    offset = BitConverter.ToUInt16(block, startingOffset);
+                    // key > node => explore right side
+                    offset = BitConverter.ToUInt16(block, startingOffset + 3);
                 }
             }
             return false;
