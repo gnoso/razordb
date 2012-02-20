@@ -16,8 +16,8 @@ namespace RazorDB {
             }
             _manifest = new Manifest(baseFileName);
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
-            _tableManager = new TableManager(_manifest);
-            _blockIndexCache = new RazorCache();
+            _cache = new RazorCache();
+            _tableManager = new TableManager(_cache, _manifest);
         }
 
         ~KeyValueStore() {
@@ -26,7 +26,7 @@ namespace RazorDB {
 
         private Manifest _manifest;
         private TableManager _tableManager;
-        private RazorCache _blockIndexCache;
+        private RazorCache _cache;
         private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string,KeyValueStore>();
 
         public Manifest Manifest { get { return _manifest; } }
@@ -50,8 +50,8 @@ namespace RazorDB {
 
             _manifest = new Manifest(basePath);
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
-            _tableManager = new TableManager(_manifest);
-            _blockIndexCache = new RazorCache();
+            _cache = new RazorCache();
+            _tableManager = new TableManager(_cache, _manifest);
             _secondaryIndexes = new Dictionary<string, KeyValueStore>();
 
             Manifest.LogMessage("Database Truncated.");
@@ -128,14 +128,14 @@ namespace RazorDB {
                 // Must check all pages on level 0
                 var zeroPages = manifest.GetPagesAtLevel(0);
                 foreach (var page in zeroPages) {
-                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output)) {
                         return output.Length == 0 ? null : output.InternalBytes;
                     }
                 }
                 // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
                 for (int level = 1; level < manifest.NumLevels; level++) {
                     var page = manifest.FindPageForKey(level, lookupKey);
-                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _blockIndexCache, lookupKey, out output)) {
+                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output)) {
                         return output.Length == 0 ? null : output.InternalBytes;
                     }
                 }
@@ -190,7 +190,7 @@ namespace RazorDB {
                     for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
                         var pages = manifestSnapshot.GetPagesAtLevel(i)
                             .OrderByDescending(page => page.Level)
-                            .Select(page => new SortedBlockTable(_manifest.BaseFileName, page.Level, page.Version));
+                            .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version));
                         tables.AddRange(pages);
                     }
                     enumerators.AddRange(tables.Select( t => t.Enumerate()));
@@ -228,10 +228,10 @@ namespace RazorDB {
                     for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
                         var pages = manifestSnapshot.GetPagesAtLevel(i)
                             .OrderByDescending(page => page.Level)
-                            .Select(page => new SortedBlockTable(_manifest.BaseFileName, page.Level, page.Version));
+                            .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version));
                         tables.AddRange(pages);
                     }
-                    enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_blockIndexCache, key)));
+                    enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
 
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
                         if (pair.Value.Length > 0) {

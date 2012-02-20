@@ -74,8 +74,9 @@ namespace RazorDBTests {
             }
             var tables = new List<IEnumerable<KeyValuePair<ByteArray,ByteArray>>>();
             var sbts = new List<SortedBlockTable>();
+            var cache = new RazorCache();
             for (int j=0; j < num_tables_to_merge; j++) {
-                var sbt = new SortedBlockTable("TestData\\LevelMergeReadTest", 0, j);
+                var sbt = new SortedBlockTable(cache, "TestData\\LevelMergeReadTest", 0, j);
                 tables.Add(sbt.Enumerate());
                 sbts.Add(sbt);
             }
@@ -117,11 +118,12 @@ namespace RazorDBTests {
                 totalData += mt.Size;
             }
 
+            var cache = new RazorCache();
             int ct = 0;
             ByteArray key = new ByteArray(new byte[] { 0 });
             var timer = new Stopwatch();
             timer.Start();
-            foreach (var pair in SortedBlockTable.EnumerateMergedTables("TestData\\LevelMergeReadTest2", 
+            foreach (var pair in SortedBlockTable.EnumerateMergedTables(cache, "TestData\\LevelMergeReadTest2", 
                 new List<PageRef>{
                                                               new PageRef { Level = 0, Version = 0},
                                                               new PageRef { Level = 0, Version = 1},
@@ -158,12 +160,13 @@ namespace RazorDBTests {
                 totalData += mt.Size;
             }
 
+            var cache = new RazorCache();
             ByteArray key = new ByteArray(new byte[] { 0 });
             var timer = new Stopwatch();
             timer.Start();
 
             Manifest mf = new Manifest("TestData\\LevelMergeOutputTest");
-            var outputTables = SortedBlockTable.MergeTables(mf, 1, new List<PageRef>{
+            var outputTables = SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
                                                                                                 new PageRef { Level = 0, Version = 0},
                                                                                                 new PageRef { Level = 0, Version = 1},
                                                                                                 new PageRef { Level = 0, Version = 2},
@@ -199,11 +202,12 @@ namespace RazorDBTests {
                 totalData += mt.Size;
             }
 
+            var cache = new RazorCache();
             var timer = new Stopwatch();
             timer.Start();
 
             Manifest mf = new Manifest("TestData\\LevelMergeDuplicateValuesTest");
-            var outputTables = SortedBlockTable.MergeTables(mf, 1, new List<PageRef>{
+            var outputTables = SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
                                                                                                 new PageRef { Level = 0, Version = 0},
                                                                                                 new PageRef { Level = 0, Version = 1},
                                                                                                 new PageRef { Level = 0, Version = 2},
@@ -212,7 +216,7 @@ namespace RazorDBTests {
             timer.Stop();
 
             // Open the block table and scan it to check the stored values
-            var sbt = new SortedBlockTable(mf.BaseFileName, 1, 1);
+            var sbt = new SortedBlockTable(cache, mf.BaseFileName, 1, 1);
             try {
                 var pairs = sbt.Enumerate().ToList();
                 Assert.AreEqual(100, pairs.Count());

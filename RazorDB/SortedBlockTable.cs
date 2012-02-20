@@ -146,10 +146,11 @@ namespace RazorDB {
 
     public class SortedBlockTable {
 
-        public SortedBlockTable(string baseFileName, int level, int version) {
+        public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version) {
             _baseFileName = baseFileName;
             _level = level;
             _version = version;
+            _cache = cache;
             _path = Config.SortedBlockTableFile(baseFileName, level, version);
             ReadMetadata();
         }
@@ -171,6 +172,7 @@ namespace RazorDB {
         private int _dataBlocks;
         private int _indexBlocks;
         private int _totalBlocks;
+        private RazorCache _cache;
 
         private static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
 
@@ -248,10 +250,10 @@ namespace RazorDB {
             return metadata;
         }
 
-        public static bool Lookup(string baseFileName, int level, int version, RazorCache indexCache, ByteArray key, out ByteArray value) {
-            SortedBlockTable sbt = new SortedBlockTable(baseFileName, level, version);
+        public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, ByteArray key, out ByteArray value) {
+            SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
             try {
-                int dataBlockNum = FindBlockForKey(baseFileName, level, version, indexCache, key);
+                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
 
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
                     byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
@@ -410,9 +412,9 @@ namespace RazorDB {
             return new KeyValuePair<ByteArray,ByteArray>(key,val);
         }
 
-        public static IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateMergedTables(string baseFileName, IEnumerable<PageRef> tableSpecs) {
+        public static IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateMergedTables(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
              var tables = tableSpecs
-               .Select(pageRef => new SortedBlockTable(baseFileName, pageRef.Level, pageRef.Version))
+               .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
                .ToList();
              try {
                  foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), t => t.Key)) {
@@ -423,7 +425,7 @@ namespace RazorDB {
              }
         }
 
-        public static IEnumerable<PageRecord> MergeTables(Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs) {
+        public static IEnumerable<PageRecord> MergeTables(RazorCache cache, Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs) {
 
             var orderedTableSpecs = tableSpecs.OrderByPagePriority();
             var outputTables = new List<PageRecord>();
@@ -432,7 +434,7 @@ namespace RazorDB {
             ByteArray firstKey = new ByteArray();
             ByteArray lastKey = new ByteArray();
 
-            foreach (var pair in EnumerateMergedTables(mf.BaseFileName, orderedTableSpecs)) {
+            foreach (var pair in EnumerateMergedTables(cache, mf.BaseFileName, orderedTableSpecs)) {
                 if (writer == null) {
                     writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
                     firstKey = pair.Key;
@@ -454,7 +456,9 @@ namespace RazorDB {
         }
         
         public void Close() {
-            internalFileStream.Close();
+            if (_fileStream != null) {
+                _fileStream.Close();
+            }
             _fileStream = null;
         }
     }

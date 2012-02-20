@@ -8,8 +8,9 @@ using System.IO;
 namespace RazorDB {
     public class TableManager {
 
-        public TableManager(Manifest mf) {
+        public TableManager(RazorCache cache, Manifest mf) {
             _manifest = mf;
+            _cache = cache;
             _closing = false;
             _managerThread = new Thread(ThreadMain);
             _managerThread.Start();
@@ -17,6 +18,7 @@ namespace RazorDB {
 
         private Thread _managerThread;
         private Manifest _manifest;
+        private RazorCache _cache;
         private bool _closing;
 
         // The locking protocol assumes that only one TableManager thread is running per database. If there is more than one thread
@@ -36,7 +38,7 @@ namespace RazorDB {
                             var mergePages = manifest.FindPagesForKeyRange(1, startKey, endKey).AsPageRefs().ToList();
                             var allInputPages = inputPageRecords.AsPageRefs().Concat(mergePages).ToList();
 
-                            var outputPages = SortedBlockTable.MergeTables(_manifest, 1, allInputPages).ToList();
+                            var outputPages = SortedBlockTable.MergeTables(_cache, _manifest, 1, allInputPages).ToList();
                             _manifest.ModifyPages(outputPages, allInputPages);
 
                             _manifest.LogMessage("Merge Level 0 => InputPages: {0} OutputPages:{1}",
@@ -51,7 +53,7 @@ namespace RazorDB {
                                 var inputPage = _manifest.NextMergePage(level);
                                 var mergePages = manifest.FindPagesForKeyRange(level + 1, inputPage.FirstKey, inputPage.LastKey).ToList();
                                 var allInputPages = mergePages.Concat(new PageRecord[] { inputPage }).AsPageRefs().ToList();
-                                var outputPages = SortedBlockTable.MergeTables(_manifest, level + 1, allInputPages);
+                                var outputPages = SortedBlockTable.MergeTables(_cache, _manifest, level + 1, allInputPages);
                                 _manifest.ModifyPages(outputPages, allInputPages);
 
                                 _manifest.LogMessage("Merge Level >0 => InputPages: {0} OutputPages:{1}",

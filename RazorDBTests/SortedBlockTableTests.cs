@@ -31,10 +31,11 @@ namespace RazorDBTests {
 
             var openTables = new List<SortedBlockTable>();
 
+            var cache = new RazorCache();
             var timer = new Stopwatch();
             timer.Start();
             for (int j = 0; j < 10000; j++) {
-                var sbt = new SortedBlockTable("TestData\\TestFileOpenSpeed", 0, 10);
+                var sbt = new SortedBlockTable(cache, "TestData\\TestFileOpenSpeed", 0, 10);
                 openTables.Add(sbt);
             }
             timer.Stop();
@@ -68,7 +69,8 @@ namespace RazorDBTests {
 
             mt.WriteToSortedBlockTable("TestData\\ReadKeys", 0, 10);
 
-            var sbt = new SortedBlockTable("TestData\\ReadKeys", 0, 10);
+            var cache = new RazorCache();
+            var sbt = new SortedBlockTable(cache, "TestData\\ReadKeys", 0, 10);
 
             var timer = new Stopwatch();
             timer.Start();
@@ -112,7 +114,8 @@ namespace RazorDBTests {
 
             mt.WriteToSortedBlockTable("TestData\\EnumerateFromKeys", 10, 10);
 
-            var sbt = new SortedBlockTable("TestData\\EnumerateFromKeys", 10, 10);
+            var cache = new RazorCache();
+            var sbt = new SortedBlockTable(cache, "TestData\\EnumerateFromKeys", 10, 10);
 
             try {
                 var indexCache = new RazorCache();
@@ -161,7 +164,8 @@ namespace RazorDBTests {
 
             mt.WriteToSortedBlockTable("TestData\\RandomizedKeys", 10, 10);
 
-            var sbt = new SortedBlockTable("TestData\\RandomizedKeys", 10, 10);
+            var cache = new RazorCache();
+            var sbt = new SortedBlockTable(cache, "TestData\\RandomizedKeys", 10, 10);
 
             var indexCache = new RazorCache();
 
@@ -204,7 +208,8 @@ namespace RazorDBTests {
 
             mt.WriteToSortedBlockTable("TestData\\RandomizedThreadedLookups", 10, 10);
 
-            var sbt = new SortedBlockTable("TestData\\RandomizedThreadedLookups", 10, 10);
+            var cache = new RazorCache();
+            var sbt = new SortedBlockTable(cache,"TestData\\RandomizedThreadedLookups", 10, 10);
 
             var indexCache = new RazorCache();
 
