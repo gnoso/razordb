@@ -45,6 +45,11 @@ namespace RazorDB {
 
         public void Set(ByteArray key, T value) {
             lock (_lock) {
+
+                // If the hash already contains the key, we are probably in a race condition, so go ahead and abort.
+                if (_hash.ContainsKey(key))
+                    return;
+
                 var cacheEntry = new CacheEntry<T> { Value = value, Size = _sizer(value), Key = key };
                 var node = _list.AddFirst(cacheEntry);
                 cacheEntry.ListNode = node;
