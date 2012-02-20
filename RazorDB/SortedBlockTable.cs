@@ -192,9 +192,16 @@ namespace RazorDB {
         }
 
         private byte[] ReadBlock(byte[] block, int blockNum) {
-            internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            internalFileStream.Read(block, 0, Config.SortedBlockSize);
-            return block;
+            byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
+            if (cachedBlock == null) {
+                internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+                internalFileStream.Read(block, 0, Config.SortedBlockSize);
+                var blockCopy = (byte[])block.Clone();
+                _cache.SetBlock(_baseFileName, _level, _version, blockNum, blockCopy);
+                return block;
+            } else {
+                return cachedBlock;
+            }
         }
 
         [ThreadStatic]
