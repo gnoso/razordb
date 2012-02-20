@@ -97,13 +97,13 @@ namespace RazorDB {
             if (startIndex < middleIndex) {
                 ushort leftOffset = BuildBlockTree(block, startIndex, middleIndex - 1, keyOffsets);
                 byte[] left = BitConverter.GetBytes(leftOffset);
-                Array.Copy(left, 0, block, nodeOffset, 2);
+                Array.Copy(left, 0, block, nodeOffset + 1, 2);
             }
             // Build right side
             if (middleIndex < endIndex) {
                 ushort rightOffset = BuildBlockTree(block, middleIndex + 1, endIndex, keyOffsets);
                 byte[] right = BitConverter.GetBytes(rightOffset);
-                Array.Copy(right, 0, block, nodeOffset + 2, 2);
+                Array.Copy(right, 0, block, nodeOffset + 3, 2);
             }
             return nodeOffset;
         }
@@ -116,9 +116,9 @@ namespace RazorDB {
             }
 
             // Build the tree structure and fill in the starting pointer
-            //ushort middleTreePtr = BuildBlockTree(_buffer, 0, _keyOffsets.Count, _keyOffsets);
-            //byte[] middleTree = BitConverter.GetBytes(middleTreePtr);
-            //Array.Copy(middleTree, _buffer, 2);
+            ushort middleTreePtr = BuildBlockTree(_buffer, 0, _keyOffsets.Count - 1, _keyOffsets);
+            byte[] middleTree = BitConverter.GetBytes(middleTreePtr);
+            Array.Copy(middleTree, _buffer, 2);
 
             WriteBlock();
         }
