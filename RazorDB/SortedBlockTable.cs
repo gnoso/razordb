@@ -232,15 +232,41 @@ namespace RazorDB {
             current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
             Array.Clear(current, 0, current.Length);
         }
-        
+
+        internal class AsyncBlock : IAsyncResult {
+            internal byte[] Buffer;
+            internal int BlockNum;
+
+            public object AsyncState { get { return this; } }
+            public WaitHandle AsyncWaitHandle { get { throw new NotImplementedException(); } }
+            public bool CompletedSynchronously { get { return true; } }
+            public bool IsCompleted { get { return true; } }
+        }
+
         private IAsyncResult BeginReadBlock(byte[] block, int blockNum) {
+            if (_cache != null) {
+                byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
+                if (cachedBlock != null) {
+                    return new AsyncBlock { Buffer = cachedBlock, BlockNum = blockNum };
+                }
+            }
             internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            return internalFileStream.BeginRead(block, 0, Config.SortedBlockSize, null, block);
+            return internalFileStream.BeginRead(block, 0, Config.SortedBlockSize, null, new AsyncBlock { Buffer = block, BlockNum = blockNum });
         }
 
         private byte[] EndReadBlock(IAsyncResult async) {
-            internalFileStream.EndRead(async);
-            return (byte[]) async.AsyncState;
+            AsyncBlock ablock = async as AsyncBlock;
+            if (ablock != null) {
+                return ablock.Buffer;
+            } else {
+                internalFileStream.EndRead(async);
+                ablock = (AsyncBlock)async.AsyncState;
+                if (_cache != null) {
+                    var blockCopy = (byte[])ablock.Buffer.Clone();
+                    _cache.SetBlock(_baseFileName, _level, _version, ablock.BlockNum, blockCopy);
+                }
+                return ablock.Buffer;
+            }
         }
 
         private byte[] ReadBlock(byte[] block, int blockNum) {
