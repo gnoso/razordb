@@ -80,9 +80,11 @@ namespace RazorDB {
 
         public RazorCache() {
             _blockIndexCache = new Cache<ByteArray[]>(Config.IndexCacheSize, index => index.Sum(ba => ba.Length));
+            _blockDataCache = new Cache<byte[]>(Config.DataBlockCacheSize, block => block.Length);
         }
 
         private Cache<ByteArray[]> _blockIndexCache;
+        private Cache<byte[]> _blockDataCache;
 
         public ByteArray[] GetBlockTableIndex(string baseName, int level, int version) {
 
@@ -102,5 +104,18 @@ namespace RazorDB {
             }
         }
 
+        public byte[] GetBlock(string baseName, int level, int version, int blockNum) {
+            string blockKey = Config.SortedBlockTableFile(baseName, level, version) + ":" + blockNum.ToString();
+            byte[] block = null;
+            if (_blockDataCache.TryGetValue(blockKey, out block))
+                return block;
+            else 
+                return block;
+        }
+
+        public void SetBlock(string baseName, int level, int version, int blockNum, byte[] block) {
+            string blockKey = Config.SortedBlockTableFile(baseName, level, version) + ":" + blockNum.ToString();
+            _blockDataCache.Set(blockKey, block);
+        }
     }
 }
