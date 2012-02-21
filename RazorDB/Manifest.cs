@@ -284,6 +284,10 @@ namespace RazorDB {
 
         private ManifestImmutable LastManifest { get { return _manifests.Last.Value; } }
 
+        public void LogContents() {
+            LastManifest.LogContents(this);
+        }
+
         // atomically acquires the next version and persists the metadata
         public int NextVersion(int level) {
             lock (manifestLock) {

@@ -580,11 +580,38 @@ namespace RazorDB {
             msg(string.Format("Data Blocks: {0}\nIndex Blocks: {1}\nTotal Blocks: {2}", _dataBlocks, _indexBlocks, _totalBlocks));
             msg("");
             for (int i = 0; i < _dataBlocks; i++) {
-                msg(string.Format("Data Block {0}",i));
+                msg(string.Format("\n*** Data Block {0} ***",i));
                 byte[] block = ReadBlock( new byte[Config.SortedBlockSize], i);
 
                 int treePtr = BitConverter.ToUInt16(block, 0);
-                msg(string.Format("{0:X4} \"{1}\" Tree Offset: {2}", 0, BytesToString(block,0,2), treePtr));
+                msg(string.Format("{0:X4} \"{1}\" Tree Offset: {2:X4}", 0, BytesToString(block,0,2), treePtr));
+
+                int offset = 2;
+                while ( block[offset] != (byte)RecordHeaderFlag.EndOfBlock && offset < Config.SortedBlockSize) {
+
+                    // Record
+                    msg(string.Format("{0:X4} \"{1}\" {2}", offset, BytesToString(block, offset, 1), ((RecordHeaderFlag)block[offset]).ToString()));
+
+                    // Node Pointers
+                    msg(string.Format("{0:X4} \"{1}\" Left:  {2:X4}", offset + 1, BytesToString(block, offset + 1, 2), BitConverter.ToUInt16(block, offset + 1)));
+                    msg(string.Format("{0:X4} \"{1}\" Right: {2:X4}", offset + 3, BytesToString(block, offset + 3, 2), BitConverter.ToUInt16(block, offset + 3)));
+                    offset += 5;
+
+                    // Key
+                    int keyOffset = offset;
+                    int keySize = Helper.Decode7BitInt(block, ref offset);
+                    msg(string.Format("{0:X4} \"{1}\" KeySize: {2}", keyOffset, BytesToString(block, keyOffset, offset-keyOffset), keySize));
+                    msg(string.Format("{0:X4} \"{1}\"", offset, BytesToString(block, offset, keySize)));
+                    offset += keySize;
+
+                    // Key
+                    int dataOffset = offset;
+                    int dataSize = Helper.Decode7BitInt(block, ref offset);
+                    msg(string.Format("{0:X4} \"{1}\" DataSize: {2}", dataOffset, BytesToString(block, dataOffset, offset - dataOffset), dataSize));
+                    msg(string.Format("{0:X4} \"{1}\"", offset, BytesToString(block, offset, dataSize)));
+                    offset += dataSize;
+
+                }
             }
         }
 

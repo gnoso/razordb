@@ -13,11 +13,20 @@ namespace RazorUtil {
 
             if (args.Length > 0) {
                 switch (args[0].ToLower()) {
-                    case "dump":
+                    case "dump-table":
                         if (args.Length < 4) {
                             Console.WriteLine("Invalid parameters");
                         } else {
                             DumpFile(args[1], int.Parse(args[2]), int.Parse(args[3]));
+                        }
+                        break;
+                    case "dump-manifest":
+                        if (args.Length < 2) {
+                            Console.WriteLine("Invalid parameters");
+                        } else {
+                            var mf = new Manifest(args[1]);
+                            mf.Logger = msg => Console.WriteLine(msg);
+                            mf.LogContents();
                         }
                         break;
                     default:
