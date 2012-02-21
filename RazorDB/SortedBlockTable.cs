@@ -119,6 +119,7 @@ namespace RazorDB {
             ushort middleTreePtr = BuildBlockTree(_buffer, 0, _keyOffsets.Count - 1, _keyOffsets);
             byte[] middleTree = BitConverter.GetBytes(middleTreePtr);
             Array.Copy(middleTree, _buffer, 2);
+            _keyOffsets.Clear();
 
             WriteBlock();
         }
@@ -308,7 +309,7 @@ namespace RazorDB {
 
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
                     byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
-                    return ScanBlockForKey(block, key, out value);
+                    return SearchBlockForKey(block, key, out value);
                 } 
             } finally {
                 sbt.Close();
