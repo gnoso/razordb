@@ -535,7 +535,25 @@ namespace RazorDB {
 
             return outputTables;
         }
-        
+
+        private string BytesToString(byte[] block, int start, int length) {
+            return string.Concat(block.Skip(start).Take(length).Select((b) => b.ToString("X2")).ToArray());
+        }
+
+        public void DumpContents(Action<string> msg) {
+            msg(string.Format("Path: {0}", _path));
+            msg(string.Format("BaseFileName: {0} Level: {1} Version: {2}", _baseFileName, _level, _version));
+            msg(string.Format("Data Blocks: {0}\nIndex Blocks: {1}\nTotal Blocks: {2}", _dataBlocks, _indexBlocks, _totalBlocks));
+            msg("");
+            for (int i = 0; i < _dataBlocks; i++) {
+                msg(string.Format("Data Block {0}",i));
+                byte[] block = ReadBlock( new byte[Config.SortedBlockSize], i);
+
+                int treePtr = BitConverter.ToUInt16(block, 0);
+                msg(string.Format("{0:X4} \"{1}\" Tree Offset: {2}", 0, BytesToString(block,0,2), treePtr));
+            }
+        }
+
         public void Close() {
             if (_fileStream != null) {
                 _fileStream.Close();
