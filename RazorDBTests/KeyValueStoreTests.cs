@@ -376,6 +376,158 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void BulkSetBulkEnumerate() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerate");
+            var timer = new Stopwatch();
+            int totalSize = 0;
+            int readSize = 0;
+            int num_items = 100000;
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                timer.Start();
+                for (int i = 0; i < num_items; i++) {
+                    var randomKey = ByteArray.Random(40);
+                    var randomValue = ByteArray.Random(256);
+                    db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
+
+                    readSize += randomKey.Length + randomValue.Length;
+                    totalSize += randomKey.Length + randomValue.Length;
+                }
+                timer.Stop();
+                Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            }
+            // Close and re-open the database to force all the sstable merging to complete.
+            using (var db = new KeyValueStore(path)) {
+
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                timer.Reset();
+                Console.WriteLine("Begin enumeration.");
+                timer.Start();
+                ByteArray lastKey = new ByteArray();
+                int ct = 0;
+                foreach (var pair in db.Enumerate()) {
+                    try {
+                        ByteArray k = new ByteArray(pair.Key);
+                        ByteArray v = new ByteArray(pair.Value);
+                        Assert.True(lastKey.CompareTo(k) < 0);
+                        lastKey = k;
+                        ct++;
+                    } catch (Exception /*e*/) {
+                        //Console.WriteLine("Key: {0}\n{1}",insertedItem.Key,e);
+                        //Debugger.Launch();
+                        //db.Get(insertedItem.Key.InternalBytes);
+                        //db.Manifest.LogContents();
+                        throw;
+                    }
+                }
+                timer.Stop();
+                Assert.AreEqual(num_items, ct, num_items.ToString() + " items should be enumerated.");
+
+                Console.WriteLine("Enumerated read throughput of {0} MB/s", (double)readSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            }
+
+        }
+
+        [Test]
+        public void BulkSetBulkEnumerateWhileMerging() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerate");
+            var timer = new Stopwatch();
+            int totalSize = 0;
+            int readSize = 0;
+            int num_items = 100000;
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                timer.Start();
+                for (int i = 0; i < num_items; i++) {
+                    var randomKey = ByteArray.Random(40);
+                    var randomValue = ByteArray.Random(256);
+                    db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
+
+                    readSize += randomKey.Length + randomValue.Length;
+                    totalSize += randomKey.Length + randomValue.Length;
+                }
+                timer.Stop();
+                Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                timer.Reset();
+                Console.WriteLine("Begin enumeration.");
+                timer.Start();
+                ByteArray lastKey = new ByteArray();
+                int ct = 0;
+                foreach (var pair in db.Enumerate()) {
+                    try {
+                        ByteArray k = new ByteArray(pair.Key);
+                        ByteArray v = new ByteArray(pair.Value);
+                        Assert.True(lastKey.CompareTo(k) < 0);
+                        lastKey = k;
+                        ct++;
+                    } catch (Exception e) {
+                        Console.WriteLine("Key: {0}\n{1}",pair.Key,e);
+                        Debugger.Launch();
+                        throw;
+                    }
+                }
+                timer.Stop();
+                Assert.AreEqual(num_items, ct, num_items.ToString() + " items should be enumerated.");
+
+                Console.WriteLine("Enumerated read throughput of {0} MB/s", (double)readSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            }
+
+        }
+
+        [Test]
+        public void BulkSetBulkEnumerateWithCache() {
+
+            string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerate");
+            var timer = new Stopwatch();
+            int totalSize = 0;
+            int readSize = 0;
+            int num_items = 100000;
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                timer.Start();
+                for (int i = 0; i < num_items; i++) {
+                    var randomKey = ByteArray.Random(40);
+                    var randomValue = ByteArray.Random(256);
+                    db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
+
+                    readSize += randomKey.Length + randomValue.Length;
+                    totalSize += randomKey.Length + randomValue.Length;
+                }
+                timer.Stop();
+                Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                timer.Reset();
+                timer.Start();
+                Assert.AreEqual(num_items, db.Enumerate().Count());
+                timer.Stop();
+                Console.WriteLine("Enumerated read throughput of {0} MB/s", (double)readSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                timer.Reset();
+                timer.Start();
+                Assert.AreEqual(num_items, db.Enumerate().Count());
+                timer.Stop();
+                Console.WriteLine("Enumerated (second pass) read throughput of {0} MB/s", (double)readSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            }
+
+        }
+
+        [Test]
         public void BulkSetEnumerateAll() {
 
             string path = Path.GetFullPath("TestData\\BulkSetEnumerateAll");
