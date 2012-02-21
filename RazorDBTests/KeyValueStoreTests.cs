@@ -437,7 +437,7 @@ namespace RazorDBTests {
         [Test]
         public void BulkSetBulkEnumerateWhileMerging() {
 
-            string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerate");
+            string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerateWhileMerging");
             var timer = new Stopwatch();
             int totalSize = 0;
             int readSize = 0;
@@ -489,7 +489,7 @@ namespace RazorDBTests {
         [Test]
         public void BulkSetBulkEnumerateWithCache() {
 
-            string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerate");
+            string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerateWithCache");
             var timer = new Stopwatch();
             int totalSize = 0;
             int readSize = 0;
