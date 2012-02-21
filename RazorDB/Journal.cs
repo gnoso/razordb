@@ -30,6 +30,7 @@ namespace RazorDB {
                     _writer.Write(key.InternalBytes);
                     _writer.Write7BitEncodedInt(value.Length);
                     _writer.Write(value.InternalBytes);
+                    _writer.Flush();
                     return true;
                 }
             }
@@ -68,9 +69,15 @@ namespace RazorDB {
                 try {
                     int keyLen = _reader.Read7BitEncodedInt();
                     key = _reader.ReadBytes(keyLen);
+                    if (key.Length != keyLen)
+                        throw new InvalidOperationException();
                     int valueLen = _reader.Read7BitEncodedInt();
                     value = _reader.ReadBytes(valueLen);
+                    if (valueLen != value.Length)
+                        throw new InvalidOperationException();
                 } catch (EndOfStreamException) {
+                    data = false;
+                } catch (InvalidOperationException) {
                     data = false;
                 }
                 if (data)
