@@ -22,6 +22,9 @@ namespace RazorDB {
             _pageIndex = new List<ByteArray>();
             Version = version;
             WrittenSize = 0;
+
+            // Make sure the metadata cache for this table is not cached from previous runs.
+            SortedBlockTable.ClearMetadataCacheForTable(fileName);
         }
 
         private FileStream _fileStream;
@@ -311,6 +314,12 @@ namespace RazorDB {
                 _dataBlocks = md.dataBlocks;
                 _indexBlocks = md.indexBlocks;
                 _totalBlocks = md.totalBlocks;
+            }
+        }
+
+        internal static void ClearMetadataCacheForTable(string path) {
+            lock (_cachedMetadata) {
+                _cachedMetadata.Remove(path);
             }
         }
 
