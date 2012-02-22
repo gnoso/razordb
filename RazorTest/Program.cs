@@ -18,6 +18,9 @@ namespace RazorTest {
                 case "CrashTestOnMerge":
                     CrashTestOnMerge();
                     break;
+                case "CrashTestBeforeMerge":
+                    CrashTestBeforeMerge();
+                    break;
             }
 
         }
@@ -33,7 +36,10 @@ namespace RazorTest {
                 db.Manifest.Logger = (msg) => Console.WriteLine(msg);
 
                 for (int i = 0; i < num_items; i++) {
-                    var randomKey = ByteArray.Random(40);
+                    byte[] keyBytes = new byte[40];
+                    Array.Copy(BitConverter.GetBytes(i).Reverse().ToArray(), keyBytes, 4);
+                    Array.Copy(ByteArray.Random(36).InternalBytes, 0, keyBytes, 4, 36); 
+                    var randomKey = new ByteArray(keyBytes);
                     var randomValue = ByteArray.Random(256);
                     db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
                 }
@@ -41,6 +47,32 @@ namespace RazorTest {
                 // Signal our test to fall through
                 try {
                     ManualResetEvent.OpenExisting("CrashTestOnMerge").Set();
+                } catch (WaitHandleCannotBeOpenedException e) {
+                    Console.WriteLine("{0}", e);
+                }
+            }
+
+        }
+
+        public static void CrashTestBeforeMerge() {
+
+            string path = Path.GetFullPath("TestData\\CrashTestBeforeMerge");
+            int num_items = 10000;
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                for (int i = 0; i < num_items; i++) {
+                    var randomKey = ByteArray.Random(4);
+                    var randomValue = ByteArray.Random(5);
+                    db.Set(randomKey.InternalBytes, randomValue.InternalBytes);
+                }
+
+                // Signal our test to fall through
+                try {
+                    ManualResetEvent.OpenExisting("CrashTestBeforeMerge").Set();
                 } catch (WaitHandleCannotBeOpenedException e) {
                     Console.WriteLine("{0}", e);
                 }
