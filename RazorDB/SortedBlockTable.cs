@@ -22,9 +22,6 @@ namespace RazorDB {
             _pageIndex = new List<ByteArray>();
             Version = version;
             WrittenSize = 0;
-
-            // Make sure the metadata cache for this table is not cached from previous runs.
-            SortedBlockTable.ClearMetadataCacheForTable(fileName);
         }
 
         private FileStream _fileStream;
@@ -273,16 +270,19 @@ namespace RazorDB {
         }
 
         private byte[] ReadBlock(byte[] block, int blockNum) {
-            byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
-            if (cachedBlock == null) {
-                internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-                internalFileStream.Read(block, 0, Config.SortedBlockSize);
+            if (_cache != null) {
+                byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
+                if (cachedBlock != null) {
+                    return cachedBlock;
+                }
+            }
+            internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+            internalFileStream.Read(block, 0, Config.SortedBlockSize);
+            if (_cache != null) {
                 var blockCopy = (byte[])block.Clone();
                 _cache.SetBlock(_baseFileName, _level, _version, blockNum, blockCopy);
-                return block;
-            } else {
-                return cachedBlock;
             }
+            return block;
         }
 
         [ThreadStatic]
@@ -297,51 +297,36 @@ namespace RazorDB {
             return threadAllocBlock;
         }
 
-        public class Metadata {
-            public int dataBlocks;
-            public int indexBlocks;
-            public int totalBlocks;
-        }
-        private static Dictionary<string, Metadata> _cachedMetadata = new Dictionary<string, Metadata>();
-
         private void ReadMetadata() {
-            lock (_cachedMetadata) {
-                Metadata md;
-                if (!_cachedMetadata.TryGetValue(_path, out md)) {
-                    md = ReadMetadataFromDisk();
-                    _cachedMetadata.Add(_path, md);
+            byte[] mdBlock = null;
+            int numBlocks = -1;
+            if (_cache != null) {
+                mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
+                if (mdBlock == null) {
+                    numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
+                    mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                    byte[] blockCopy = (byte[])mdBlock.Clone();
+                    _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
                 }
-                _dataBlocks = md.dataBlocks;
-                _indexBlocks = md.indexBlocks;
-                _totalBlocks = md.totalBlocks;
+            } else {
+                numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
+                mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
             }
-        }
-
-        internal static void ClearMetadataCacheForTable(string path) {
-            lock (_cachedMetadata) {
-                _cachedMetadata.Remove(path);
-            }
-        }
-
-        private Metadata ReadMetadataFromDisk() {
-            int numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-            MemoryStream ms = new MemoryStream(ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1));
+            MemoryStream ms = new MemoryStream(mdBlock);
             BinaryReader reader = new BinaryReader(ms);
             string checkString = Encoding.ASCII.GetString(reader.ReadBytes(8));
             if (checkString != "@RAZORDB") {
                 throw new InvalidDataException("This does not appear to be a valid table file.");
             }
-            var metadata = new Metadata();
-            metadata.totalBlocks = reader.Read7BitEncodedInt();
-            metadata.dataBlocks = reader.Read7BitEncodedInt();
-            metadata.indexBlocks = reader.Read7BitEncodedInt();
-            if (metadata.totalBlocks != numBlocks) {
+            _totalBlocks = reader.Read7BitEncodedInt();
+            _dataBlocks = reader.Read7BitEncodedInt();
+            _indexBlocks = reader.Read7BitEncodedInt();
+            if (_totalBlocks != numBlocks && numBlocks != -1) {
                 throw new InvalidDataException("The file size does not match the metadata size.");
             }
-            if (metadata.totalBlocks != (metadata.dataBlocks + metadata.indexBlocks + 1)) {
+            if (_totalBlocks != (_dataBlocks + _indexBlocks + 1)) {
                 throw new InvalidDataException("Corrupted metadata.");
             }
-            return metadata;
         }
 
         public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, ByteArray key, out ByteArray value) {

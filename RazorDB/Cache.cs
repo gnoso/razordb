@@ -107,10 +107,8 @@ namespace RazorDB {
         public byte[] GetBlock(string baseName, int level, int version, int blockNum) {
             string blockKey = Config.SortedBlockTableFile(baseName, level, version) + ":" + blockNum.ToString();
             byte[] block = null;
-            if (_blockDataCache.TryGetValue(blockKey, out block))
-                return block;
-            else 
-                return block;
+            _blockDataCache.TryGetValue(blockKey, out block);
+            return block;
         }
 
         public void SetBlock(string baseName, int level, int version, int blockNum, byte[] block) {
