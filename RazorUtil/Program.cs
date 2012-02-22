@@ -13,6 +13,13 @@ namespace RazorUtil {
 
             if (args.Length > 0) {
                 switch (args[0].ToLower()) {
+                    case "dump-journal":
+                        if (args.Length < 3) {
+                            Console.WriteLine("Invalid parameters");
+                        } else {
+                            DumpJournal(args[1], int.Parse(args[2]));
+                        }
+                        break;
                     case "dump-table":
                         if (args.Length < 4) {
                             Console.WriteLine("Invalid parameters");
@@ -44,6 +51,14 @@ namespace RazorUtil {
                 tablefile.DumpContents(msg => Console.WriteLine(msg));
             } finally {
                 tablefile.Close();
+            }
+        }
+
+        static void DumpJournal(string baseDir, int version) {
+            var journal = new JournalReader(baseDir, version);
+            Console.WriteLine("Journal\nBaseDir: {0} Version: {1}", baseDir, version);
+            foreach (var pair in journal.Enumerate()) {
+                Console.WriteLine("{0} => {1}", pair.Key.ToString(), pair.Value.ToString());
             }
         }
     }

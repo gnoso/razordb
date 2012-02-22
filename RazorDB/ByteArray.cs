@@ -96,7 +96,7 @@ namespace RazorDB {
         }
 
         public override string ToString() {
-            return string.Concat(_bytes.Select((b) => b.ToString("X2")).ToArray());
+            return _bytes.ToHexString();
         }
 
         [DllImport("msvcrt.dll")]
@@ -106,6 +106,12 @@ namespace RazorDB {
             byte[] bytes = new byte[size];
             Array.Copy(block, offset, bytes, 0, size);
             return new ByteArray(bytes);
+        }
+    }
+
+    public static class ByteArrayHelper {
+        public static string ToHexString(this byte[] bytes) {
+            return string.Concat(bytes.Select((b) => b.ToString("X2")).ToArray());
         }
     }
 
