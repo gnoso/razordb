@@ -257,14 +257,11 @@ namespace RazorDB {
         private JournaledMemTable _rotatedJournaledMemTable;
         private Semaphore _rotationSemaphore = new Semaphore(1, 1);
 
-        public void RotateMemTable() {
-            RotateMemTable(false);
-        }
 #pragma warning disable 420
-        public void RotateMemTable(bool force) {
+        public void RotateMemTable() {
             lock (memTableRotationLock) {
                 // Double check the flag in case we have multiple threads that make it into this routine
-                if (force || _currentJournaledMemTable.Full) {
+                if (_currentJournaledMemTable.Full) {
                     _rotationSemaphore.WaitOne();    // Wait for the rotation gate to be open, and automatically reset once a single thread gets through.
 
                     _rotatedJournaledMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
@@ -286,8 +283,9 @@ namespace RazorDB {
             int previousMemTableVersion = currentMemTableVersion - 1;
             // Is there a left-over journal from a previous rotation that was aborted while in rotation.
             if (File.Exists(Config.JournalFile(baseFileName, previousMemTableVersion))) {
-                _currentJournaledMemTable = new JournaledMemTable(baseFileName, previousMemTableVersion);
-                RotateMemTable(true);
+                var memTable = new JournaledMemTable(baseFileName, previousMemTableVersion);
+                memTable.WriteToSortedBlockTable(_manifest);
+                memTable.Close();
             }
         }
 
