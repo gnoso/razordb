@@ -14,7 +14,7 @@ namespace RazorDB {
             _version = version;
             _memTable = new MemTable();
 
-            // If the journal exists from a previous run, then load it's data into the memtable
+            // If the journal exists from a previous run, then load its data into the memtable
             string journalFile = Config.JournalFile(baseFileName, version);
             if (File.Exists(journalFile)) {
                 var journalReader = new JournalReader(baseFileName, version);

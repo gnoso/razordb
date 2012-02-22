@@ -15,7 +15,14 @@ namespace RazorDB {
                 Directory.CreateDirectory(baseFileName);
             }
             _manifest = new Manifest(baseFileName);
-            _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
+
+
+            int memTableVersion = _manifest.CurrentVersion(0);
+            // Check for a previously aborted journal rotation 
+            CheckForIncompleteJournalRotation(baseFileName, memTableVersion);
+            // Create new journal for this run (and potentially load from disk, if there was data loaded previously)
+            _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
+            
             _cache = new RazorCache();
             _tableManager = new TableManager(_cache, _manifest);
         }
@@ -250,11 +257,14 @@ namespace RazorDB {
         private JournaledMemTable _rotatedJournaledMemTable;
         private Semaphore _rotationSemaphore = new Semaphore(1, 1);
 
-#pragma warning disable 420
         public void RotateMemTable() {
+            RotateMemTable(false);
+        }
+#pragma warning disable 420
+        public void RotateMemTable(bool force) {
             lock (memTableRotationLock) {
                 // Double check the flag in case we have multiple threads that make it into this routine
-                if (_currentJournaledMemTable.Full) {
+                if (force || _currentJournaledMemTable.Full) {
                     _rotationSemaphore.WaitOne();    // Wait for the rotation gate to be open, and automatically reset once a single thread gets through.
 
                     _rotatedJournaledMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
@@ -271,6 +281,15 @@ namespace RazorDB {
             }
         }
 #pragma warning restore 420
+
+        private void CheckForIncompleteJournalRotation(string baseFileName, int currentMemTableVersion) {
+            int previousMemTableVersion = currentMemTableVersion - 1;
+            // Is there a left-over journal from a previous rotation that was aborted while in rotation.
+            if (File.Exists(Config.JournalFile(baseFileName, previousMemTableVersion))) {
+                _currentJournaledMemTable = new JournaledMemTable(baseFileName, previousMemTableVersion);
+                RotateMemTable(true);
+            }
+        }
 
         public void Dispose() {
             Close();
