@@ -795,9 +795,31 @@ namespace RazorDBTests {
                 Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)items.Count);
 
             }
-
         }
 
+        [Test]
+        public void LargeDataValueTest() {
+
+            string path = Path.GetFullPath("TestData\\LargeDataValueTest");
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                // Generate a data value that is larger than the block size.
+                var value = ByteArray.Random(Config.SortedBlockSize + 256);
+
+                // Do it enough times to ensure a roll-over
+                for (int i = 0; i < 500; i++) {
+                    var key = BitConverter.GetBytes(i);
+                    db.Set(key, value.InternalBytes);
+                }
+
+                for (int i = 0; i < 500; i++) {
+                    var key = BitConverter.GetBytes(i);
+                    Assert.AreEqual(value.InternalBytes, db.Get(key));
+                }
+            }
+        }
     }
 
 }
