@@ -47,7 +47,7 @@ namespace RazorDBTests {
                     lastKey = k;
                     ct++;
                 }
-                Assert.AreEqual(100000, ct);
+                Assert.AreEqual(75000, ct);
                 Console.WriteLine("Found {0} items in the crashed database.", ct);
             }
 
