@@ -18,6 +18,13 @@ namespace RazorDB {
         }
         private ByteArray _bytes;
 
+        public byte[] KeyBytes {
+            get { 
+                byte[] keyBytes = new byte[Length-1];
+                Array.Copy(InternalBytes, keyBytes, Length-1);
+                return keyBytes;
+            }
+        }
         public byte[] InternalBytes { 
             get { return _bytes.InternalBytes; } 
         }
@@ -25,10 +32,15 @@ namespace RazorDB {
 
         public byte SequenceNum { get { return _bytes.InternalBytes[Length-1]; } }
 
+        public static Key Random(int numBytes) {
+            return new Key(ByteArray.Random(numBytes));
+        }
         public int CompareTo(Key other) {
             return _bytes.CompareTo(other._bytes);
         }
-
+        public int CompareTo(byte[] other, int offset, int length) {
+            return _bytes.CompareTo(other, offset, length);
+        }
         public override bool Equals(object obj) {
             return obj is Key ? base.Equals( (Key) obj) : false;
         }

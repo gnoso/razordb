@@ -65,14 +65,14 @@ namespace RazorDBTests {
             for (int i = 0; i < num_tables_to_merge; i++) {
                 var mt = new MemTable();
                 for (int j=0; j < items_per_table; j++) {
-                    var randKey = ByteArray.Random(40);
+                    var randKey = Key.Random(40);
                     var randVal = ByteArray.Random(512);
                     mt.Add(randKey, randVal);
                 }
                 mt.WriteToSortedBlockTable("TestData\\LevelMergeReadTest", 0, i);
                 totalData += mt.Size;
             }
-            var tables = new List<IEnumerable<KeyValuePair<ByteArray,ByteArray>>>();
+            var tables = new List<IEnumerable<KeyValuePair<Key, ByteArray>>>();
             var sbts = new List<SortedBlockTable>();
             var cache = new RazorCache();
             for (int j=0; j < num_tables_to_merge; j++) {
@@ -82,7 +82,7 @@ namespace RazorDBTests {
             }
 
             int ct = 0;
-            ByteArray key = new ByteArray(new byte[]{0});
+            Key key = Key.FromBytes(new byte[]{0,0});
             var timer = new Stopwatch();
             timer.Start();
             foreach (var pair in MergeEnumerator.Merge(tables, p => p.Key)) {
@@ -110,7 +110,7 @@ namespace RazorDBTests {
             for (int i = 0; i < num_tables_to_merge; i++) {
                 var mt = new MemTable();
                 for (int j = 0; j < items_per_table; j++) {
-                    var randKey = ByteArray.Random(40);
+                    var randKey = Key.Random(40);
                     var randVal = ByteArray.Random(512);
                     mt.Add(randKey, randVal);
                 }
@@ -120,7 +120,7 @@ namespace RazorDBTests {
 
             var cache = new RazorCache();
             int ct = 0;
-            ByteArray key = new ByteArray(new byte[] { 0 });
+            Key key = new Key(new ByteArray(new byte[] { 0 }));
             var timer = new Stopwatch();
             timer.Start();
             foreach (var pair in SortedBlockTable.EnumerateMergedTables(cache, "TestData\\LevelMergeReadTest2", 
@@ -152,7 +152,7 @@ namespace RazorDBTests {
             for (int i = 0; i < num_tables_to_merge; i++) {
                 var mt = new MemTable();
                 for (int j = 0; j < items_per_table; j++) {
-                    var randKey = ByteArray.Random(40);
+                    var randKey = Key.Random(40);
                     var randVal = ByteArray.Random(512);
                     mt.Add(randKey, randVal);
                 }
@@ -194,7 +194,7 @@ namespace RazorDBTests {
                 var mt = new MemTable();
                 for (int j = 0; j < items_per_table; j++) {
                     int numToStore = j % 100;
-                    var key = new ByteArray(BitConverter.GetBytes(numToStore));
+                    var key = new Key(new ByteArray(BitConverter.GetBytes(numToStore)));
                     var value = new ByteArray(BitConverter.GetBytes(j));
                     mt.Add(key, value);
                 }

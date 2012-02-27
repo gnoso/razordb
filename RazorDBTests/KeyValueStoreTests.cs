@@ -117,7 +117,7 @@ namespace RazorDBTests {
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
 
-                for (int i = 0; i < 100000; i++) {
+                for (int i = 0; i < 75000; i++) {
                     byte[] key = BitConverter.GetBytes(i);
                     byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
                     db.Set(key, value);
@@ -142,7 +142,7 @@ namespace RazorDBTests {
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
 
-                for (int i = 0; i < 100000; i++) {
+                for (int i = 0; i < 75000; i++) {
                     byte[] key = BitConverter.GetBytes(i);
                     byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
                     db.Set(key, value);
@@ -560,7 +560,7 @@ namespace RazorDBTests {
                 timer.Reset();
                 Console.WriteLine("Begin enumeration.");
                 timer.Start();
-                ByteArray lastKey = new ByteArray();
+                ByteArray lastKey = ByteArray.Empty;
                 int ct = 0;
                 foreach (var pair in db.Enumerate()) {
                     try {
@@ -614,7 +614,7 @@ namespace RazorDBTests {
                 timer.Reset();
                 Console.WriteLine("Begin enumeration.");
                 timer.Start();
-                ByteArray lastKey = new ByteArray();
+                ByteArray lastKey = ByteArray.Empty;
                 int ct = 0;
                 foreach (var pair in db.Enumerate()) {
                     try {

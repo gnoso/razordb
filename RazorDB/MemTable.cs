@@ -6,12 +6,12 @@ namespace RazorDB {
 
     public class MemTable {
 
-        private Dictionary<ByteArray, ByteArray> _internalTable = new Dictionary<ByteArray, ByteArray>();
+        private Dictionary<Key, ByteArray> _internalTable = new Dictionary<Key, ByteArray>();
         private int _totalKeySize = 0;
         private int _totalValueSize = 0;
         private object _tableLock = new object();
 
-        public void Add(ByteArray key, ByteArray value) {
+        public void Add(Key key, ByteArray value) {
             lock (_tableLock) {
                 _totalKeySize += key.Length;
                 _totalValueSize += value.Length;
@@ -27,7 +27,7 @@ namespace RazorDB {
             }
         }
 
-        public bool Lookup(ByteArray key, out ByteArray value) {
+        public bool Lookup(Key key, out ByteArray value) {
             lock (_tableLock) {
                 return _internalTable.TryGetValue(key, out value);
             }
@@ -41,11 +41,11 @@ namespace RazorDB {
             get { return Size > Config.MaxMemTableSize; }
         }
 
-        public ByteArray FirstKey {
+        public Key FirstKey {
             get { lock (_tableLock) { return _internalTable.Keys.Min(); } }
         }
 
-        public ByteArray LastKey {
+        public Key LastKey {
             get { lock (_tableLock) { return _internalTable.Keys.Max(); } }
         }
 
@@ -66,13 +66,13 @@ namespace RazorDB {
             }
         }
 
-        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> Enumerate() {
+        public IEnumerable<KeyValuePair<Key, ByteArray>> Enumerate() {
             return _internalTable
-                .Select(pair => new KeyValuePair<ByteArray, ByteArray>(pair.Key, pair.Value))
+                .Select(pair => new KeyValuePair<Key, ByteArray>(pair.Key, pair.Value))
                 .OrderBy((pair) => pair.Key);
         }
 
-        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> GetEnumerableSnapshot() {
+        public IEnumerable<KeyValuePair<Key, ByteArray>> GetEnumerableSnapshot() {
             lock (_tableLock) {
                 return Enumerate().ToList();
             }

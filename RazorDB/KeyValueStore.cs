@@ -69,7 +69,7 @@ namespace RazorDB {
         }
 
         public void Set(byte[] key, byte[] value, IDictionary<string, byte[]> indexedValues) {
-            var k = new ByteArray(key);
+            var k = new Key(key,0);
             var v = new ByteArray(value);
 
             int adds = 10;
@@ -117,7 +117,7 @@ namespace RazorDB {
         }
 
         public byte[] Get(byte[] key) {
-            ByteArray lookupKey = new ByteArray(key);
+            Key lookupKey = new Key(key, 0);
             ByteArray output;
             // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
@@ -179,7 +179,7 @@ namespace RazorDB {
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> Enumerate() {
 
-            var enumerators = new List<IEnumerable<KeyValuePair<ByteArray, ByteArray>>>();
+            var enumerators = new List<IEnumerable<KeyValuePair<Key, ByteArray>>>();
             
             // Now check the files on disk
             using (var manifestSnapshot = _manifest.GetLatestManifest()) {
@@ -200,11 +200,11 @@ namespace RazorDB {
                             .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version));
                         tables.AddRange(pages);
                     }
-                    enumerators.AddRange(tables.Select( t => t.Enumerate()));
+                    enumerators.AddRange(tables.Select(t => t.Enumerate()));
 
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
                         if (pair.Value.Length > 0) {
-                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.InternalBytes);
                         }
                     }
                 } finally {
@@ -216,8 +216,8 @@ namespace RazorDB {
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> EnumerateFromKey(byte[] startingKey) {
 
-            var enumerators = new List<IEnumerable<KeyValuePair<ByteArray, ByteArray>>>();
-            ByteArray key = new ByteArray(startingKey);
+            var enumerators = new List<IEnumerable<KeyValuePair<Key, ByteArray>>>();
+            Key key = new Key(startingKey, 0);
 
             // Now check the files on disk
             using (var manifestSnapshot = _manifest.GetLatestManifest()) {
@@ -242,7 +242,7 @@ namespace RazorDB {
 
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
                         if (pair.Value.Length > 0) {
-                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.InternalBytes, pair.Value.InternalBytes);
+                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.InternalBytes);
                         }
                     }
                 } finally {

@@ -79,17 +79,17 @@ namespace RazorDB {
     public class RazorCache {
 
         public RazorCache() {
-            _blockIndexCache = new Cache<ByteArray[]>(Config.IndexCacheSize, index => index.Sum(ba => ba.Length));
+            _blockIndexCache = new Cache<Key[]>(Config.IndexCacheSize, index => index.Sum(ba => ba.Length));
             _blockDataCache = new Cache<byte[]>(Config.DataBlockCacheSize, block => block.Length);
         }
 
-        private Cache<ByteArray[]> _blockIndexCache;
+        private Cache<Key[]> _blockIndexCache;
         private Cache<byte[]> _blockDataCache;
 
-        public ByteArray[] GetBlockTableIndex(string baseName, int level, int version) {
+        public Key[] GetBlockTableIndex(string baseName, int level, int version) {
 
             string fileName = Config.SortedBlockTableFile(baseName, level, version);
-            ByteArray[] index;
+            Key[] index;
 
             if (_blockIndexCache.TryGetValue(fileName, out index)) {
                 return index;

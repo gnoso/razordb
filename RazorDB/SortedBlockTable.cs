@@ -19,7 +19,7 @@ namespace RazorDB {
             _bufferB = new byte[Config.SortedBlockSize];
             _buffer = _bufferA;
             _bufferPos = 0;
-            _pageIndex = new List<ByteArray>();
+            _pageIndex = new List<Key>();
             Version = version;
             WrittenSize = 0;
         }
@@ -30,7 +30,7 @@ namespace RazorDB {
         private byte[] _buffer;      // current buffer that is being loaded
         private int _bufferPos;
         private IAsyncResult _async;
-        private List<ByteArray> _pageIndex;
+        private List<Key> _pageIndex;
         private int dataBlocks = 0;
         private int indexBlocks = 0;
         private int totalBlocks = 0;
@@ -46,7 +46,7 @@ namespace RazorDB {
         private List<ushort> _keyOffsets = new List<ushort>();
 
         // Write a new key value pair to the output file. This method assumes that the data is being fed in key-sorted order.
-        public void WritePair(ByteArray key, ByteArray value) {
+        public void WritePair(Key key, ByteArray value) {
 
             byte[] keySize = new byte[8];
             int keySizeLen = Helper.Encode7BitInt(keySize, key.Length);
@@ -137,7 +137,7 @@ namespace RazorDB {
         }
 
 
-        private void WriteIndexKey(ByteArray key) {
+        private void WriteIndexKey(Key key) {
             byte[] keySize = new byte[8];
             int keySizeLen = Helper.Encode7BitInt(keySize, key.Length);
 
@@ -329,7 +329,7 @@ namespace RazorDB {
             }
         }
 
-        public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, ByteArray key, out ByteArray value) {
+        public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out ByteArray value) {
             SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
             try {
                 int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
@@ -341,12 +341,12 @@ namespace RazorDB {
             } finally {
                 sbt.Close();
             }
-            value = new ByteArray();
+            value = ByteArray.Empty;
             return false;
         }
 
-        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, ByteArray key) {
-            ByteArray[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
+        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, Key key) {
+            Key[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
             int dataBlockNum = Array.BinarySearch(index, key);
             if (dataBlockNum < 0) {
                 dataBlockNum = ~dataBlockNum - 1;
@@ -354,11 +354,11 @@ namespace RazorDB {
             return dataBlockNum;
         }
 
-        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> Enumerate() {
-            return EnumerateFromKey(null, ByteArray.Empty);
+        public IEnumerable<KeyValuePair<Key, ByteArray>> Enumerate() {
+            return EnumerateFromKey(_cache, Key.Empty);
         }
 
-        public IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateFromKey(RazorCache indexCache, ByteArray key) {
+        public IEnumerable<KeyValuePair<Key, ByteArray>> EnumerateFromKey(RazorCache indexCache, Key key) {
 
             int startingBlock;
             if (key.Length == 0) {
@@ -409,7 +409,7 @@ namespace RazorDB {
 
         }
 
-        private IEnumerable<ByteArray> EnumerateIndex() {
+        private IEnumerable<Key> EnumerateIndex() {
 
             byte[] allocBlockA = new byte[Config.SortedBlockSize];
             byte[] allocBlockB = new byte[Config.SortedBlockSize];
@@ -436,11 +436,11 @@ namespace RazorDB {
             }
         }
 
-        public ByteArray[] GetIndex() {
+        public Key[] GetIndex() {
             return EnumerateIndex().ToArray();
         }
 
-        private static ByteArray ReadKey(byte[] block, ref int offset) {
+        private static Key ReadKey(byte[] block, ref int offset) {
             int keySize = Helper.Decode7BitInt(block, ref offset);
             var key = ByteArray.From(block, offset, keySize);
             offset += keySize;
@@ -449,10 +449,10 @@ namespace RazorDB {
             if (block[offset] == 0)
                 offset = -1;
 
-            return key;
+            return new Key(key);
         }
 
-        private static bool ScanBlockForKey(byte[] block, ByteArray key, out ByteArray value) {
+        private static bool ScanBlockForKey(byte[] block, Key key, out ByteArray value) {
             int offset = 2; // skip over the tree root pointer
             value = new ByteArray();
 
@@ -478,7 +478,7 @@ namespace RazorDB {
             return false;
         }
 
-        private static bool SearchBlockForKey(byte[] block, ByteArray key, out ByteArray value) {
+        private static bool SearchBlockForKey(byte[] block, Key key, out ByteArray value) {
             int offset = BitConverter.ToUInt16(block, 0); // grab the tree root
             value = new ByteArray();
 
@@ -504,11 +504,11 @@ namespace RazorDB {
             return false;
         }
 
-        private static KeyValuePair<ByteArray, ByteArray> ReadPair(byte[] block, ref int offset) {
+        private static KeyValuePair<Key, ByteArray> ReadPair(byte[] block, ref int offset) {
             offset += 1; // skip over header flag
             offset += 4; // skip over the tree pointers
             int keySize = Helper.Decode7BitInt(block, ref offset);
-            var key = ByteArray.From(block, offset, keySize);
+            var key = new Key(ByteArray.From(block, offset, keySize));
             offset += keySize;
             int valueSize = Helper.Decode7BitInt(block, ref offset);
             var val = ByteArray.From(block, offset, valueSize);
@@ -518,10 +518,10 @@ namespace RazorDB {
             if (offset >= Config.SortedBlockSize || block[offset] == (byte)RecordHeaderFlag.EndOfBlock )
                 offset = -1;
 
-            return new KeyValuePair<ByteArray,ByteArray>(key,val);
+            return new KeyValuePair<Key, ByteArray>(key, val);
         }
 
-        public static IEnumerable<KeyValuePair<ByteArray, ByteArray>> EnumerateMergedTables(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
+        public static IEnumerable<KeyValuePair<Key, ByteArray>> EnumerateMergedTables(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
              var tables = tableSpecs
                .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
                .ToList();
@@ -540,8 +540,8 @@ namespace RazorDB {
             var outputTables = new List<PageRecord>();
             SortedBlockTableWriter writer = null;
 
-            ByteArray firstKey = new ByteArray();
-            ByteArray lastKey = new ByteArray();
+            Key firstKey = new Key();
+            Key lastKey = new Key();
 
             foreach (var pair in EnumerateMergedTables(cache, mf.BaseFileName, orderedTableSpecs)) {
                 if (writer == null) {
