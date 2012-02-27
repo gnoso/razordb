@@ -48,6 +48,7 @@
     <Compile Include="Config.cs" />
     <Compile Include="Journal.cs" />
     <Compile Include="JournaledMemTable.cs" />
+    <Compile Include="Key.cs" />
     <Compile Include="KeyValueStore.cs" />
     <Compile Include="Manifest.cs" />
     <Compile Include="MemTable.cs" />
