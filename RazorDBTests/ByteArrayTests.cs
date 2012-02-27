@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using RazorDB;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace RazorDBTests {
 
@@ -53,6 +54,38 @@ namespace RazorDBTests {
         //    timer.Stop();
         //    Console.WriteLine("Elapsed Time (20 byte): {0} ms", timer.ElapsedMilliseconds);
         //}
+    }
+
+    [TestFixture]
+    public class KeyTests {
+
+        [Test]
+        public void TestKey() {
+
+            ByteArray keyBytes = ByteArray.Random(10);
+            byte[] allBytes = new byte[keyBytes.Length +1 ];
+            Array.Copy(keyBytes.InternalBytes, allBytes, keyBytes.Length);
+
+            var keys = new List<Key>();
+            for (int i = 99; i >= 0 ; i--) {
+                keys.Add(new Key(keyBytes.InternalBytes, (byte)i));
+            }
+            keys.Sort();
+            int j = 0;
+            foreach (var k in keys) {
+                Assert.AreEqual(11, k.Length);
+
+                allBytes[allBytes.Length-1] = (byte)j;
+                Assert.AreEqual(allBytes, k.InternalBytes);
+
+                Assert.AreEqual(j, k.SequenceNum);
+                j++;
+            }
+
+            var keyA = new Key(keyBytes.InternalBytes, 23);
+            var keyB = Key.FromBytes(keyA.InternalBytes);
+            Assert.AreEqual(keyA, keyB);
+        }
     }
 
 }

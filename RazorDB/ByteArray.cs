@@ -113,6 +113,9 @@ namespace RazorDB {
         public static string ToHexString(this byte[] bytes) {
             return string.Concat(bytes.Select((b) => b.ToString("X2")).ToArray());
         }
+        public static string ToHexString(this byte[] bytes, int offset, int count) {
+            return string.Concat(bytes.Skip(offset).Take(count).Select((b) => b.ToString("X2")).ToArray());
+        }
     }
 
 }

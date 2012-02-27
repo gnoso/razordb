@@ -12,6 +12,7 @@ namespace RazorDB {
         }
         public Key(byte[] bytes, byte seqNum) {
             byte[] internalBytes = new byte[bytes.Length + 1];
+            Array.Copy(bytes, internalBytes, bytes.Length);
             internalBytes[bytes.Length] = seqNum;
             _bytes = new ByteArray(internalBytes);
         }
@@ -20,7 +21,7 @@ namespace RazorDB {
         public byte[] InternalBytes { 
             get { return _bytes.InternalBytes; } 
         }
-        public int Length { get { return _bytes.Length + 1; } }
+        public int Length { get { return _bytes.Length; } }
 
         public byte SequenceNum { get { return _bytes.InternalBytes[Length-1]; } }
 
@@ -37,7 +38,7 @@ namespace RazorDB {
         }
 
         public override string ToString() {
-            return _bytes.ToString() + ":" + SequenceNum.ToString();
+            return _bytes.InternalBytes.ToHexString(0, Length-1) + ":" + SequenceNum.ToString();
         }
 
         public bool Equals(Key other) {
