@@ -37,18 +37,18 @@ namespace RazorDB {
         private string _baseFileName;
         private int _version;
 
-        public IEnumerable<KeyValuePair<Key, ByteArray>> EnumerateSnapshot() {
+        public IEnumerable<KeyValuePair<Key, Value>> EnumerateSnapshot() {
             // Grab sorted copy of the internal memtable contents
             return _memTable.GetEnumerableSnapshot();
         }
-        public IEnumerable<KeyValuePair<Key, ByteArray>> EnumerateSnapshotFromKey(Key key) {
+        public IEnumerable<KeyValuePair<Key, Value>> EnumerateSnapshotFromKey(Key key) {
             // Grab sorted copy of the internal memtable contents
             return _memTable.GetEnumerableSnapshot().Where(pair => pair.Key.CompareTo(key) > 0);
         }
 
         public int Version { get { return _version; } }
 
-        public bool Add(Key key, ByteArray value) {
+        public bool Add(Key key, Value value) {
 
             if (_journal == null || _memTable == null)
                 return false;
@@ -62,7 +62,7 @@ namespace RazorDB {
 
         }
 
-        public bool Lookup(Key key, out ByteArray value) {
+        public bool Lookup(Key key, out Value value) {
             return _memTable.Lookup(key, out value);
         }
 

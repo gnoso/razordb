@@ -70,7 +70,7 @@ namespace RazorDB {
 
         public void Set(byte[] key, byte[] value, IDictionary<string, byte[]> indexedValues) {
             var k = new Key(key,0);
-            var v = new ByteArray(value);
+            var v = new Value(value);
 
             int adds = 10;
             while (!_currentJournaledMemTable.Add(k, v)) {
@@ -118,7 +118,7 @@ namespace RazorDB {
 
         public byte[] Get(byte[] key) {
             Key lookupKey = new Key(key, 0);
-            ByteArray output;
+            Value output;
             // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output.Length == 0 ? null : output.InternalBytes;
@@ -179,7 +179,7 @@ namespace RazorDB {
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> Enumerate() {
 
-            var enumerators = new List<IEnumerable<KeyValuePair<Key, ByteArray>>>();
+            var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
             
             // Now check the files on disk
             using (var manifestSnapshot = _manifest.GetLatestManifest()) {
@@ -204,7 +204,7 @@ namespace RazorDB {
 
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
                         if (pair.Value.Length > 0) {
-                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.InternalBytes);
+                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.ValueBytes);
                         }
                     }
                 } finally {
@@ -216,7 +216,7 @@ namespace RazorDB {
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> EnumerateFromKey(byte[] startingKey) {
 
-            var enumerators = new List<IEnumerable<KeyValuePair<Key, ByteArray>>>();
+            var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
             Key key = new Key(startingKey, 0);
 
             // Now check the files on disk
@@ -242,7 +242,7 @@ namespace RazorDB {
 
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
                         if (pair.Value.Length > 0) {
-                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.InternalBytes);
+                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.ValueBytes);
                         }
                     }
                 } finally {

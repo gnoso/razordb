@@ -21,7 +21,7 @@ namespace RazorDB {
 
         // Add an item to the journal. It's possible that a thread is still Adding while another thread is Closing the journal.
         // in that case, we return false and expect the caller to do the operation over again on another journal instance.
-        public bool Add(Key key, ByteArray value) {
+        public bool Add(Key key, Value value) {
             lock (_writeLock) {
                 if (_writer == null)
                     return false;
@@ -61,7 +61,7 @@ namespace RazorDB {
         private BinaryReader _reader;
         private string _fileName;
 
-        public IEnumerable<KeyValuePair<Key, ByteArray>> Enumerate() {
+        public IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
             byte[] key = null;
             byte[] value = null;
             bool data = true;
@@ -81,7 +81,7 @@ namespace RazorDB {
                     data = false;
                 }
                 if (data)
-                    yield return new KeyValuePair<Key, ByteArray>(Key.FromBytes(key), new ByteArray(value));
+                    yield return new KeyValuePair<Key, Value>(Key.FromBytes(key), Value.FromBytes(value));
             }
         }
                 

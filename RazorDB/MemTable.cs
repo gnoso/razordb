@@ -6,17 +6,17 @@ namespace RazorDB {
 
     public class MemTable {
 
-        private Dictionary<Key, ByteArray> _internalTable = new Dictionary<Key, ByteArray>();
+        private Dictionary<Key, Value> _internalTable = new Dictionary<Key, Value>();
         private int _totalKeySize = 0;
         private int _totalValueSize = 0;
         private object _tableLock = new object();
 
-        public void Add(Key key, ByteArray value) {
+        public void Add(Key key, Value value) {
             lock (_tableLock) {
                 _totalKeySize += key.Length;
                 _totalValueSize += value.Length;
 
-                ByteArray currentValue;
+                Value currentValue;
                 if (_internalTable.TryGetValue(key, out currentValue)) {
                     // if we are replacing a value, then subtract its size from our object accounting
                     _totalKeySize -= key.Length;
@@ -27,7 +27,7 @@ namespace RazorDB {
             }
         }
 
-        public bool Lookup(Key key, out ByteArray value) {
+        public bool Lookup(Key key, out Value value) {
             lock (_tableLock) {
                 return _internalTable.TryGetValue(key, out value);
             }
@@ -66,13 +66,13 @@ namespace RazorDB {
             }
         }
 
-        public IEnumerable<KeyValuePair<Key, ByteArray>> Enumerate() {
+        public IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
             return _internalTable
-                .Select(pair => new KeyValuePair<Key, ByteArray>(pair.Key, pair.Value))
+                .Select(pair => new KeyValuePair<Key, Value>(pair.Key, pair.Value))
                 .OrderBy((pair) => pair.Key);
         }
 
-        public IEnumerable<KeyValuePair<Key, ByteArray>> GetEnumerableSnapshot() {
+        public IEnumerable<KeyValuePair<Key, Value>> GetEnumerableSnapshot() {
             lock (_tableLock) {
                 return Enumerate().ToList();
             }

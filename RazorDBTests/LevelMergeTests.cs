@@ -66,13 +66,13 @@ namespace RazorDBTests {
                 var mt = new MemTable();
                 for (int j=0; j < items_per_table; j++) {
                     var randKey = Key.Random(40);
-                    var randVal = ByteArray.Random(512);
+                    var randVal = Value.Random(512);
                     mt.Add(randKey, randVal);
                 }
                 mt.WriteToSortedBlockTable("TestData\\LevelMergeReadTest", 0, i);
                 totalData += mt.Size;
             }
-            var tables = new List<IEnumerable<KeyValuePair<Key, ByteArray>>>();
+            var tables = new List<IEnumerable<KeyValuePair<Key, Value>>>();
             var sbts = new List<SortedBlockTable>();
             var cache = new RazorCache();
             for (int j=0; j < num_tables_to_merge; j++) {
@@ -111,7 +111,7 @@ namespace RazorDBTests {
                 var mt = new MemTable();
                 for (int j = 0; j < items_per_table; j++) {
                     var randKey = Key.Random(40);
-                    var randVal = ByteArray.Random(512);
+                    var randVal = Value.Random(512);
                     mt.Add(randKey, randVal);
                 }
                 mt.WriteToSortedBlockTable("TestData\\LevelMergeReadTest2", 0, i);
@@ -153,7 +153,7 @@ namespace RazorDBTests {
                 var mt = new MemTable();
                 for (int j = 0; j < items_per_table; j++) {
                     var randKey = Key.Random(40);
-                    var randVal = ByteArray.Random(512);
+                    var randVal = Value.Random(512);
                     mt.Add(randKey, randVal);
                 }
                 mt.WriteToSortedBlockTable("TestData\\LevelMergeOutputTest", 0, i);
@@ -195,7 +195,7 @@ namespace RazorDBTests {
                 for (int j = 0; j < items_per_table; j++) {
                     int numToStore = j % 100;
                     var key = new Key(new ByteArray(BitConverter.GetBytes(numToStore)));
-                    var value = new ByteArray(BitConverter.GetBytes(j));
+                    var value = new Value(new ByteArray(BitConverter.GetBytes(j)));
                     mt.Add(key, value);
                 }
                 mt.WriteToSortedBlockTable("TestData\\LevelMergeDuplicateValuesTest", 0, i);

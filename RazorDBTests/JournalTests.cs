@@ -19,12 +19,12 @@ namespace RazorDBTests {
                 Directory.CreateDirectory(path);
             JournalWriter jw = new JournalWriter(path, 324, false);
 
-            List<KeyValuePair<Key, ByteArray>> items = new List<KeyValuePair<Key, ByteArray>>();
+            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
             for (int i = 0; i < 10000; i++) {
                 Key randKey = Key.Random(20);
-                ByteArray randValue = ByteArray.Random(100);
+                Value randValue = Value.Random(100);
                 jw.Add(randKey, randValue);
-                items.Add(new KeyValuePair<Key, ByteArray>(randKey, randValue));
+                items.Add(new KeyValuePair<Key, Value>(randKey, randValue));
             }
             jw.Close();
 
@@ -46,12 +46,12 @@ namespace RazorDBTests {
                 Directory.CreateDirectory(path);
             JournalWriter jw = new JournalWriter(path, 324, false);
 
-            List<KeyValuePair<Key, ByteArray>> items = new List<KeyValuePair<Key, ByteArray>>();
+            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
             for (int i = 0; i < 5000; i++) {
                 Key randKey = Key.Random(20);
-                ByteArray randValue = ByteArray.Random(100);
+                Value randValue = Value.Random(100);
                 jw.Add(randKey, randValue);
-                items.Add(new KeyValuePair<Key, ByteArray>(randKey, randValue));
+                items.Add(new KeyValuePair<Key, Value>(randKey, randValue));
             }
             jw.Close();
 
@@ -59,9 +59,9 @@ namespace RazorDBTests {
             jw = new JournalWriter(path, 324, true);
             for (int i = 0; i < 5000; i++) {
                 Key randKey = Key.Random(20);
-                ByteArray randValue = ByteArray.Random(100);
+                Value randValue = Value.Random(100);
                 jw.Add(randKey, randValue);
-                items.Add(new KeyValuePair<Key, ByteArray>(randKey, randValue));
+                items.Add(new KeyValuePair<Key, Value>(randKey, randValue));
             }
             jw.Close();
 

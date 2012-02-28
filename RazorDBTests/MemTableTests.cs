@@ -17,17 +17,17 @@ namespace RazorDBTests {
 
             MemTable mt = new MemTable();
 
-            List<KeyValuePair<Key, ByteArray>> values = new List<KeyValuePair<Key, ByteArray>>();
+            List<KeyValuePair<Key, Value>> values = new List<KeyValuePair<Key, Value>>();
 
             for (int i = 0; i < 10000; i++) {
                 var randomKey = Key.Random(40);
-                var randomValue = ByteArray.Random(256);
+                var randomValue = Value.Random(256);
 
-                values.Add(new KeyValuePair<Key, ByteArray>(randomKey, randomValue));
+                values.Add(new KeyValuePair<Key, Value>(randomKey, randomValue));
                 mt.Add(randomKey, randomValue);
             }
 
-            ByteArray value;
+            Value value;
             foreach (var pair in values) {
                 Assert.IsTrue(mt.Lookup(pair.Key, out value));
                 Assert.AreEqual(pair.Value, value);
@@ -43,17 +43,17 @@ namespace RazorDBTests {
 
             MemTable mt = new MemTable();
 
-            Dictionary<Key, ByteArray> values = new Dictionary<Key, ByteArray>();
+            Dictionary<Key, Value> values = new Dictionary<Key, Value>();
 
             for (int i = 0; i < 10000; i++) {
                 var randomKey = new Key(new ByteArray(BitConverter.GetBytes(i % 10)));
-                var randomValue = ByteArray.Random(256);
+                var randomValue = new Value(ByteArray.Random(256));
 
                 values[randomKey] = randomValue;
                 mt.Add(randomKey, randomValue);
             }
 
-            ByteArray value;
+            Value value;
             foreach (var pair in values) {
                 Assert.IsTrue(mt.Lookup(pair.Key, out value));
                 Assert.AreEqual(pair.Value, value);
@@ -74,7 +74,7 @@ namespace RazorDBTests {
 
             for (int i = 0; i < 10000; i++) {
                 var randomKey = Key.Random(40);
-                var randomValue = ByteArray.Random(256);
+                var randomValue = Value.Random(256);
 
                 mt.Add(randomKey, randomValue);
             }
@@ -96,13 +96,13 @@ namespace RazorDBTests {
 
             JournalWriter jw = new JournalWriter("TestData\\AddAndLookupItemsPersisted", 523, false);
 
-            List<KeyValuePair<Key, ByteArray>> values = new List<KeyValuePair<Key, ByteArray>>();
+            List<KeyValuePair<Key, Value>> values = new List<KeyValuePair<Key, Value>>();
 
             for (int i = 0; i < 10000; i++) {
                 var randomKey = Key.Random(40);
-                var randomValue = ByteArray.Random(256);
+                var randomValue = Value.Random(256);
 
-                values.Add(new KeyValuePair<Key, ByteArray>(randomKey, randomValue));
+                values.Add(new KeyValuePair<Key, Value>(randomKey, randomValue));
                 jw.Add(randomKey, randomValue);
             }
             jw.Close();
@@ -110,7 +110,7 @@ namespace RazorDBTests {
             MemTable mtl = new MemTable();
             mtl.ReadFromJournal("TestData\\AddAndLookupItemsPersisted", 523);
 
-            ByteArray value;
+            Value value;
             foreach (var pair in values) {
                 Assert.IsTrue(mtl.Lookup(pair.Key, out value));
                 Assert.AreEqual(pair.Value, value);
