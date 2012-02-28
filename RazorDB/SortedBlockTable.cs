@@ -511,7 +511,7 @@ namespace RazorDB {
             var key = new Key(ByteArray.From(block, offset, keySize));
             offset += keySize;
             int valueSize = Helper.Decode7BitInt(block, ref offset);
-            var val = new Value(ByteArray.From(block, offset, valueSize));
+            var val = Value.From(block, offset, valueSize);
             offset += valueSize;
 
             // if the next keySize bit is zero then we have exhausted this block. Set to -1 to terminate enumeration

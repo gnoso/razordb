@@ -28,7 +28,7 @@ namespace RazorTest {
         public static void CrashTestOnMerge() {
 
             string path = Path.GetFullPath("TestData\\CrashTestOnMerge");
-            int num_items = 75000;
+            int num_items = 50000;
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();

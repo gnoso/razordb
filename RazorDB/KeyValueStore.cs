@@ -69,9 +69,30 @@ namespace RazorDB {
         }
 
         public void Set(byte[] key, byte[] value, IDictionary<string, byte[]> indexedValues) {
-            var k = new Key(key,0);
-            var v = new Value(value);
 
+            int valueSize = value.Length;
+            if (valueSize <= Config.MaxSmallValueSize) {
+                var k = new Key(key, 0);
+                var v = new Value(value, ValueFlag.SmallValue);
+                InternalSet(k, v, indexedValues);
+            } else {
+                int offset = 0;
+                byte seqNum = 1;
+                while (offset < valueSize) {
+                    var k = new Key(key, seqNum);
+                    int length = Math.Min(valueSize - offset, Config.MaxSmallValueSize);
+                    var v = new Value(ByteArray.From(value, offset, length).InternalBytes, ValueFlag.LargeValueChunk);
+                    InternalSet(k, v, null);
+                    offset += length;
+                    seqNum++;
+                }
+                var dk = new Key(key, 0);
+                var dv = new Value(BitConverter.GetBytes(valueSize), ValueFlag.LargeValueDescriptor);
+                InternalSet(dk, dv, null);
+            }
+        }
+
+        private void InternalSet(Key k, Value v, IDictionary<string, byte[]> indexedValues) {
             int adds = 10;
             while (!_currentJournaledMemTable.Add(k, v)) {
                 adds--;
@@ -80,7 +101,7 @@ namespace RazorDB {
             }
             // Add secondary index values if they were provided
             if (indexedValues != null)
-                AddToIndex(key, indexedValues);
+                AddToIndex(k.KeyBytes, indexedValues);
 
             if (_currentJournaledMemTable.Full) {
                 RotateMemTable();
@@ -121,13 +142,13 @@ namespace RazorDB {
             Value output;
             // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
-                return output.Length == 0 ? null : output.InternalBytes;
+                return AssembleGetResult(lookupKey, output);
             }
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
             if (rotatedMemTable != null) {
                 if (rotatedMemTable.Lookup(lookupKey, out output)) {
-                    return output.Length == 0 ? null : output.InternalBytes;
+                    return AssembleGetResult(lookupKey, output);
                 }
             }
             // Now check the files on disk
@@ -136,19 +157,45 @@ namespace RazorDB {
                 var zeroPages = manifest.GetPagesAtLevel(0);
                 foreach (var page in zeroPages) {
                     if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output)) {
-                        return output.Length == 0 ? null : output.InternalBytes;
+                        return AssembleGetResult(lookupKey, output);
                     }
                 }
                 // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
                 for (int level = 1; level < manifest.NumLevels; level++) {
                     var page = manifest.FindPageForKey(level, lookupKey);
                     if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output)) {
-                        return output.Length == 0 ? null : output.InternalBytes;
+                        return AssembleGetResult(lookupKey, output);
                     }
                 }
             }
             // OK, not found anywhere, return null
             return null;
+        }
+
+        private byte[] AssembleGetResult(Key lookupKey, Value result) {
+            switch (result.Type) {
+                case ValueFlag.Deleted:
+                    return null;
+                case ValueFlag.SmallValue:
+                    return result.ValueBytes;
+                case ValueFlag.LargeValueDescriptor: {
+                    int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
+                    byte[] bytes = new byte[valueSize];
+                    int offset = 0;
+                    byte seqNum = 1;
+                    while (offset < valueSize) {
+                        var blockKey = lookupKey.WithSequence(seqNum);
+                        var block = Get(lookupKey.KeyBytes);
+                        if (block == null)
+                            throw new InvalidDataException("Corrupted data: block is missing.");
+                        Array.Copy(block, 0, bytes, offset, block.Length);
+                        offset += block.Length;
+                    }
+                    return bytes;
+                }
+                default:
+                    throw new InvalidOperationException("Unexpected value flag for result.");
+            }
         }
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> Find(string indexName, byte[] lookupValue) {
@@ -174,7 +221,8 @@ namespace RazorDB {
         }
 
         public void Delete(byte[] key) {
-            Set(key, new byte[0]);
+            var k = new Key(key, 0);
+            InternalSet(k, Value.Deleted, null);
         }
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> Enumerate() {
@@ -203,7 +251,7 @@ namespace RazorDB {
                     enumerators.AddRange(tables.Select(t => t.Enumerate()));
 
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
-                        if (pair.Value.Length > 0) {
+                        if (pair.Value.Type != ValueFlag.Deleted) {
                             yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.ValueBytes);
                         }
                     }
@@ -241,7 +289,7 @@ namespace RazorDB {
                     enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
 
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
-                        if (pair.Value.Length > 0) {
+                        if (pair.Value.Type != ValueFlag.Deleted) {
                             yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.ValueBytes);
                         }
                     }

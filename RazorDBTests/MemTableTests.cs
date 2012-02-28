@@ -47,7 +47,7 @@ namespace RazorDBTests {
 
             for (int i = 0; i < 10000; i++) {
                 var randomKey = new Key(new ByteArray(BitConverter.GetBytes(i % 10)));
-                var randomValue = new Value(ByteArray.Random(256));
+                var randomValue = Value.Random(256);
 
                 values[randomKey] = randomValue;
                 mt.Add(randomKey, randomValue);

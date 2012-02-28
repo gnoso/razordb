@@ -195,7 +195,7 @@ namespace RazorDBTests {
                 for (int j = 0; j < items_per_table; j++) {
                     int numToStore = j % 100;
                     var key = new Key(new ByteArray(BitConverter.GetBytes(numToStore)));
-                    var value = new Value(new ByteArray(BitConverter.GetBytes(j)));
+                    var value = new Value(BitConverter.GetBytes(j));
                     mt.Add(key, value);
                 }
                 mt.WriteToSortedBlockTable("TestData\\LevelMergeDuplicateValuesTest", 0, i);
@@ -220,7 +220,7 @@ namespace RazorDBTests {
             try {
                 var pairs = sbt.Enumerate().ToList();
                 Assert.AreEqual(100, pairs.Count());
-                Assert.AreEqual(2400, BitConverter.ToInt32(pairs.First().Value.InternalBytes,0) );
+                Assert.AreEqual(2400, BitConverter.ToInt32(pairs.First().Value.ValueBytes,0) );
             } finally {
                 sbt.Close();
             }

@@ -5,18 +5,29 @@ using System.Text;
 
 namespace RazorDB {
 
+    public enum ValueFlag : byte { SmallValue = 0x0, LargeValueDescriptor = 0x5, LargeValueChunk = 0x10, Deleted = 0xFF };
+
     public struct Value {
 
-        public Value(ByteArray bytes) {
-            _bytes = bytes;
-        }
-        public Value(byte[] bytes) {
-            _bytes = new ByteArray(bytes);
+        public Value(byte[] bytes) : this(bytes, ValueFlag.SmallValue) {}
+        public Value(byte[] bytes, ValueFlag type) {
+            byte[] b = new byte[bytes.Length + 1];
+            b[0] = (byte) type;
+            Array.Copy(bytes, 0, b, 1, bytes.Length);
+            _bytes = new ByteArray(b);
         }
         private ByteArray _bytes;
 
+        public ValueFlag Type {
+            get { return (ValueFlag) _bytes.InternalBytes[0]; }
+        }
+
         public byte[] ValueBytes {
-            get { return _bytes.InternalBytes; }
+            get {
+                byte[] v = new byte[Length - 1];
+                Array.Copy(InternalBytes, 1, v, 0, Length - 1);
+                return v; 
+            }
         }
         public byte[] InternalBytes {
             get { return _bytes.InternalBytes; }
@@ -24,7 +35,7 @@ namespace RazorDB {
         public int Length { get { return _bytes.Length; } }
 
         public static Value Random(int numBytes) {
-            return new Value(ByteArray.Random(numBytes));
+            return Value.FromBytes(ByteArray.Random(numBytes).InternalBytes);
         }
 
         public override string ToString() {
@@ -32,11 +43,23 @@ namespace RazorDB {
         }
 
         public static Value FromBytes(byte[] bytes) {
-            return new Value(new ByteArray(bytes));
+            return From(bytes, 0, bytes.Length);
+        }
+
+        public static Value From(byte[] bytes, int offset, int length) {
+            var v = new Value();
+            v._bytes = ByteArray.From(bytes, offset, length);
+            return v;
         }
 
         public static Value Empty {
             get { return new Value(new byte[0]); }
         }
+
+        public static Value Deleted {
+            get { return new Value(new byte[0], ValueFlag.Deleted); }
+        }
     }
+
+
 }
