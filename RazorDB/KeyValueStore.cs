@@ -231,40 +231,7 @@ namespace RazorDB {
         }
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> Enumerate() {
-
-            var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
-            
-            // Now check the files on disk
-            using (var manifestSnapshot = _manifest.GetLatestManifest()) {
-                // Main MemTable
-                enumerators.Add(_currentJournaledMemTable.EnumerateSnapshot());
-
-                // Capture copy of the rotated table if there is one
-                var rotatedMemTable = _rotatedJournaledMemTable;
-                if (rotatedMemTable != null) {
-                    enumerators.Add(rotatedMemTable.EnumerateSnapshot());
-                }
-
-                List<SortedBlockTable> tables = new List<SortedBlockTable>();
-                try {
-                    for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
-                        var pages = manifestSnapshot.GetPagesAtLevel(i)
-                            .OrderByDescending(page => page.Level)
-                            .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version));
-                        tables.AddRange(pages);
-                    }
-                    enumerators.AddRange(tables.Select(t => t.Enumerate()));
-
-                    foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
-                        if (pair.Value.Type != ValueFlag.Deleted) {
-                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.ValueBytes);
-                        }
-                    }
-                } finally {
-                    // make sure all the tables get closed
-                    tables.ForEach(table => table.Close());
-                }
-            }
+            return EnumerateFromKey(new byte[0]);
         }
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> EnumerateFromKey(byte[] startingKey) {
