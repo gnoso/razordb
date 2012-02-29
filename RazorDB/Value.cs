@@ -5,7 +5,7 @@ using System.Text;
 
 namespace RazorDB {
 
-    public enum ValueFlag : byte { SmallValue = 0x0, LargeValueDescriptor = 0x5, LargeValueChunk = 0x10, Deleted = 0xFF };
+    public enum ValueFlag : byte { Null = 0x0, SmallValue = 0x1, LargeValueDescriptor = 0x5, LargeValueChunk = 0x10, Deleted = 0xFF };
 
     public struct Value {
 
@@ -28,6 +28,10 @@ namespace RazorDB {
                 Array.Copy(InternalBytes, 1, v, 0, Length - 1);
                 return v; 
             }
+        }
+        public int CopyValueBytesTo(byte[] block, int offset) {
+            Array.Copy(InternalBytes, 1, block, offset, Length - 1);
+            return Length - 1;
         }
         public byte[] InternalBytes {
             get { return _bytes.InternalBytes; }
@@ -53,7 +57,7 @@ namespace RazorDB {
         }
 
         public static Value Empty {
-            get { return new Value(new byte[0]); }
+            get { return new Value(new byte[0], ValueFlag.Null); }
         }
 
         public static Value Deleted {

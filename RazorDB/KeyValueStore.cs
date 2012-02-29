@@ -139,16 +139,20 @@ namespace RazorDB {
 
         public byte[] Get(byte[] key) {
             Key lookupKey = new Key(key, 0);
+            return AssembleGetResult(lookupKey, InternalGet(lookupKey));
+        }
+
+        private Value InternalGet(Key lookupKey) {
             Value output;
             // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
-                return AssembleGetResult(lookupKey, output);
+                return output;
             }
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
             if (rotatedMemTable != null) {
                 if (rotatedMemTable.Lookup(lookupKey, out output)) {
-                    return AssembleGetResult(lookupKey, output);
+                    return output;
                 }
             }
             // Now check the files on disk
@@ -157,23 +161,24 @@ namespace RazorDB {
                 var zeroPages = manifest.GetPagesAtLevel(0);
                 foreach (var page in zeroPages) {
                     if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output)) {
-                        return AssembleGetResult(lookupKey, output);
+                        return output;
                     }
                 }
                 // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
                 for (int level = 1; level < manifest.NumLevels; level++) {
                     var page = manifest.FindPageForKey(level, lookupKey);
                     if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output)) {
-                        return AssembleGetResult(lookupKey, output);
+                        return output;
                     }
                 }
             }
             // OK, not found anywhere, return null
-            return null;
+            return Value.Empty;
         }
 
         private byte[] AssembleGetResult(Key lookupKey, Value result) {
             switch (result.Type) {
+                case ValueFlag.Null:
                 case ValueFlag.Deleted:
                     return null;
                 case ValueFlag.SmallValue:
@@ -185,11 +190,11 @@ namespace RazorDB {
                     byte seqNum = 1;
                     while (offset < valueSize) {
                         var blockKey = lookupKey.WithSequence(seqNum);
-                        var block = Get(lookupKey.KeyBytes);
-                        if (block == null)
+                        var block = InternalGet(blockKey);
+                        if (block.Type != ValueFlag.LargeValueChunk)
                             throw new InvalidDataException("Corrupted data: block is missing.");
-                        Array.Copy(block, 0, bytes, offset, block.Length);
-                        offset += block.Length;
+                        offset += block.CopyValueBytesTo(bytes, offset);
+                        seqNum++;
                     }
                     return bytes;
                 }
