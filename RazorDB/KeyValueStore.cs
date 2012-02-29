@@ -256,16 +256,18 @@ namespace RazorDB {
             var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
             Key key = new Key(startingKey, 0);
 
+            // Capture copy of the rotated table if there is one
+            var rotatedMemTable = _rotatedJournaledMemTable;
+
+            // Select main MemTable
+            enumerators.Add(_currentJournaledMemTable.EnumerateSnapshotFromKey(key));
+
+            if (rotatedMemTable != null) {
+                enumerators.Add(rotatedMemTable.EnumerateSnapshotFromKey(key));
+            }
+
             // Now check the files on disk
             using (var manifestSnapshot = _manifest.GetLatestManifest()) {
-                // Main MemTable
-                enumerators.Add(_currentJournaledMemTable.EnumerateSnapshotFromKey(key));
-
-                // Capture copy of the rotated table if there is one
-                var rotatedMemTable = _rotatedJournaledMemTable;
-                if (rotatedMemTable != null) {
-                    enumerators.Add(rotatedMemTable.EnumerateSnapshotFromKey(key));
-                }
 
                 List<SortedBlockTable> tables = new List<SortedBlockTable>();
                 try {
