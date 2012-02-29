@@ -159,12 +159,14 @@ namespace RazorDB {
 
         private Value InternalGet(Key lookupKey) {
             Value output;
+            // Capture copy of the rotated table if there is one
+            var rotatedMemTable = _rotatedJournaledMemTable;
+            
             // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output;
             }
-            // Capture copy of the rotated table if there is one
-            var rotatedMemTable = _rotatedJournaledMemTable;
+            // Check the table in rotation
             if (rotatedMemTable != null) {
                 if (rotatedMemTable.Lookup(lookupKey, out output)) {
                     return output;
