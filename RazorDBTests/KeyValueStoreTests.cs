@@ -798,9 +798,12 @@ namespace RazorDBTests {
         }
 
         [Test]
-        public void LargeDataValueTest() {
+        public void LargeDataSetGetTest() {
 
-            string path = Path.GetFullPath("TestData\\LargeDataValueTest");
+            string path = Path.GetFullPath("TestData\\LargeDataSetGetTest");
+            int totalSize = 0;
+            int num_items = 500;
+            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -809,15 +812,56 @@ namespace RazorDBTests {
                 var value = ByteArray.Random(Config.SortedBlockSize + 256);
 
                 // Do it enough times to ensure a roll-over
-                for (int i = 0; i < 500; i++) {
+                for (int i = 0; i < num_items; i++) {
                     var key = BitConverter.GetBytes(i);
                     db.Set(key, value.InternalBytes);
+                    totalSize += value.InternalBytes.Length;
                 }
 
-                for (int i = 0; i < 500; i++) {
+                timer.Start();
+                for (int i = 0; i < num_items; i++) {
                     var key = BitConverter.GetBytes(i);
                     Assert.AreEqual(value.InternalBytes, db.Get(key));
                 }
+                timer.Stop();
+
+                Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
+            }
+        }
+
+        [Test]
+        public void LargeDataEnumerateTest() {
+
+            string path = Path.GetFullPath("TestData\\LargeDataEnumerateTest");
+            int totalSize = 0;
+            int num_items = 500;
+            var timer = new Stopwatch();
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                // Generate a data value that is larger than the block size.
+                var value = ByteArray.Random(Config.SortedBlockSize + 256);
+
+                // Do it enough times to ensure a roll-over
+                for (int i = 0; i < num_items; i++) {
+                    var key = BitConverter.GetBytes(i).Reverse().ToArray(); // this has to be little endian to sort in an obvious way
+                    db.Set(key, value.InternalBytes);
+                    totalSize += value.InternalBytes.Length;
+                }
+
+                int j=0;
+                timer.Start();
+                foreach (var pair in db.Enumerate()) {
+                    var key = BitConverter.GetBytes(j).Reverse().ToArray();
+                    Assert.AreEqual(key, pair.Key);
+                    Assert.AreEqual(value.InternalBytes, pair.Value);
+                    j++;
+                }
+                timer.Stop();
+
+                Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
+
             }
         }
     }
