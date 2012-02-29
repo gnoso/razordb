@@ -261,8 +261,11 @@ namespace RazorDB {
                     enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
 
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
-                        if (pair.Value.Type != ValueFlag.Deleted) {
-                            yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, pair.Value.ValueBytes);
+                        if (pair.Key.SequenceNum == 0) { // only enumerate top-level keys (sequence zero)
+                            byte[] result = AssembleGetResult(pair.Key, pair.Value);
+                            if (result != null) {
+                                yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, result);
+                            }
                         }
                     }
                 } finally {
