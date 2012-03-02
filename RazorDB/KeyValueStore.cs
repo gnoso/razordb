@@ -91,6 +91,9 @@ namespace RazorDB {
                 var v = new Value(value, ValueFlag.SmallValue);
                 InternalSet(k, v, indexedValues);
             } else {
+                if (value.Length >= Config.MaxLargeValueSize)
+                    throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSize));
+
                 int offset = 0;
                 byte seqNum = 1;
                 while (offset < valueSize) {
