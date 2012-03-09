@@ -888,6 +888,49 @@ namespace RazorDBTests {
                 db.Set(Key.Random(10).KeyBytes, ByteArray.Random(Config.MaxLargeValueSize).InternalBytes);
             }
         }
+
+        [Test]
+        public void TestOverwritingAndDeleting() {
+
+            var keys = new List<ByteArray>();
+
+            string path = Path.GetFullPath("TestData\\TestOverwriting");
+            // Open database and store enough data to cause a page split
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                for (int i = 0; i < 12000; i++) {
+                    ByteArray key = ByteArray.Random(40);
+                    ByteArray value = ByteArray.Random(400);
+
+                    keys.Add(key);
+                    db.Set(key.InternalBytes, value.InternalBytes);
+                }
+                // Dispose KVS to make sure the datastore is closed out and all merging threads are shut down.
+            }
+
+            // how much space are we using?
+            Func<string, long> GetSpaceUsed = (string dirPath) => Directory.GetFiles(dirPath).Sum(fileName => new FileInfo(fileName).Length);
+
+            var spaceUsedNow = GetSpaceUsed(path);
+
+            using (var db = new KeyValueStore(path)) {
+                // Reset the same exact keys to different data
+                for (int k = 0; k < 4; k++) {
+                    for (int i = 0; i < 12000; i++) {
+                        ByteArray key = keys[i];
+                        ByteArray value = ByteArray.Random(400);
+
+                        db.Set(key.InternalBytes, value.InternalBytes);
+                    }
+                }
+            }
+
+            var spaceUsedAfterAdditions = GetSpaceUsed(path);
+            var spaceRatio = (double)spaceUsedAfterAdditions / (double)spaceUsedNow;
+
+            Assert.Less(spaceRatio, 1.4);
+        }
     }
 
 }
