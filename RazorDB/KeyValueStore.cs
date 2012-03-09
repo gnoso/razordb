@@ -40,6 +40,8 @@ namespace RazorDB {
             
             _cache = new RazorCache();
             _tableManager = new TableManager(_cache, _manifest);
+
+            OpenSecondaryIndexes();
         }
 
         ~KeyValueStore() {
@@ -118,8 +120,11 @@ namespace RazorDB {
                     throw new InvalidOperationException("Failed too many times trying to add an item to the JournaledMemTable");
             }
             // Add secondary index values if they were provided
-            if (indexedValues != null)
+            if (indexedValues == null) {
+                RemoveKeyFromIndexes(k.KeyBytes);
+            } else {
                 AddToIndex(k.KeyBytes, indexedValues);
+            }
 
             if (_currentJournaledMemTable.Full) {
                 RotateMemTable();
@@ -130,14 +135,48 @@ namespace RazorDB {
             foreach (var pair in indexedValues) {
                 string IndexName = pair.Key;
 
-                // Construct Index key by concatenating the indexed value and the target key
-                byte[] indexValue = pair.Value;
-                byte[] indexKey = new byte[key.Length + indexValue.Length];
-                indexValue.CopyTo(indexKey, 0);
-                key.CopyTo(indexKey, indexValue.Length);
-
                 KeyValueStore indexStore = GetSecondaryIndex(IndexName);
+
+                // If the value has already been set in the index, then remove the old one
+                byte[] oldIndexValue = indexStore.Get(key);
+                if (oldIndexValue != null) {
+                    byte[] oldIndexKey = BuildIndexKey(key, oldIndexValue);
+                    indexStore.Delete(oldIndexKey);
+                }
+
+                byte[] indexValue = pair.Value;
+                byte[] indexKey = BuildIndexKey(key, indexValue);
                 indexStore.Set(indexKey, key);
+
+                // Add the key marker to the index
+                indexStore.Set(key, indexValue);
+            }
+        }
+
+        private void RemoveKeyFromIndexes(byte[] key) {
+            lock (_secondaryIndexes) {
+                foreach (var index in _secondaryIndexes.Values) {
+                    byte[] indexValue = index.Get(key);
+                    if (indexValue != null) {
+                        index.Delete(key);
+                        index.Delete(BuildIndexKey(key, indexValue));
+                    }
+                }
+            }
+        }
+
+        private byte[] BuildIndexKey(byte[] key, byte[] indexValue) {
+            byte[] indexKey = new byte[key.Length + indexValue.Length];
+            indexValue.CopyTo(indexKey, 0);
+            key.CopyTo(indexKey, indexValue.Length);
+            return indexKey;
+        }
+
+        private void OpenSecondaryIndexes() {
+            lock (_secondaryIndexes) {
+                foreach (string dir in Directory.GetDirectories(Manifest.BaseFileName)) {
+                    GetSecondaryIndex(Path.GetFileNameWithoutExtension(dir));
+                }
             }
         }
 
@@ -248,6 +287,8 @@ namespace RazorDB {
         public void Delete(byte[] key) {
             var k = new Key(key, 0);
             InternalSet(k, Value.Deleted, null);
+
+            RemoveKeyFromIndexes(key);
         }
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> Enumerate() {

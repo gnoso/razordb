@@ -64,6 +64,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NDepend) = preSolution
-		Project = ".\RazorDB.ndproj"
+		Project = ""
 	EndGlobalSection
 EndGlobal
