@@ -25,7 +25,9 @@ namespace RazorDB {
     
     public class KeyValueStore : IDisposable {
 
-        public KeyValueStore(string baseFileName) {
+        public KeyValueStore(string baseFileName) : this(baseFileName, null) {}
+
+        public KeyValueStore(string baseFileName, RazorCache cache) {
             if (!Directory.Exists(baseFileName)) {
                 Directory.CreateDirectory(baseFileName);
             }
@@ -38,7 +40,7 @@ namespace RazorDB {
             // Create new journal for this run (and potentially load from disk, if there was data loaded previously)
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
             
-            _cache = new RazorCache();
+            _cache = cache == null ? new RazorCache() : cache;
             _tableManager = new TableManager(_cache, _manifest);
         }
 
@@ -145,7 +147,7 @@ namespace RazorDB {
             KeyValueStore indexStore = null;
             lock (_secondaryIndexes) {
                 if (!_secondaryIndexes.TryGetValue(IndexName, out indexStore)) {
-                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName));
+                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName), _cache);
                     if (Manifest.Logger != null) {
                         indexStore.Manifest.Logger = msg => Manifest.Logger(string.Format("{0}: {1}", IndexName, msg));
                     }
