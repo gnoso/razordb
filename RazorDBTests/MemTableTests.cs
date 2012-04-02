@@ -21,6 +21,7 @@ using System.IO;
 using NUnit.Framework;
 using RazorDB;
 using System.Diagnostics;
+using System.Threading;
 
 namespace RazorDBTests {
 
@@ -136,6 +137,29 @@ namespace RazorDBTests {
             Assert.IsTrue(mtl.Full);
         }
 
+        [Test]
+        public void SnapshotEnumerator() {
+
+            // This test is designed to highlight inefficiencies in the memtable snapshotting mechanism (fixed now with snapshot-able tree)
+
+            MemTable mt = new MemTable();
+
+            for (int i = 0; i < 10000; i++) {
+                var randomKey = new Key(new ByteArray(BitConverter.GetBytes(i)));
+                var randomValue = Value.Random(256);
+
+                mt.Add(randomKey, randomValue);
+            }
+
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
+            for (int k = 0; k < 100; k++) {
+                Assert.AreEqual(10000, mt.GetEnumerableSnapshot().Count());
+            }
+            timer.Stop();
+
+            Console.WriteLine("Elapsed Time: {0}ms", timer.ElapsedMilliseconds);
+        }
     }
 
 }

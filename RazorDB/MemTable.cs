@@ -21,7 +21,7 @@ namespace RazorDB {
 
     public class MemTable {
 
-        private Dictionary<Key, Value> _internalTable = new Dictionary<Key, Value>();
+        private RazorDB.C5.TreeDictionary<Key, Value> _internalTable = new RazorDB.C5.TreeDictionary<Key, Value>();
         private int _totalKeySize = 0;
         private int _totalValueSize = 0;
         private object _tableLock = new object();
@@ -32,7 +32,7 @@ namespace RazorDB {
                 _totalValueSize += value.Length;
 
                 Value currentValue;
-                if (_internalTable.TryGetValue(key, out currentValue)) {
+                if (_internalTable.Find(key, out currentValue)) {
                     // if we are replacing a value, then subtract its size from our object accounting
                     _totalKeySize -= key.Length;
                     _totalValueSize -= currentValue.Length;
@@ -44,7 +44,7 @@ namespace RazorDB {
 
         public bool Lookup(Key key, out Value value) {
             lock (_tableLock) {
-                return _internalTable.TryGetValue(key, out value);
+                return _internalTable.Find(key, out value);
             }
         }
 
@@ -57,11 +57,11 @@ namespace RazorDB {
         }
 
         public Key FirstKey {
-            get { lock (_tableLock) { return _internalTable.Keys.Min(); } }
+            get { lock (_tableLock) { return _internalTable.FindMin().Key; } }
         }
 
         public Key LastKey {
-            get { lock (_tableLock) { return _internalTable.Keys.Max(); } }
+            get { lock (_tableLock) { return _internalTable.FindMax().Key; } }
         }
 
         public void WriteToSortedBlockTable(string baseFileName, int level, int version) {
@@ -83,13 +83,12 @@ namespace RazorDB {
 
         public IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
             return _internalTable
-                .Select(pair => new KeyValuePair<Key, Value>(pair.Key, pair.Value))
-                .OrderBy((pair) => pair.Key);
+                .Select(pair => new KeyValuePair<Key, Value>(pair.Key, pair.Value));
         }
 
         public IEnumerable<KeyValuePair<Key, Value>> GetEnumerableSnapshot() {
             lock (_tableLock) {
-                return Enumerate().ToList();
+                return _internalTable.Snapshot().Select(pair => new KeyValuePair<Key, Value>(pair.Key, pair.Value));
             }
         }
 
