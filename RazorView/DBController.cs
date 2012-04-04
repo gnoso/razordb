@@ -69,5 +69,17 @@ namespace RazorView {
         public void Close() {
             _db.Close();
         }
+
+        public string GetAnalysisText() {
+            int recordCount = 0;
+            int keySize = 0;
+            int valueSize = 0;
+            foreach (var pair in _db.Enumerate()) {
+                recordCount++;
+                keySize += pair.Key.Length;
+                valueSize += pair.Value.Length;
+            }
+            return string.Format("Total Records: {0}\nKey Size: {1} MB\nValue Size: {2} MB\n", recordCount, (double)keySize/1024/1024, (double)valueSize/1024/1024);
+        }
     }
 }

@@ -60,6 +60,9 @@ namespace RazorView {
             ctxMenu.Items.Add(menuItem);
             tab.ContextMenu = ctxMenu;
 
+            //var textBox = new TextBox();
+            //textBox.AppendText(db.GetAnalysisText());
+            
             var grid = new DataGrid();
             grid.AutoGenerateColumns = false;
 
@@ -82,6 +85,10 @@ namespace RazorView {
             grid.Columns.Add(valColumn);
             
             grid.ItemsSource = db.Records;
+
+            //var infoPanel = new StackPanel();
+            //infoPanel.Children.Add(textBox);
+            //infoPanel.Children.Add(grid);
 
             tab.Content = grid;
             tab.Tag = db;
