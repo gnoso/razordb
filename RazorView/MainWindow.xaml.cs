@@ -100,11 +100,14 @@ namespace RazorView {
                 var a = Assembly.LoadFrom(dlg.FileName);
                 _vizAssemblies.Add(a);
 
+                int count = 0;
                 foreach (var type in a.GetExportedTypes()) {
                     if (type.GetInterfaces().Contains(typeof(IDataVizFactory))) {
                         _factories.Add( (IDataVizFactory) Activator.CreateInstance(type) );
+                        count++;
                     }
                 }
+                MessageBox.Show(String.Format("Added {0} visualizer classes from the assembly.", count));
             }
         }
 
