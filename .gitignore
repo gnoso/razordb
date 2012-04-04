@@ -10,3 +10,4 @@ NDependOut/*
 RazorDB.ndproj
 Release/*
 *.typemock
+RazorView/bin/*

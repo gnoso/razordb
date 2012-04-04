@@ -1,0 +1,17 @@
+﻿<Window x:Class="RazorView.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="RazorView" Height="350" Width="525" xmlns:tk="http://schemas.microsoft.com/wpf/2008/toolkit">
+    <DockPanel >
+        <Menu Height="23" Name="menu1" DockPanel.Dock="Top">
+            <MenuItem Header="File">
+                <MenuItem Header="Open DB..." Click="MenuItem_OpenDB" />
+                <Separator/>
+                <MenuItem Header="Add Visualizer Assembly..." Click="MenuItem_AddViz" />
+                <Separator/>
+                <MenuItem Header="Close and Exit" Click="MenuItem_Close" />
+            </MenuItem>
+        </Menu>
+        <TabControl Name="tabControl" />
+    </DockPanel>
+</Window>
