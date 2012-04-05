@@ -58,57 +58,63 @@ namespace RazorView {
         }
 
         private void OpenDatabase(string journalFile) {
-            var db = new DBController(journalFile, _factories);
+            try {
+                var db = new DBController(journalFile, _factories);
 
-            var tab = new TabItem();
-            tab.Header = System.IO.Path.GetDirectoryName(journalFile).Split('\\').Last();
+                var tab = new TabItem();
+                tab.Header = System.IO.Path.GetDirectoryName(journalFile).Split('\\').Last();
 
-            var ctxMenu = new ContextMenu();
-            var menuItem = new MenuItem();
-            menuItem.Header = "Close " + tab.Header;
-            menuItem.Click += new RoutedEventHandler( (object sender, RoutedEventArgs e) => {
-                var dbc = (DBController)tab.Tag;
-                dbc.Close();
-                tabControl.Items.Remove(tab);
-            });
-            ctxMenu.Items.Add(menuItem);
-            tab.ContextMenu = ctxMenu;
+                var ctxMenu = new ContextMenu();
+                var menuItem = new MenuItem();
+                menuItem.Header = "Close " + tab.Header;
+                menuItem.Click += new RoutedEventHandler((object sender, RoutedEventArgs e) => {
+                    var dbc = (DBController)tab.Tag;
+                    dbc.Close();
+                    tabControl.Items.Remove(tab);
+                });
+                ctxMenu.Items.Add(menuItem);
+                tab.ContextMenu = ctxMenu;
 
-            //var textBox = new TextBox();
-            //textBox.AppendText(db.GetAnalysisText());
-            
-            var grid = new DataGrid();
-            grid.AutoGenerateColumns = false;
+                //var textBox = new TextBox();
+                //textBox.AppendText(db.GetAnalysisText());
 
-            var numColumn = new DataGridTextColumn();
-            numColumn.IsReadOnly = true;
-            numColumn.Header = "";
-            numColumn.Binding = new Binding("Index");
-            grid.Columns.Add(numColumn);
+                var grid = new DataGrid();
+                grid.AutoGenerateColumns = false;
 
-            var keyColumn = new DataGridTextColumn();
-            keyColumn.IsReadOnly = true;
-            keyColumn.Header = "Key Bytes";
-            keyColumn.Binding = new Binding("Key");
-            grid.Columns.Add(keyColumn);
+                var numColumn = new DataGridTextColumn();
+                numColumn.IsReadOnly = true;
+                numColumn.Header = "";
+                numColumn.Binding = new Binding("Index");
+                grid.Columns.Add(numColumn);
 
-            var valColumn = new DataGridTextColumn();
-            valColumn.IsReadOnly = true;
-            valColumn.Header = "Value Bytes";
-            valColumn.Binding = new Binding("Value");
-            grid.Columns.Add(valColumn);
-            
-            grid.ItemsSource = db.Records;
+                var keyColumn = new DataGridTextColumn();
+                keyColumn.IsReadOnly = true;
+                keyColumn.Header = "Key Bytes";
+                keyColumn.Binding = new Binding("Key");
+                grid.Columns.Add(keyColumn);
 
-            //var infoPanel = new StackPanel();
-            //infoPanel.Children.Add(textBox);
-            //infoPanel.Children.Add(grid);
+                var valColumn = new DataGridTextColumn();
+                valColumn.IsReadOnly = true;
+                valColumn.Header = "Value Bytes";
+                valColumn.Binding = new Binding("Value");
+                grid.Columns.Add(valColumn);
 
-            tab.Content = grid;
-            tab.Tag = db;
-            tabControl.Items.Add(tab);
+                grid.ItemsSource = db.Records;
 
-            tab.Focus();
+                //var infoPanel = new StackPanel();
+                //infoPanel.Children.Add(textBox);
+                //infoPanel.Children.Add(grid);
+
+                tab.Content = grid;
+                tab.Tag = db;
+                tabControl.Items.Add(tab);
+
+                tab.Focus();
+            } catch (Exception ex) {
+                MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
         }
 
         private List<Assembly> _vizAssemblies = new List<Assembly>();
