@@ -15,6 +15,7 @@ using Microsoft.Win32;
 using System.ComponentModel;
 using System.Reflection;
 using RazorDB;
+using RazorView.Properties;
 
 namespace RazorView {
     /// <summary>
@@ -23,6 +24,19 @@ namespace RazorView {
     public partial class MainWindow : Window {
         public MainWindow() {
             InitializeComponent();
+
+            List<string> errorsList = new List<string>();
+            foreach (var assem in Settings.Default.VisualizerAssembliesList) {
+                try {
+                    InternalAddVisualizer(assem);
+                } catch (Exception) {
+                    errorsList.Add(assem);
+                }
+            }
+            foreach (var assem in errorsList) {
+                Settings.Default.RemoveVisualizerAssembly(assem);
+            }
+            LoadVisualizers();
         }
 
         private void MenuItem_Close(object sender, RoutedEventArgs e) {
@@ -104,18 +118,50 @@ namespace RazorView {
             var dlg = new OpenFileDialog();
             dlg.DefaultExt = "*.dll";
             if ((bool) dlg.ShowDialog(this)) {
-                var a = Assembly.LoadFrom(dlg.FileName);
+                InternalAddVisualizer(dlg.FileName);
+                Settings.Default.AddVisualizerAssembly(dlg.FileName);
+                Settings.Default.Save();
+                LoadVisualizers();
+            }
+        }
+
+        private void MenuItem_Clear(object sender, RoutedEventArgs e) {
+            _vizAssemblies.Clear();
+            _factories.Clear();
+            Settings.Default.VisualizerAssemblies = "";
+            Settings.Default.Save();
+            LoadVisualizers();
+        }
+
+        private void InternalAddVisualizer(string assemblyFile) {
+            try {
+                var a = Assembly.LoadFrom(assemblyFile);
                 _vizAssemblies.Add(a);
 
-                int count = 0;
                 foreach (var type in a.GetExportedTypes()) {
                     if (type.GetInterfaces().Contains(typeof(IDataVizFactory))) {
-                        _factories.Add( (IDataVizFactory) Activator.CreateInstance(type) );
-                        count++;
+                        _factories.Add((IDataVizFactory)Activator.CreateInstance(type));
                     }
                 }
-                MessageBox.Show(String.Format("Added {0} visualizer classes from the assembly.", count));
+            } catch (Exception ex) {
+                MessageBox.Show(ex.Message, "Exception", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void LoadVisualizers() {
+
+            menuVizList.Items.Clear();
+            foreach (var assem in Settings.Default.VisualizerAssembliesList) {
+                MenuItem mi = new MenuItem();
+                mi.Header = assem;
+                menuVizList.Items.Add(mi);
+            }
+            if (Settings.Default.VisualizerAssembliesList.Count > 0) {
+                menuVizList.Items.Add(new Separator());
+            }
+            menuVizList.Items.Add(menuAddViz);
+            menuVizList.Items.Add(menuClearViz);
+
         }
 
     }

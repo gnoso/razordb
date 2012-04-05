@@ -7,7 +7,10 @@
             <MenuItem Header="File">
                 <MenuItem Header="Open DB..." Click="MenuItem_OpenDB" />
                 <Separator/>
-                <MenuItem Header="Add Visualizer Assembly..." Click="MenuItem_AddViz" />
+                <MenuItem Header="Visualizers" Name="menuVizList">
+                    <MenuItem Header="Add Visualizer Assembly..." Click="MenuItem_AddViz" Name="menuAddViz"/>
+                    <MenuItem Header="Clear List" Click="MenuItem_Clear" Name="menuClearViz"/>
+                </MenuItem>
                 <Separator/>
                 <MenuItem Header="Close and Exit" Click="MenuItem_Close" />
             </MenuItem>
