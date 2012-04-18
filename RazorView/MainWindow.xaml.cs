@@ -75,9 +75,6 @@ namespace RazorView {
                 ctxMenu.Items.Add(menuItem);
                 tab.ContextMenu = ctxMenu;
 
-                //var textBox = new TextBox();
-                //textBox.AppendText(db.GetAnalysisText());
-
                 var grid = new DataGrid();
                 grid.AutoGenerateColumns = false;
 
@@ -99,16 +96,27 @@ namespace RazorView {
                 valColumn.Binding = new Binding("Value");
                 grid.Columns.Add(valColumn);
 
-                grid.ItemsSource = db.Records;
+                var filterPanel = new FilterPanelControl();
+                filterPanel.RefreshEventHandler += new EventHandler( (sender, e) => {
+                    grid.ItemsSource = db.GetRecords(filterPanel.KeyFilter, filterPanel.ValueFilter);
+                });
 
-                //var infoPanel = new StackPanel();
-                //infoPanel.Children.Add(textBox);
-                //infoPanel.Children.Add(grid);
-
-                tab.Content = grid;
+                var stack = new Grid();
+                stack.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                stack.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) });
+                stack.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                stack.Children.Add(filterPanel);
+                stack.Children.Add(grid);
+                filterPanel.SetValue(Grid.RowProperty, 0);
+                filterPanel.SetValue(Grid.ColumnProperty, 0);
+                grid.SetValue(Grid.RowProperty, 1);
+                grid.SetValue(Grid.ColumnProperty, 0);
+                
+                tab.Content = stack;
                 tab.Tag = db;
-                tabControl.Items.Add(tab);
+                grid.ItemsSource = db.GetRecords(null, null);
 
+                tabControl.Items.Add(tab);
                 tab.Focus();
             } catch (Exception ex) {
                 MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);

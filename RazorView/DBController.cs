@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using RazorDB;
+using System.Text.RegularExpressions;
 
 namespace RazorView {
 
@@ -59,11 +60,18 @@ namespace RazorView {
         private KeyValueStore _db;
         private IDataViz _viz;
 
-        public IEnumerable<Record> Records {
-            get {
-                int index = 0;
-                return _db.Enumerate().Select( pair => new Record(index++, pair, _viz) ); 
+        public IEnumerable<Record> GetRecords(string keyFilter, string valueFilter) {
+            int index = 0;
+            var collection = _db.Enumerate().Select(pair => new Record(index++, pair, _viz)); 
+            if (!string.IsNullOrWhiteSpace(keyFilter)) {
+                Regex reg = new Regex(keyFilter, RegexOptions.None);
+                collection = collection.Where(rec => reg.IsMatch(rec.Key));
             }
+            if (!string.IsNullOrWhiteSpace(valueFilter)) {
+                Regex reg = new Regex(valueFilter, RegexOptions.None);
+                collection = collection.Where(rec => reg.IsMatch(rec.Value));
+            }
+            return collection;
         }
 
         public void Close() {
