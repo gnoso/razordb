@@ -19,88 +19,127 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.IO;
+using System.Diagnostics;
 
 namespace RazorDB {
     public class TableManager {
 
-        public TableManager(KeyValueStore kvStore) {
-            _kvStore = kvStore;
-            _closing = false;
-            _managerThread = new Thread(ThreadMain);
-            _managerThread.Start();
-        }
-
-        private Thread _managerThread;
-        private KeyValueStore _kvStore;
-        private bool _closing;
-
-        // The locking protocol assumes that only one TableManager thread is running per database. If there is more than one thread
-        // running, then they will step all over each other.
-        private void ThreadMain() {
-
-            while (true) {
-                RunTableMergePass(_kvStore);
-
-                if (_closing)
-                    break;
-
-                // Sleep for a bit, this needs to be upgraded to something a bit smarter....
-                Thread.Sleep(200);
+        private static TableManager _tableManagerInstance;
+        private static object startupLock = new object();
+        static TableManager() {
+            lock (startupLock) {
+                if (_tableManagerInstance == null)
+                    _tableManagerInstance = new TableManager();
             }
         }
 
-        public static void RunTableMergePass(KeyValueStore kvStore) {
+        public static TableManager Default {
+            get { return _tableManagerInstance; }
+        }
 
-            RazorCache cache = kvStore.Cache;
-            Manifest manifest = kvStore.Manifest;
+        private TableManager() {}
 
-            while (true) {
-                bool mergedDuringLastPass = false;
-                using (var manifestInst = kvStore.Manifest.GetLatestManifest()) {
-                    // Handle level 0 (merge all pages)
-                    if (manifestInst.GetNumPagesAtLevel(0) >= Config.MaxPagesOnLevel(0)) {
-                        mergedDuringLastPass = true;
-                        var inputPageRecords = manifestInst.GetPagesAtLevel(0).Take(Config.MaxPagesOnLevel(0)).ToList();
-                        var startKey = inputPageRecords.Min(p => p.FirstKey);
-                        var endKey = inputPageRecords.Max(p => p.LastKey);
-                        var mergePages = manifestInst.FindPagesForKeyRange(1, startKey, endKey).AsPageRefs().ToList();
-                        var allInputPages = inputPageRecords.AsPageRefs().Concat(mergePages).ToList();
+        private Dictionary<KeyValueStore, object> storeMergeLock = new Dictionary<KeyValueStore, object>();
+        private Dictionary<KeyValueStore, long> timeForNextUpdate = new Dictionary<KeyValueStore, long>();
+        private long pauseTime = Stopwatch.Frequency / 4;
 
-                        var outputPages = SortedBlockTable.MergeTables(cache, manifest, 1, allInputPages).ToList();
-                        manifest.ModifyPages(outputPages, allInputPages);
+        public object GetLockObjForStore(KeyValueStore kvStore) {
+            object lockObject;
+            lock (storeMergeLock) {
+                if (!storeMergeLock.TryGetValue(kvStore, out lockObject)) {
+                    // Create the object if it doesn't already exist
+                    lockObject = new object();
+                    storeMergeLock[kvStore] = lockObject;
+                }
+            }
+            return lockObject;
+        }
 
-                        manifest.LogMessage("Merge Level 0 => InputPages: {0} OutputPages:{1}",
-                            string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray()),
-                            string.Join(",", outputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray())
-                        );
+        public void MarkKeyValueStoreAsModified(KeyValueStore kvStore) {
+            
+            object lockObject = GetLockObjForStore(kvStore);
+
+            // Try to acquire the lock, and only schedule a merge run if the lock is uncontested
+            if (Monitor.TryEnter(lockObject)) {
+                // Release the lock right away, as we are just trying to make sure we don't run another table merge if one is in progress
+                Monitor.Exit(lockObject);
+
+                // determine if we've reached the next time threshold for another update
+                long ticks = Stopwatch.GetTimestamp();
+                long ticksTillNext;
+                lock (timeForNextUpdate) {
+                    if (!timeForNextUpdate.TryGetValue(kvStore, out ticksTillNext)) {
+                        ticksTillNext = long.MaxValue;
                     }
-                    // handle the rest of the levels (merge only one page upwards)
-                    for (int level = 1; level < manifestInst.NumLevels - 1; level++) {
-                        if (manifestInst.GetNumPagesAtLevel(level) >= Config.MaxPagesOnLevel(level)) {
+                }
+                if (ticks > ticksTillNext) {
+                    // Schedule a tablemerge run on the threadpool
+                    ThreadPool.QueueUserWorkItem((o) => {
+                        RunTableMergePass(kvStore, lockObject);
+                    });
+                }
+                lock (timeForNextUpdate) {
+                    timeForNextUpdate[kvStore] = ticks + pauseTime;
+                }
+
+            }
+        }
+
+        public void Close(KeyValueStore kvStore) {
+            object lockObj = GetLockObjForStore(kvStore);
+            RunTableMergePass(kvStore, lockObj);
+        }
+
+        public static void RunTableMergePass(KeyValueStore kvStore, object lockObject) {
+
+            lock (lockObject) {
+                RazorCache cache = kvStore.Cache;
+                Manifest manifest = kvStore.Manifest;
+
+                while (true) {
+                    bool mergedDuringLastPass = false;
+                    using (var manifestInst = kvStore.Manifest.GetLatestManifest()) {
+                        // Handle level 0 (merge all pages)
+                        if (manifestInst.GetNumPagesAtLevel(0) >= Config.MaxPagesOnLevel(0)) {
                             mergedDuringLastPass = true;
-                            var inputPage = manifest.NextMergePage(level);
-                            var mergePages = manifestInst.FindPagesForKeyRange(level + 1, inputPage.FirstKey, inputPage.LastKey).ToList();
-                            var allInputPages = mergePages.Concat(new PageRecord[] { inputPage }).AsPageRefs().ToList();
-                            var outputPages = SortedBlockTable.MergeTables(cache, manifest, level + 1, allInputPages);
+                            var inputPageRecords = manifestInst.GetPagesAtLevel(0).Take(Config.MaxPagesOnLevel(0)).ToList();
+                            var startKey = inputPageRecords.Min(p => p.FirstKey);
+                            var endKey = inputPageRecords.Max(p => p.LastKey);
+                            var mergePages = manifestInst.FindPagesForKeyRange(1, startKey, endKey).AsPageRefs().ToList();
+                            var allInputPages = inputPageRecords.AsPageRefs().Concat(mergePages).ToList();
+
+                            var outputPages = SortedBlockTable.MergeTables(cache, manifest, 1, allInputPages).ToList();
                             manifest.ModifyPages(outputPages, allInputPages);
 
-                            manifest.LogMessage("Merge Level >0 => InputPages: {0} OutputPages:{1}",
+                            manifest.LogMessage("Merge Level 0 => InputPages: {0} OutputPages:{1}",
                                 string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray()),
                                 string.Join(",", outputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray())
                             );
                         }
-                    }
-                }
+                        // handle the rest of the levels (merge only one page upwards)
+                        for (int level = 1; level < manifestInst.NumLevels - 1; level++) {
+                            if (manifestInst.GetNumPagesAtLevel(level) >= Config.MaxPagesOnLevel(level)) {
+                                mergedDuringLastPass = true;
+                                var inputPage = manifest.NextMergePage(level);
+                                var mergePages = manifestInst.FindPagesForKeyRange(level + 1, inputPage.FirstKey, inputPage.LastKey).ToList();
+                                var allInputPages = mergePages.Concat(new PageRecord[] { inputPage }).AsPageRefs().ToList();
+                                var outputPages = SortedBlockTable.MergeTables(cache, manifest, level + 1, allInputPages);
+                                manifest.ModifyPages(outputPages, allInputPages);
 
-                // No more merging is needed, we are finished with this pass
-                if (!mergedDuringLastPass)
-                    return;
+                                manifest.LogMessage("Merge Level >0 => InputPages: {0} OutputPages:{1}",
+                                    string.Join(",", allInputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray()),
+                                    string.Join(",", outputPages.Select(p => string.Format("{0}-{1}", p.Level, p.Version)).ToArray())
+                                );
+                            }
+                        }
+                    }
+
+                    // No more merging is needed, we are finished with this pass
+                    if (!mergedDuringLastPass)
+                        return;
+                }
             }
         }
 
-        public void Close() {
-            _closing = true;
-            _managerThread.Join();
-        }
     }
 }

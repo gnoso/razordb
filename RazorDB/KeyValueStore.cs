@@ -41,7 +41,6 @@ namespace RazorDB {
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
             
             _cache = cache == null ? new RazorCache() : cache;
-            _tableManager = new TableManager(this);
         }
 
         ~KeyValueStore() {
@@ -49,7 +48,6 @@ namespace RazorDB {
         }
 
         private Manifest _manifest;
-        private TableManager _tableManager;
         private RazorCache _cache;
         private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string,KeyValueStore>();
 
@@ -61,7 +59,7 @@ namespace RazorDB {
 
         public void Truncate() {
             _currentJournaledMemTable.Close();
-            _tableManager.Close();
+            TableManager.Default.Close(this);
             foreach (var pair in _secondaryIndexes) {
                 pair.Value.Close();
             }
@@ -127,6 +125,8 @@ namespace RazorDB {
             if (_currentJournaledMemTable.Full) {
                 RotateMemTable();
             }
+
+            TableManager.Default.MarkKeyValueStoreAsModified(this);
         }
 
         private void AddToIndex(byte[] key, IDictionary<string, byte[]> indexedValues) {
@@ -348,10 +348,7 @@ namespace RazorDB {
             // Release again in case another thread tries to close it again.
             _rotationSemaphore.Release();
 
-            if (_tableManager != null) {
-                _tableManager.Close();
-                _tableManager = null;
-            }
+            TableManager.Default.Close(this);
             if (_currentJournaledMemTable != null) {
                 _currentJournaledMemTable.Close();
                 _currentJournaledMemTable = null;
