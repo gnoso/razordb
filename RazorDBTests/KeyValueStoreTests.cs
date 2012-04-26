@@ -185,19 +185,25 @@ namespace RazorDBTests {
         [Test]
         public void BulkSetWithDelete() {
 
-            int numItems = 1000000;
+            int numItems = 100000;
             string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
             using (var db = new KeyValueStore(path)) {
                 db.Manifest.Logger = msg => Console.WriteLine(msg);
                 db.Truncate();
 
+                Stopwatch timer = new Stopwatch();
+                timer.Start();
                 for (int i = 0; i < numItems; i++) {
                     byte[] key = BitConverter.GetBytes(i);
                     byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
                     db.Set(key, value);
                 }
+                timer.Stop();
+                Console.WriteLine("Wrote {0} items in {1}s", numItems, timer.Elapsed.TotalSeconds);
 
-                int skip = 10000;
+                int skip = 1000;
+                timer.Reset();
+                timer.Start();
                 // Delete every skip-th item in reverse order,
                 for (int j = numItems; j >= 0; j--) {
                     if (j % skip == 0) {
@@ -205,8 +211,12 @@ namespace RazorDBTests {
                         db.Delete(key);
                     }
                 }
+                timer.Stop();
+                Console.WriteLine("Deleted every {0}-th item in {1}s", skip, timer.Elapsed.TotalSeconds);
 
                 // Now check all the results
+                timer.Reset();
+                timer.Start();
                 for (int k = 0; k < numItems; k++) {
                     byte[] key = BitConverter.GetBytes(k);
                     byte[] value = db.Get(key);
@@ -216,6 +226,8 @@ namespace RazorDBTests {
                         Assert.AreEqual(Encoding.UTF8.GetBytes("Number " + k.ToString()), value, string.Format("{0}", k));
                     }
                 }
+                timer.Stop();
+                Console.WriteLine("Read and check every item in {0}s", timer.Elapsed.TotalSeconds);
             }
         }
 

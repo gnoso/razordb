@@ -51,6 +51,10 @@ namespace RazorDB {
         private RazorCache _cache;
         private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string,KeyValueStore>();
 
+        // For Table Manager 
+        internal long ticksTillNextMerge = 0;
+        internal object mergeLock = new object();
+
         public Manifest Manifest { get { return _manifest; } }
 
         internal RazorCache Cache { get { return _cache; } }

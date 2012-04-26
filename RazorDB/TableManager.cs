@@ -39,60 +39,35 @@ namespace RazorDB {
 
         private TableManager() {}
 
-        private Dictionary<KeyValueStore, object> storeMergeLock = new Dictionary<KeyValueStore, object>();
-        private Dictionary<KeyValueStore, long> timeForNextUpdate = new Dictionary<KeyValueStore, long>();
         private long pauseTime = Stopwatch.Frequency / 4;
-
-        public object GetLockObjForStore(KeyValueStore kvStore) {
-            object lockObject;
-            lock (storeMergeLock) {
-                if (!storeMergeLock.TryGetValue(kvStore, out lockObject)) {
-                    // Create the object if it doesn't already exist
-                    lockObject = new object();
-                    storeMergeLock[kvStore] = lockObject;
-                }
-            }
-            return lockObject;
-        }
 
         public void MarkKeyValueStoreAsModified(KeyValueStore kvStore) {
             
-            object lockObject = GetLockObjForStore(kvStore);
-
             // Try to acquire the lock, and only schedule a merge run if the lock is uncontested
-            if (Monitor.TryEnter(lockObject)) {
+            if (Monitor.TryEnter(kvStore.mergeLock)) {
                 // Release the lock right away, as we are just trying to make sure we don't run another table merge if one is in progress
-                Monitor.Exit(lockObject);
+                Monitor.Exit(kvStore.mergeLock);
 
                 // determine if we've reached the next time threshold for another update
                 long ticks = Stopwatch.GetTimestamp();
-                long ticksTillNext;
-                lock (timeForNextUpdate) {
-                    if (!timeForNextUpdate.TryGetValue(kvStore, out ticksTillNext)) {
-                        ticksTillNext = long.MaxValue;
-                    }
-                }
+                long ticksTillNext = kvStore.ticksTillNextMerge;
                 if (ticks > ticksTillNext) {
                     // Schedule a tablemerge run on the threadpool
                     ThreadPool.QueueUserWorkItem((o) => {
-                        RunTableMergePass(kvStore, lockObject);
+                        RunTableMergePass(kvStore);
                     });
                 }
-                lock (timeForNextUpdate) {
-                    timeForNextUpdate[kvStore] = ticks + pauseTime;
-                }
-
+                kvStore.ticksTillNextMerge = ticks + pauseTime;
             }
         }
 
         public void Close(KeyValueStore kvStore) {
-            object lockObj = GetLockObjForStore(kvStore);
-            RunTableMergePass(kvStore, lockObj);
+            RunTableMergePass(kvStore);
         }
 
-        public static void RunTableMergePass(KeyValueStore kvStore, object lockObject) {
+        public static void RunTableMergePass(KeyValueStore kvStore) {
 
-            lock (lockObject) {
+            lock (kvStore.mergeLock) {
                 RazorCache cache = kvStore.Cache;
                 Manifest manifest = kvStore.Manifest;
 
