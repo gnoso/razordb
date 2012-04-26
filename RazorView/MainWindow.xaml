@@ -15,6 +15,7 @@
                 <MenuItem Header="Close and Exit" Click="MenuItem_Close" />
             </MenuItem>
         </Menu>
-        <TabControl Name="tabControl" />
+        <TabControl Name="tabControl">
+        </TabControl>
     </DockPanel>
 </Window>

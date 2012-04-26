@@ -55,11 +55,18 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="FilterPanelControl.xaml.cs">
-      <DependentUpon>FilterPanelControl.xaml</DependentUpon>
+    <Compile Include="CellValue.xaml.cs">
+      <DependentUpon>CellValue.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="DataViewControl.xaml.cs">
+      <DependentUpon>DataViewControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="Settings.cs" />
-    <Page Include="FilterPanelControl.xaml">
+    <Page Include="CellValue.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="DataViewControl.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
