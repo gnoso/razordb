@@ -41,7 +41,7 @@ namespace RazorDB {
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
             
             _cache = cache == null ? new RazorCache() : cache;
-            _tableManager = new TableManager(_cache, _manifest);
+            _tableManager = new TableManager(this);
         }
 
         ~KeyValueStore() {
@@ -54,6 +54,8 @@ namespace RazorDB {
         private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string,KeyValueStore>();
 
         public Manifest Manifest { get { return _manifest; } }
+
+        internal RazorCache Cache { get { return _cache; } }
 
         private volatile JournaledMemTable _currentJournaledMemTable;
 
@@ -75,7 +77,6 @@ namespace RazorDB {
             _manifest = new Manifest(basePath);
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
             _cache = new RazorCache();
-            _tableManager = new TableManager(_cache, _manifest);
             _secondaryIndexes = new Dictionary<string, KeyValueStore>();
 
             Manifest.LogMessage("Database Truncated.");
