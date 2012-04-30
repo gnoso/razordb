@@ -135,7 +135,7 @@ namespace RazorDBTests {
         [Test]
         public void RemoveDeletedValuesFromIndex() {
 
-            string path = Path.GetFullPath("TestData\\AddObjectsAndLookupWhileMerging");
+            string path = Path.GetFullPath("TestData\\RemoveDeletedValuesFromIndex");
             var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
@@ -174,6 +174,9 @@ namespace RazorDBTests {
             // Re-open the main key-value store and delete the value at 30
             using (var db = new KeyValueStore(path)) {
                 db.Delete(BitConverter.GetBytes(200));
+
+                // Clean the data from the index
+                db.RemoveFromIndex(BitConverter.GetBytes(200), new Dictionary<string, byte[]> { { "Mod", BitConverter.GetBytes(200 % 100) } });
             }
 
             // Open the index again directly and confirm that the lookup key is gone now as well
@@ -188,7 +191,7 @@ namespace RazorDBTests {
         [Test]
         public void RemoveUpdatedValuesFromIndex() {
 
-            string path = Path.GetFullPath("TestData\\AddObjectsAndLookupWhileMerging");
+            string path = Path.GetFullPath("TestData\\RemoveUpdatedValuesFromIndex");
             var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
@@ -227,6 +230,9 @@ namespace RazorDBTests {
             // Re-open the main key-value store and delete the value at 30
             using (var db = new KeyValueStore(path)) {
                 db.Set(BitConverter.GetBytes(200),BitConverter.GetBytes(20));
+
+                // Clean the data from the index
+                db.RemoveFromIndex(BitConverter.GetBytes(200), new Dictionary<string, byte[]> { { "Mod", BitConverter.GetBytes(200 % 100) } });
             }
 
             // Open the index again directly and confirm that the lookup key is gone now as well
@@ -241,7 +247,7 @@ namespace RazorDBTests {
         [Test]
         public void RemoveUpdatedValuesFromIndex2() {
 
-            string path = Path.GetFullPath("TestData\\AddObjectsAndLookupWhileMerging");
+            string path = Path.GetFullPath("TestData\\RemoveUpdatedValuesFromIndex2");
             var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
@@ -277,11 +283,13 @@ namespace RazorDBTests {
                 Assert.AreEqual(10, num_vals);
             }
 
-            // Re-open the main key-value store and delete the value at 30
+            // Re-open the main key-value store and update the value at 30
             using (var db = new KeyValueStore(path)) {
                 var indexed = new SortedDictionary<string, byte[]>();
                 indexed["Mod"] = BitConverter.GetBytes(201 % 100);
                 db.Set(BitConverter.GetBytes(200), BitConverter.GetBytes(200), indexed);
+                // Clean the data from the index
+                db.RemoveFromIndex(BitConverter.GetBytes(200), new Dictionary<string, byte[]> { { "Mod", BitConverter.GetBytes(200 % 100) } });
             }
 
             // Open the index again directly and confirm that the lookup key is gone now as well
@@ -289,6 +297,79 @@ namespace RazorDBTests {
                 int num_vals = db.EnumerateFromKey(BitConverter.GetBytes((int)0)).Count(pair => pair.Key.Take(4).All(b => b == 0));
 
                 Assert.AreEqual(9, num_vals);
+            }
+
+        }
+
+        [Test]
+        public void LookupOldDataFromIndex() {
+
+            string path = Path.GetFullPath("TestData\\LookupOldDataFromIndex");
+            var timer = new Stopwatch();
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+                db.Manifest.Logger = msg => Console.WriteLine(msg);
+
+                var indexed = new SortedDictionary<string, byte[]> {  };
+                db.Set(Encoding.UTF8.GetBytes("KeyA"), Encoding.UTF8.GetBytes("ValueA:1"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("1") } });
+                db.Set(Encoding.UTF8.GetBytes("KeyB"), Encoding.UTF8.GetBytes("ValueB:2"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("2") } });
+                db.Set(Encoding.UTF8.GetBytes("KeyC"), Encoding.UTF8.GetBytes("ValueC:3"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("3") } });
+
+                var lookupValue =  db.Find("Idx", Encoding.UTF8.GetBytes("3")).Single();
+                Assert.AreEqual("ValueC:3", Encoding.UTF8.GetString(lookupValue.Value) );
+                Assert.AreEqual("KeyC", Encoding.UTF8.GetString(lookupValue.Key));
+
+                db.Set(Encoding.UTF8.GetBytes("KeyC"), Encoding.UTF8.GetBytes("ValueC:4"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("4") } });
+
+                lookupValue = db.Find("Idx", Encoding.UTF8.GetBytes("4")).Single();
+                Assert.AreEqual("ValueC:4", Encoding.UTF8.GetString(lookupValue.Value));
+                Assert.AreEqual("KeyC", Encoding.UTF8.GetString(lookupValue.Key));
+
+                Assert.True( db.Find("Idx", Encoding.UTF8.GetBytes("3")).Any() );
+
+                db.RemoveFromIndex(Encoding.UTF8.GetBytes("KeyC"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("3") } });
+
+                Assert.False(db.Find("Idx", Encoding.UTF8.GetBytes("3")).Any());
+            }
+
+
+        }
+
+        [Test]
+        public void IndexClean() {
+
+            string path = Path.GetFullPath("TestData\\IndexClean");
+            var timer = new Stopwatch();
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+                db.Manifest.Logger = msg => Console.WriteLine(msg);
+
+                var indexed = new SortedDictionary<string, byte[]> { };
+                db.Set(Encoding.UTF8.GetBytes("KeyA"), Encoding.UTF8.GetBytes("ValueA:1"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("1") } });
+                db.Set(Encoding.UTF8.GetBytes("KeyB"), Encoding.UTF8.GetBytes("ValueB:2"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("2") } });
+                db.Set(Encoding.UTF8.GetBytes("KeyC"), Encoding.UTF8.GetBytes("ValueC:3"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("3") } });
+
+                var lookupValue = db.Find("Idx", Encoding.UTF8.GetBytes("3")).Single();
+                Assert.AreEqual("ValueC:3", Encoding.UTF8.GetString(lookupValue.Value));
+                Assert.AreEqual("KeyC", Encoding.UTF8.GetString(lookupValue.Key));
+
+                db.Delete(Encoding.UTF8.GetBytes("KeyC"));
+            }
+
+            // Open the index directly and confirm that the lookup key is still there
+            using (var db = new KeyValueStore(Path.Combine(path, "Idx"))) {
+                Assert.AreEqual(3, db.Enumerate().Count() );
+            }
+
+            using (var db = new KeyValueStore(path)) {
+                db.CleanIndex("Idx");
+            }
+
+            // Open the index directly and confirm that the lookup key is now gone
+            using (var db = new KeyValueStore(Path.Combine(path, "Idx"))) {
+                Assert.AreEqual(2, db.Enumerate().Count());
             }
 
         }

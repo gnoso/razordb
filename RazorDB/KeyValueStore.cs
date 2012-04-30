@@ -115,6 +115,32 @@ namespace RazorDB {
             }
         }
 
+        public void RemoveFromIndex(byte[] key, IDictionary<string, byte[]> indexedValues) {
+            foreach (var pair in indexedValues) {
+                string IndexName = pair.Key;
+
+                // Construct Index key by concatenating the indexed value and the target key
+                byte[] indexValue = pair.Value;
+                byte[] indexKey = new byte[key.Length + indexValue.Length];
+                indexValue.CopyTo(indexKey, 0);
+                key.CopyTo(indexKey, indexValue.Length);
+
+                KeyValueStore indexStore = GetSecondaryIndex(IndexName);
+                indexStore.Delete(indexKey);
+            }
+        }
+
+        public void CleanIndex(string indexName) {
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+
+            var allValueStoreItems = new HashSet<ByteArray>( this.Enumerate().Select(item => new ByteArray(item.Key) ) );
+            foreach (var indexItem in indexStore.Enumerate()) {
+                if (!allValueStoreItems.Contains(new ByteArray(indexItem.Value))) {
+                    indexStore.Delete(indexItem.Key);
+                }
+            }
+        }
+
         private void InternalSet(Key k, Value v, IDictionary<string, byte[]> indexedValues) {
             int adds = 10;
             while (!_currentJournaledMemTable.Add(k, v)) {
@@ -133,7 +159,7 @@ namespace RazorDB {
             TableManager.Default.MarkKeyValueStoreAsModified(this);
         }
 
-        private void AddToIndex(byte[] key, IDictionary<string, byte[]> indexedValues) {
+        public void AddToIndex(byte[] key, IDictionary<string, byte[]> indexedValues) {
             foreach (var pair in indexedValues) {
                 string IndexName = pair.Key;
 
