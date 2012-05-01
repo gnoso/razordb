@@ -469,9 +469,9 @@ namespace RazorDB {
 
         private static bool ScanBlockForKey(byte[] block, Key key, out Value value) {
             int offset = 2; // skip over the tree root pointer
-            value = new Value();
+            value = Value.Empty;
 
-            while (block[offset] == (byte) RecordHeaderFlag.Record && offset < Config.SortedBlockSize) {
+            while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte)RecordHeaderFlag.Record) {
                 int startingOffset = offset;
                 offset++; // skip past the header flag
                 offset += 4; // skip past the tree pointers
@@ -495,9 +495,9 @@ namespace RazorDB {
 
         private static bool SearchBlockForKey(byte[] block, Key key, out Value value) {
             int offset = BitConverter.ToUInt16(block, 0); // grab the tree root
-            value = new Value();
+            value = Value.Empty;
 
-            while (block[offset] == (byte) RecordHeaderFlag.Record && offset < Config.SortedBlockSize) {
+            while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte) RecordHeaderFlag.Record) {
                 int startingOffset = offset;
                 offset += 1; // skip header
                 offset += 4; // skip tree pointers
@@ -596,7 +596,7 @@ namespace RazorDB {
                 msg(string.Format("{0:X4} \"{1}\" Tree Offset: {2:X4}", 0, BytesToString(block,0,2), treePtr));
 
                 int offset = 2;
-                while ( block[offset] != (byte)RecordHeaderFlag.EndOfBlock && offset < Config.SortedBlockSize) {
+                while ( offset < Config.SortedBlockSize && block[offset] != (byte)RecordHeaderFlag.EndOfBlock) {
 
                     // Record
                     msg(string.Format("{0:X4} \"{1}\" {2}", offset, BytesToString(block, offset, 1), ((RecordHeaderFlag)block[offset]).ToString()));

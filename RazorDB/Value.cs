@@ -66,6 +66,9 @@ namespace RazorDB {
         }
 
         public static Value From(byte[] bytes, int offset, int length) {
+            if (length <= 0)
+                throw new ArgumentOutOfRangeException("Length of the Value must be at least 1 byte.");
+
             var v = new Value();
             v._bytes = ByteArray.From(bytes, offset, length);
             return v;

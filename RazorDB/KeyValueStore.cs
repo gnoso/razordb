@@ -194,7 +194,7 @@ namespace RazorDB {
         }
 
         private Value InternalGet(Key lookupKey) {
-            Value output;
+            Value output = Value.Empty;
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
             
