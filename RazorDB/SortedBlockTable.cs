@@ -395,6 +395,7 @@ namespace RazorDB {
 
                     // wait on last block read to complete so we can start processing the data
                     byte[] block = EndReadBlock(asyncResult);
+                    asyncResult = null;
 
                     // Go ahead and kick off the next block read asynchronously while we parse the last one
                     if (i < _dataBlocks) {
@@ -420,6 +421,8 @@ namespace RazorDB {
                         yield return ReadPair(block, ref offset);
                     }
                 }
+                if (asyncResult != null)
+                    EndReadBlock(asyncResult);
             }
 
         }
@@ -430,13 +433,14 @@ namespace RazorDB {
             byte[] allocBlockB = new byte[Config.SortedBlockSize];
             byte[] currentBlock = allocBlockA;
 
-            var asyncResult = BeginReadBlock(currentBlock, _dataBlocks);
             var endIndexBlocks = (_dataBlocks + _indexBlocks);
+            var asyncResult = BeginReadBlock(currentBlock, _dataBlocks);
 
             for (int i = _dataBlocks; i < endIndexBlocks; i++) {
 
                 // wait on last block read to complete so we can start processing the data
                 byte[] block = EndReadBlock(asyncResult);
+                asyncResult = null;
 
                 // Go ahead and kick off the next block read asynchronously while we parse the last one
                 if (i < endIndexBlocks) {
@@ -449,6 +453,8 @@ namespace RazorDB {
                     yield return ReadKey(block, ref offset);
                 }
             }
+            if (asyncResult != null)
+                EndReadBlock(asyncResult);
         }
 
         public Key[] GetIndex() {
