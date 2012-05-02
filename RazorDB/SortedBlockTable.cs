@@ -391,38 +391,43 @@ namespace RazorDB {
 
                 var asyncResult = BeginReadBlock(currentBlock, startingBlock);
 
-                for (int i = startingBlock; i < _dataBlocks; i++) {
+                try {
 
-                    // wait on last block read to complete so we can start processing the data
-                    byte[] block = EndReadBlock(asyncResult);
-                    asyncResult = null;
+                    for (int i = startingBlock; i < _dataBlocks; i++) {
 
-                    // Go ahead and kick off the next block read asynchronously while we parse the last one
-                    if (i < _dataBlocks) {
-                        SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
-                        asyncResult = BeginReadBlock(currentBlock, i + 1);
-                    }
+                        // wait on last block read to complete so we can start processing the data
+                        byte[] block = EndReadBlock(asyncResult);
+                        asyncResult = null;
 
-                    int offset = 2; // reset offset, start after tree root pointer
+                        // Go ahead and kick off the next block read asynchronously while we parse the last one
+                        if (i < _dataBlocks) {
+                            SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
+                            asyncResult = BeginReadBlock(currentBlock, i + 1);
+                        }
 
-                    // On the first block, we need to seek to the key first (if we don't have an empty key)
-                    if (i == startingBlock && key.Length != 0) {
-                        while (offset >= 0) {
-                            var pair = ReadPair(block, ref offset);
-                            if (pair.Key.CompareTo(key) >= 0) {
-                                yield return pair;
-                                break;
+                        int offset = 2; // reset offset, start after tree root pointer
+
+                        // On the first block, we need to seek to the key first (if we don't have an empty key)
+                        if (i == startingBlock && key.Length != 0) {
+                            while (offset >= 0) {
+                                var pair = ReadPair(block, ref offset);
+                                if (pair.Key.CompareTo(key) >= 0) {
+                                    yield return pair;
+                                    break;
+                                }
                             }
+                        }
+
+                        // Now loop through the rest of the block
+                        while (offset >= 0) {
+                            yield return ReadPair(block, ref offset);
                         }
                     }
 
-                    // Now loop through the rest of the block
-                    while (offset >= 0) {
-                        yield return ReadPair(block, ref offset);
-                    }
+                } finally {
+                    if (asyncResult != null)
+                        EndReadBlock(asyncResult);
                 }
-                if (asyncResult != null)
-                    EndReadBlock(asyncResult);
             }
 
         }
@@ -436,25 +441,28 @@ namespace RazorDB {
             var endIndexBlocks = (_dataBlocks + _indexBlocks);
             var asyncResult = BeginReadBlock(currentBlock, _dataBlocks);
 
-            for (int i = _dataBlocks; i < endIndexBlocks; i++) {
+            try {
+                for (int i = _dataBlocks; i < endIndexBlocks; i++) {
 
-                // wait on last block read to complete so we can start processing the data
-                byte[] block = EndReadBlock(asyncResult);
-                asyncResult = null;
+                    // wait on last block read to complete so we can start processing the data
+                    byte[] block = EndReadBlock(asyncResult);
+                    asyncResult = null;
 
-                // Go ahead and kick off the next block read asynchronously while we parse the last one
-                if (i < endIndexBlocks) {
-                    SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
-                    asyncResult = BeginReadBlock(currentBlock, i + 1);
+                    // Go ahead and kick off the next block read asynchronously while we parse the last one
+                    if (i < endIndexBlocks) {
+                        SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
+                        asyncResult = BeginReadBlock(currentBlock, i + 1);
+                    }
+
+                    int offset = 0;
+                    while (offset >= 0) {
+                        yield return ReadKey(block, ref offset);
+                    }
                 }
-
-                int offset = 0;
-                while (offset >= 0) {
-                    yield return ReadKey(block, ref offset);
-                }
+            } finally {
+                if (asyncResult != null)
+                    EndReadBlock(asyncResult);
             }
-            if (asyncResult != null)
-                EndReadBlock(asyncResult);
         }
 
         public Key[] GetIndex() {
