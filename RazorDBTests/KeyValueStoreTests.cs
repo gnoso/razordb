@@ -789,7 +789,7 @@ namespace RazorDBTests {
                     }
                 }
                 timer.Stop();
-                Assert.AreEqual(54999, ct, "55000 items should be enumerated.");
+                Assert.AreEqual(55000, ct, "55000 items should be enumerated.");
 
                 Console.WriteLine("Enumerated read throughput of {0} MB/s (avg {1} ms per 1000 items)", (double)readSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)105);
             }
