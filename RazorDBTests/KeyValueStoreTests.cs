@@ -156,8 +156,6 @@ namespace RazorDBTests {
             string path = Path.GetFullPath("TestData\\RotationReadRaceTest");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
-                db.RotationStartEvent = () => { Console.WriteLine("Rotation Start"); };
-                db.RotationCompleteEvent = () => { Console.WriteLine("Rotation Complete"); };
 
                 int num_items = 58900;
                 Console.WriteLine("Writing {0} items.", num_items);
