@@ -124,7 +124,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test, Ignore("Success depends on a race condition happening. Too unreliable for regular use.")]
+        [Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")]
         public void RotationShutdownRaceTest() {
 
             // Test to be sure that the rotation page has definitely been written by the time we exit the dispose region (the db must wait for that to occur).
@@ -132,7 +132,7 @@ namespace RazorDBTests {
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
 
-                for (int i = 0; i < 75000; i++) {
+                for (int i = 0; i < 50000; i++) {
                     byte[] key = BitConverter.GetBytes(i);
                     byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
                     db.Set(key, value);
@@ -150,37 +150,75 @@ namespace RazorDBTests {
             }
         }
 
-        [Test,Ignore("Success depends on a race condition happening. Too unreliable for regular use.")]
+        [Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")]
         public void RotationReadRaceTest() {
 
-            string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
+            string path = Path.GetFullPath("TestData\\RotationReadRaceTest");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
+                db.RotationStartEvent = () => { Console.WriteLine("Rotation Start"); };
+                db.RotationCompleteEvent = () => { Console.WriteLine("Rotation Complete"); };
 
-                for (int i = 0; i < 75000; i++) {
+                int num_items = 58900;
+                Console.WriteLine("Writing {0} items.", num_items);
+                for (int i = 0; i < num_items; i++) {
                     byte[] key = BitConverter.GetBytes(i);
                     byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
                     db.Set(key, value);
                 }
+                Console.WriteLine("Read 1 item.");
                 // Even though the page is rotated, but not written to disk yet, we should be able to query for the data anyway.
                 {
                     byte[] key = BitConverter.GetBytes(0);
                     byte[] value = db.Get(key);
                     Assert.AreEqual(Encoding.UTF8.GetBytes("Number 0"), value);
                 }
+                Console.WriteLine("Check Manifest.");
                 // There is a chance that this could happen fast enough to make this assertion fail on some machines, but it should be unlikely.
                 // The goal is to reproduce the race condition. If this assert succeeds then we have reproduced it.
                 using (var mf = db.Manifest.GetLatestManifest()) {
                     Assert.IsFalse(mf.GetPagesAtLevel(0).Length > 0);
                 }
+                Console.WriteLine("Done Checking Manifest.");
             }
+            Console.WriteLine("Closed.");
             using (var db = new KeyValueStore(path)) {
                 using (var mf = db.Manifest.GetLatestManifest()) {
                     Assert.IsTrue(mf.GetPagesAtLevel(0).Length > 0);
                 }
             }
+            Console.WriteLine("Done.");
         }
 
+        [Test]
+        public void RotationBulkRead() {
+
+            string path = Path.GetFullPath("TestData\\RotationBulkReadRace");
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                int num_items = 30000;
+                int multiple = 3;
+                int read_items = num_items * multiple;
+
+                byte[] split = BitConverter.GetBytes(num_items >> 2);
+                int number_we_should_scan = 0;
+                for (int i = 0; i < num_items; i++) {
+                    byte[] key = BitConverter.GetBytes(i);
+                    if (ByteArray.CompareMemCmp(split, key) <= 0)
+                        number_we_should_scan++;
+                }
+                Console.WriteLine("Number to Scan: {0}", number_we_should_scan);
+
+                Console.WriteLine("Writing {0} items.", num_items);
+                for (int i = 0; i < num_items; i++) {
+                    byte[] key = BitConverter.GetBytes(i);
+                    byte[] value = Encoding.UTF8.GetBytes("Number " + i.ToString());
+                    db.Set(key, value);
+                }
+                Assert.AreEqual(number_we_should_scan, db.EnumerateFromKey(split).Count());
+            }
+        }
 
         [Test]
         public void BulkSetWithDelete() {

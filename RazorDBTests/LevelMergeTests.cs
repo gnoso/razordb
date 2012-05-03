@@ -68,6 +68,25 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void TestDuplicateMergeIterator() {
+            var enumerators = new List<IEnumerable<int>>();
+            enumerators.Add( Enumerable.Range(1,10) );
+            Assert.AreEqual(55, MergeEnumerator.Merge(enumerators).Sum());
+
+            enumerators = new List<IEnumerable<int>>();
+            enumerators.Add(Enumerable.Range(1, 10));
+            enumerators.Add(Enumerable.Range(2, 9));
+            enumerators.Add(Enumerable.Range(1, 10));
+            Assert.AreEqual(55, MergeEnumerator.Merge(enumerators).Sum());
+
+            enumerators = new List<IEnumerable<int>>();
+            enumerators.Add(new List<int>());
+            enumerators.Add(Enumerable.Range(2, 9));
+            enumerators.Add(Enumerable.Range(1, 10));
+            Assert.AreEqual(55, MergeEnumerator.Merge(enumerators).Sum());
+        }
+
+        [Test]
         public void LevelMergeReadTest() {
 
             string path = Path.GetFullPath("TestData\\LevelMergeReadTest");
