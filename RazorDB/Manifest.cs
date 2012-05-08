@@ -223,7 +223,7 @@ namespace RazorDB {
                 manifest.LogMessage("Level: {0} NumPages: {1} MaxPages: {2}", level, GetNumPagesAtLevel(level), Config.MaxPagesOnLevel(level));
                 manifest.LogMessage("MergeKey: {0}", _mergeKeys[level]);
                 manifest.LogMessage("Version: {0}", _versions[level]);
-                var pages = GetPagesAtLevel(level);
+                var pages = GetPagesAtLevel(level).OrderBy(p=>p.Version);
                 foreach (var page in pages) {
                     manifest.LogMessage("Page {0}-{1} [{2} -> {3}] Ref({4})", page.Level, page.Version, page.FirstKey, page.LastKey, page.RefCount);
                 }
