@@ -77,7 +77,7 @@ namespace RazorDB {
                         // Handle level 0 (merge all pages)
                         if (manifestInst.GetNumPagesAtLevel(0) >= Config.MaxPagesOnLevel(0)) {
                             mergedDuringLastPass = true;
-                            var inputPageRecords = manifestInst.GetPagesAtLevel(0).Take(Config.MaxPagesOnLevel(0)).ToList();
+                            var inputPageRecords = manifestInst.GetPagesAtLevel(0).OrderBy(p => p.Version).Take(Config.MaxPagesOnLevel(0)).ToList();
                             var startKey = inputPageRecords.Min(p => p.FirstKey);
                             var endKey = inputPageRecords.Max(p => p.LastKey);
                             var mergePages = manifestInst.FindPagesForKeyRange(1, startKey, endKey).AsPageRefs().ToList();
