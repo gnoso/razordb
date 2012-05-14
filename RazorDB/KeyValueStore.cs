@@ -88,6 +88,8 @@ namespace RazorDB {
             Set(key, value, null);
         }
 
+        public object multiPageSetLock = new object();
+
         public void Set(byte[] key, byte[] value, IDictionary<string, byte[]> indexedValues) {
 
             int valueSize = value.Length;
@@ -96,22 +98,24 @@ namespace RazorDB {
                 var v = new Value(value, ValueFlag.SmallValue);
                 InternalSet(k, v, indexedValues);
             } else {
-                if (value.Length >= Config.MaxLargeValueSize)
-                    throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSize));
+                lock (multiPageSetLock) {
+                    if (value.Length >= Config.MaxLargeValueSize)
+                        throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSize));
 
-                int offset = 0;
-                byte seqNum = 1;
-                while (offset < valueSize) {
-                    var k = new Key(key, seqNum);
-                    int length = Math.Min(valueSize - offset, Config.MaxSmallValueSize);
-                    var v = new Value(ByteArray.From(value, offset, length).InternalBytes, ValueFlag.LargeValueChunk);
-                    InternalSet(k, v, null);
-                    offset += length;
-                    seqNum++;
+                    int offset = 0;
+                    byte seqNum = 1;
+                    while (offset < valueSize) {
+                        var k = new Key(key, seqNum);
+                        int length = Math.Min(valueSize - offset, Config.MaxSmallValueSize);
+                        var v = new Value(ByteArray.From(value, offset, length).InternalBytes, ValueFlag.LargeValueChunk);
+                        InternalSet(k, v, null);
+                        offset += length;
+                        seqNum++;
+                    }
+                    var dk = new Key(key, 0);
+                    var dv = new Value(BitConverter.GetBytes(valueSize), ValueFlag.LargeValueDescriptor);
+                    InternalSet(dk, dv, null);
                 }
-                var dk = new Key(key, 0);
-                var dv = new Value(BitConverter.GetBytes(valueSize), ValueFlag.LargeValueDescriptor);
-                InternalSet(dk, dv, null);
             }
         }
 
