@@ -291,7 +291,7 @@ namespace RazorDB {
             return EnumerateFromKey(new byte[0]);
         }
 
-        public IEnumerable<KeyValuePair<byte[], byte[]>> EnumerateFromKey(byte[] startingKey) {
+        private IEnumerable<KeyValuePair<Key, Value>> InternalEnumerateFromKey(byte[] startingKey) {
 
             var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
             Key key = new Key(startingKey, 0);
@@ -320,12 +320,7 @@ namespace RazorDB {
                     enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
 
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
-                        if (pair.Key.SequenceNum == 0) { // only enumerate top-level keys (sequence zero)
-                            byte[] result = AssembleGetResult(pair.Key, pair.Value);
-                            if (result != null) {
-                                yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, result);
-                            }
-                        }
+                        yield return pair;
                     }
                 } finally {
                     // make sure all the tables get closed
@@ -334,6 +329,17 @@ namespace RazorDB {
             }
         }
 
+        public IEnumerable<KeyValuePair<byte[], byte[]>> EnumerateFromKey(byte[] startingKey) {
+
+            foreach (var pair in InternalEnumerateFromKey(startingKey)) {
+                if (pair.Key.SequenceNum == 0) { // only enumerate top-level keys (sequence zero)
+                    byte[] result = AssembleGetResult(pair.Key, pair.Value);
+                    if (result != null) {
+                        yield return new KeyValuePair<byte[], byte[]>(pair.Key.KeyBytes, result);
+                    }
+                }
+            }
+        }
 
         private object memTableRotationLock = new object();
         private JournaledMemTable _rotatedJournaledMemTable;
@@ -397,6 +403,76 @@ namespace RazorDB {
             // Don't finalize since we already closed it.
             GC.SuppressFinalize(this);
         }
+
+        public void ScanCheck() {
+
+            long totalKeyBytes = 0;
+            long totalValueBytes = 0;
+            int totalRecords = 0;
+            int deletedRecords = 0;
+            int nullRecords = 0;
+            int smallRecords = 0;
+            int largeDescRecords = 0;
+            int largeChunkRecords = 0;
+            try {
+                foreach (var pair in InternalEnumerateFromKey(new byte[0])) {
+                    try {
+                        Key k = pair.Key;
+                        Value v = pair.Value;
+
+                        totalKeyBytes += k.KeyBytes.Length;
+                        totalValueBytes += v.ValueBytes.Length;
+                        totalRecords += 1;
+                        switch (v.Type) {
+                            case ValueFlag.Null:
+                                nullRecords += 1;
+                                break;
+                            case ValueFlag.Deleted:
+                                deletedRecords += 1;
+                                break;
+                            case ValueFlag.SmallValue:
+                                smallRecords += 1;
+                                break;
+                            case ValueFlag.LargeValueDescriptor:
+                                largeDescRecords += 1;
+                                break;
+                            case ValueFlag.LargeValueChunk:
+                                largeChunkRecords += 1;
+                                break;
+                            default:
+                                throw new ApplicationException("Unknown Value Type");
+                        }
+                        if (v.Type == ValueFlag.LargeValueDescriptor) {
+                            var lookupKey = k;
+                            int valueSize = BitConverter.ToInt32(v.ValueBytes, 0);
+                            int offset = 0;
+                            byte seqNum = 1;
+                            while (offset < valueSize) {
+                                var blockKey = lookupKey.WithSequence(seqNum);
+                                var block = InternalGet(blockKey);
+                                if (block.Type != ValueFlag.LargeValueChunk)
+                                    throw new InvalidDataException(string.Format("Corrupted data: block is missing. Block Type: {0} SeqNum: {1}, Block Key: {2}", block.Type, seqNum, blockKey));
+                                offset += block.Length - 1;
+                                seqNum++;
+                            }
+                            if (offset != valueSize) {
+                                throw new InvalidDataException(string.Format("Chunk sizes ({0}) are different from the descriptor size ({1}).", offset, valueSize));
+                            }
+                        }
+
+                    } catch (Exception ex) {
+                        Console.WriteLine("**Error Reading Record: {0}", ex);
+                    }
+                }
+            } catch (Exception ex) {
+                Console.WriteLine("**Error Enumerating File: {0}", ex);
+            } finally {
+                Console.WriteLine("  KeyBytes: {0}, ValueBytes: {1}\n  Records: {2} Deleted: {3} Null: {4} Small: {5} LargeDesc: {6} LargeChunk: {7}",
+                    totalKeyBytes, totalValueBytes, totalRecords, deletedRecords, nullRecords, smallRecords, largeDescRecords, largeChunkRecords);
+            }
+
+        }
+
     }
 
 }

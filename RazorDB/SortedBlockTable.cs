@@ -638,6 +638,57 @@ namespace RazorDB {
             }
         }
 
+        public void ScanCheck() {
+
+            long totalKeyBytes = 0;
+            long totalValueBytes = 0;
+            int totalRecords = 0;
+            int deletedRecords = 0;
+            int nullRecords = 0;
+            int smallRecords = 0;
+            int largeDescRecords = 0;
+            int largeChunkRecords = 0;
+            try {
+                foreach (var pair in Enumerate()) {
+                    try {
+                        Key k = pair.Key;
+                        Value v = pair.Value;
+
+                        totalKeyBytes += k.KeyBytes.Length;
+                        totalValueBytes += v.ValueBytes.Length;
+                        totalRecords += 1;
+                        switch (v.Type) {
+                            case ValueFlag.Null:
+                                nullRecords += 1;
+                                break;
+                            case ValueFlag.Deleted:
+                                deletedRecords += 1;
+                                break;
+                            case ValueFlag.SmallValue:
+                                smallRecords += 1;
+                                break;
+                            case ValueFlag.LargeValueDescriptor:
+                                largeDescRecords += 1;
+                                break;
+                            case ValueFlag.LargeValueChunk:
+                                largeChunkRecords += 1;
+                                break;
+                            default:
+                                throw new ApplicationException("Unknown Value Type");
+                        }
+                    } catch (Exception ex) {
+                        Console.WriteLine("**Error Reading Record: {0}", ex);
+                    }
+                }
+            } catch (Exception ex) {
+                Console.WriteLine("**Error Enumerating File: {0}", ex);
+            } finally {
+                Console.WriteLine("  KeyBytes: {0}, ValueBytes: {1}\n  Records: {2} Deleted: {3} Null: {4} Small: {5} LargeDesc: {6} LargeChunk: {7}",
+                    totalKeyBytes, totalValueBytes, totalRecords, deletedRecords, nullRecords, smallRecords, largeDescRecords, largeChunkRecords);
+            }
+
+        }
+
         public void Close() {
             if (_fileStream != null) {
                 _fileStream.Close();

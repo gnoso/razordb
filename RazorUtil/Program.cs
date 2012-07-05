@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 using RazorDB;
 
 namespace RazorUtil {
@@ -51,12 +52,58 @@ namespace RazorUtil {
                             mf.LogContents();
                         }
                         break;
+                    case "check-each-table":
+                        if (args.Length < 2) {
+                            Console.WriteLine("Invalid parameters");
+                        } else {
+                            CheckBlockTableFiles(args[1]);
+                        }
+                        break;
+                    case "check-database":
+                        if (args.Length < 2) {
+                            Console.WriteLine("Invalid parameters");
+                        } else {
+                            CheckDatabase(args[1]);
+                        }
+                        break;
                     default:
                         Console.WriteLine("Unknown command: {0}",args[0]);
                     break;
                 }
             }
 
+        }
+
+        static void CheckBlockTableFiles(string baseDir) {
+            Console.WriteLine("Checking Block Table Files '{0}'", baseDir);
+
+            RazorCache cache = new RazorCache();
+            foreach (string file in Directory.GetFiles(baseDir, "*.sbt", SearchOption.TopDirectoryOnly)) {
+                var fileparts = Path.GetFileNameWithoutExtension(file).Split('-');
+                int level = int.Parse(fileparts[0]);
+                int version = int.Parse(fileparts[1]);
+
+                Console.WriteLine("Level: {0} Version: {1}", level, version);
+                
+                var tablefile = new SortedBlockTable(cache, baseDir, level, version);
+                try {
+                    tablefile.ScanCheck();
+                } finally {
+                    tablefile.Close();
+                }
+            }
+        }
+
+        static void CheckDatabase(string baseDir) {
+            Console.WriteLine("Checking Key Value Store '{0}'", baseDir);
+
+            RazorCache cache = new RazorCache();
+            var kv = new KeyValueStore(baseDir, cache);
+            try {
+                kv.ScanCheck();
+            } finally {
+                kv.Close();
+            }
         }
 
         static void DumpFile(string baseDir, int level, int version) {
