@@ -88,7 +88,7 @@ namespace RazorDB {
             Set(key, value, null);
         }
 
-        public object multiPageSetLock = new object();
+        public object multiPageLock = new object();
 
         public void Set(byte[] key, byte[] value, IDictionary<string, byte[]> indexedValues) {
 
@@ -98,7 +98,7 @@ namespace RazorDB {
                 var v = new Value(value, ValueFlag.SmallValue);
                 InternalSet(k, v, indexedValues);
             } else {
-                lock (multiPageSetLock) {
+                lock (multiPageLock) {
                     if (value.Length >= Config.MaxLargeValueSize)
                         throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSize));
 
@@ -241,19 +241,29 @@ namespace RazorDB {
                 case ValueFlag.SmallValue:
                     return result.ValueBytes;
                 case ValueFlag.LargeValueDescriptor: {
-                    int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
-                    byte[] bytes = new byte[valueSize];
-                    int offset = 0;
-                    byte seqNum = 1;
-                    while (offset < valueSize) {
-                        var blockKey = lookupKey.WithSequence(seqNum);
-                        var block = InternalGet(blockKey);
-                        if (block.Type != ValueFlag.LargeValueChunk)
-                            throw new InvalidDataException(string.Format("Corrupted data: block is missing. Block Type: {0} SeqNum: {1}, Block Key: {2}", block.Type, seqNum, blockKey));
-                        offset += block.CopyValueBytesTo(bytes, offset);
-                        seqNum++;
+                    lock (multiPageLock) {
+                        // read the descriptor again in case it changed
+                        result = InternalGet(lookupKey);
+
+                        // make sure type is still large value descriptor and continue
+                        if (result.Type == ValueFlag.LargeValueDescriptor) {
+                            int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
+                            byte[] bytes = new byte[valueSize];
+                            int offset = 0;
+                            byte seqNum = 1;
+                            while (offset < valueSize) {
+                                var blockKey = lookupKey.WithSequence(seqNum);
+                                var block = InternalGet(blockKey);
+                                if (block.Type != ValueFlag.LargeValueChunk)
+                                    throw new InvalidDataException(string.Format("Corrupted data: block is missing. Block Type: {0} SeqNum: {1}, Block Key: {2}", block.Type, seqNum, blockKey));
+                                offset += block.CopyValueBytesTo(bytes, offset);
+                                seqNum++;
+                            }
+                            return bytes;
+                        } else {
+                            return AssembleGetResult(lookupKey, result);
+                        }
                     }
-                    return bytes;
                 }
                 default:
                     throw new InvalidOperationException("Unexpected value flag for result.");
