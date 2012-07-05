@@ -244,19 +244,25 @@ namespace RazorDB {
                     lock (multiPageLock) {
                         // read the descriptor again in case it changed
                         result = InternalGet(lookupKey);
-                        int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
-                        byte[] bytes = new byte[valueSize];
-                        int offset = 0;
-                        byte seqNum = 1;
-                        while (offset < valueSize) {
-                            var blockKey = lookupKey.WithSequence(seqNum);
-                            var block = InternalGet(blockKey);
-                            if (block.Type != ValueFlag.LargeValueChunk)
-                                throw new InvalidDataException(string.Format("Corrupted data: block is missing. Block Type: {0} SeqNum: {1}, Block Key: {2}", block.Type, seqNum, blockKey));
-                            offset += block.CopyValueBytesTo(bytes, offset);
-                            seqNum++;
+
+                        // make sure type is still large value descriptor and continue
+                        if (result.Type == ValueFlag.LargeValueDescriptor) {
+                            int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
+                            byte[] bytes = new byte[valueSize];
+                            int offset = 0;
+                            byte seqNum = 1;
+                            while (offset < valueSize) {
+                                var blockKey = lookupKey.WithSequence(seqNum);
+                                var block = InternalGet(blockKey);
+                                if (block.Type != ValueFlag.LargeValueChunk)
+                                    throw new InvalidDataException(string.Format("Corrupted data: block is missing. Block Type: {0} SeqNum: {1}, Block Key: {2}", block.Type, seqNum, blockKey));
+                                offset += block.CopyValueBytesTo(bytes, offset);
+                                seqNum++;
+                            }
+                            return bytes;
+                        } else {
+                            return AssembleGetResult(lookupKey, result);
                         }
-                        return bytes;
                     }
                 }
                 default:
