@@ -39,6 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CacheTests.cs" />
+    <Compile Include="LargeValueTests.cs" />
     <Compile Include="CrashTests.cs" />
     <Compile Include="IndexingTests.cs" />
     <Compile Include="KeyValueStoreTests.cs" />

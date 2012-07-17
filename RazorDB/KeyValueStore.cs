@@ -215,7 +215,7 @@ namespace RazorDB {
             // Now check the files on disk
             using (var manifest = _manifest.GetLatestManifest()) {
                 // Must check all pages on level 0
-                var zeroPages = manifest.GetPagesAtLevel(0);
+                var zeroPages = manifest.GetPagesAtLevel(0).OrderByDescending( (page) => page.Version );
                 foreach (var page in zeroPages) {
                     if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output)) {
                         return output;
