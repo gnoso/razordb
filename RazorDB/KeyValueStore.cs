@@ -49,7 +49,7 @@ namespace RazorDB {
 
         private Manifest _manifest;
         private RazorCache _cache;
-        private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string,KeyValueStore>();
+        private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string, KeyValueStore>(StringComparer.OrdinalIgnoreCase);
 
         // For Table Manager 
         internal long ticksTillNextMerge = 0;
@@ -79,7 +79,7 @@ namespace RazorDB {
             _manifest = new Manifest(basePath);
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, _manifest.CurrentVersion(0));
             _cache = new RazorCache();
-            _secondaryIndexes = new Dictionary<string, KeyValueStore>();
+            _secondaryIndexes = new Dictionary<string, KeyValueStore>(StringComparer.OrdinalIgnoreCase);
 
             Manifest.LogMessage("Database Truncated.");
         }

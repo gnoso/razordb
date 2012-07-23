@@ -133,6 +133,38 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void AddObjectsAndLookupWithMixedCase() {
+
+            string path = Path.GetFullPath("TestData\\AddObjectsAndLookupWithMixedCase");
+            var timer = new Stopwatch();
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+                int totalSize = 0;
+                db.Manifest.Logger = msg => Console.WriteLine(msg);
+
+                var indexed = new SortedDictionary<string, byte[]>();
+                int num_items = 1000000;
+                timer.Start();
+                for (int i = 0; i < num_items; i++) {
+                    indexed["Mod"] = BitConverter.GetBytes(i % 100);
+                    db.Set(BitConverter.GetBytes(i), BitConverter.GetBytes(i * 1000), indexed);
+                    totalSize += 8 + 4;
+                }
+                timer.Stop();
+
+                Console.WriteLine("Wrote data (with indexing) at a throughput of {0} MB/s", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+                timer.Reset();
+                timer.Start();
+                var ctModZeros = db.Find("mod", BitConverter.GetBytes((int)0)).Count();
+                timer.Stop();
+                Assert.AreEqual(10000, ctModZeros);
+                Console.WriteLine("Scanned index at a throughput of {0} items/s", (double)ctModZeros / timer.Elapsed.TotalSeconds);
+            }
+        }
+
+        [Test]
         public void RemoveDeletedValuesFromIndex() {
 
             string path = Path.GetFullPath("TestData\\RemoveDeletedValuesFromIndex");
