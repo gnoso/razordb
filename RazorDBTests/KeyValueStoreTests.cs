@@ -861,6 +861,37 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void TestJournalFileGrowth() {
+
+            string path = Path.GetFullPath("TestData\\TestJournalFileGrowth");
+            // Open database and store enough data to cause a page split
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                ByteArray key = ByteArray.Random(40);
+                for (int i = 0; i < 100000; i++) {
+                    ByteArray value = ByteArray.Random(400);
+
+                    db.Set(key.InternalBytes, value.InternalBytes);
+                }
+
+                var journalfileName = Config.JournalFile(db.Manifest.BaseFileName, db.Manifest.CurrentVersion(0));
+                var journalLength = new FileInfo(journalfileName).Length;
+                // Make sure the journal is smaller than the max memtable size.
+                Assert.LessOrEqual(journalLength, Config.MaxMemTableSize);
+
+                // Double check to be sure that the contents of the database are correct in this case.
+                int count = 0;
+                foreach (var value in db.Enumerate()) {
+                    Assert.AreEqual(key.InternalBytes, value.Key);
+                    count++;
+                }
+                Assert.AreEqual(1, count);
+            }
+            
+        }
+
+        [Test]
         public void TestOverwritingAndDeleting() {
 
             var keys = new List<ByteArray>();

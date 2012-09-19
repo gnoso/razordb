@@ -31,12 +31,6 @@ namespace RazorDB {
                 _totalKeySize += key.Length;
                 _totalValueSize += value.Length;
 
-                Value currentValue;
-                if (_internalTable.Find(key, out currentValue)) {
-                    // if we are replacing a value, then subtract its size from our object accounting
-                    _totalKeySize -= key.Length;
-                    _totalValueSize -= currentValue.Length;
-                }
                 // Set value in the hashtable
                 _internalTable[key] = value;
             }
