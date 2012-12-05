@@ -43,7 +43,9 @@ namespace RazorDB {
             _cache = cache == null ? new RazorCache() : cache;
         }
 
+        bool finalizing = false;
         ~KeyValueStore() {
+            finalizing = true;
             Dispose();
         }
 
@@ -398,7 +400,9 @@ namespace RazorDB {
             // Release again in case another thread tries to close it again.
             _rotationSemaphore.Release();
 
-            TableManager.Default.Close(this);
+            if (!finalizing) {
+                TableManager.Default.Close(this);
+            }
             if (_currentJournaledMemTable != null) {
                 _currentJournaledMemTable.Close();
                 _currentJournaledMemTable = null;
