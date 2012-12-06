@@ -52,6 +52,17 @@ namespace RazorUtil {
                             mf.LogContents();
                         }
                         break;
+                    case "dump-manifest-all":
+                        if (args.Length < 2) {
+                            Console.WriteLine("Invalid parameters");
+                        } else {
+                            var dummyMf = Manifest.NewDummyManifest();
+                            dummyMf.Logger = msg => Console.WriteLine(msg);
+                            foreach (var mf in Manifest.ReadAllManifests(args[1])) {
+                                mf.LogContents(dummyMf);
+                            }
+                        }
+                        break;
                     case "check-each-table":
                         if (args.Length < 2) {
                             Console.WriteLine("Invalid parameters");

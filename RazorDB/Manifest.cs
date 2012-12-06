@@ -253,9 +253,13 @@ namespace RazorDB {
 
     public class Manifest {
 
+        private Manifest() { }
         public Manifest(string baseFileName) {
             _baseFileName = baseFileName;
             Read();
+        }
+        public static Manifest NewDummyManifest() {
+            return new Manifest();
         }
         private object manifestLock = new object();
         private LinkedList<ManifestImmutable> _manifests = new LinkedList<ManifestImmutable>();
