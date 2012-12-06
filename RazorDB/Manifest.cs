@@ -356,26 +356,19 @@ namespace RazorDB {
             _manifestVersion++;
 
             if (ManifestVersion > Config.ManifestVersionCount) {
-                // Make a backup of the current manifest file
-                if (File.Exists(manifestFile))
-                    File.Move(manifestFile, tempManifestFile);
 
-                FileStream fs = new FileStream(manifestFile, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1024, false);
+                FileStream fs = new FileStream(tempManifestFile, FileMode.Create, FileAccess.Write, FileShare.None, 1024, false);
                 BinaryWriter writer = new BinaryWriter(fs);
 
                 try {
                     m.WriteManifestContents(writer);
+                } finally {
                     writer.Close();
-                } catch {
-                    writer.Close();
-                    File.Delete(manifestFile);
-                    File.Move(tempManifestFile, manifestFile);
-                    throw;
                 }
 
-                // Delete the backup file
-                if (File.Exists(tempManifestFile))
-                    File.Delete(tempManifestFile);
+                // Swap new file into position
+                File.Delete(manifestFile);
+                File.Move(tempManifestFile, manifestFile);
             } else {
                 FileStream fs = new FileStream(manifestFile, FileMode.Append, FileAccess.Write, FileShare.None, 1024, false);
                 BinaryWriter writer = new BinaryWriter(fs);
@@ -409,6 +402,29 @@ namespace RazorDB {
                 var m = new ManifestImmutable(this);
                 m.ReadManifestContents(reader);
                 _manifests.AddLast(m);
+            } finally {
+                reader.Close();
+            }
+        }
+
+        public static IEnumerable<ManifestImmutable> ReadAllManifests(string baseFileName) {
+
+            string manifestFile = Config.ManifestFile(baseFileName);
+            if (!File.Exists(manifestFile)) {
+                throw new FileNotFoundException("Could not find the manifest file.", manifestFile);
+            }
+
+            FileStream fs = new FileStream(manifestFile, FileMode.Open, FileAccess.Read, FileShare.None, 1024, false);
+            BinaryReader reader = new BinaryReader(fs);
+
+            try {
+                do {
+                    var m = new ManifestImmutable(null);
+                    m.ReadManifestContents(reader);
+                    yield return m;                    
+                    
+                    int size = reader.ReadInt32();
+                } while (true);
             } finally {
                 reader.Close();
             }
