@@ -11,3 +11,6 @@ RazorDB.ndproj
 Release/*
 *.typemock
 RazorView/bin/*
+packages/*
+RazorUtil/RazorUtil.csproj.user
+.nuget/*
