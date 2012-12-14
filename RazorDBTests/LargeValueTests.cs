@@ -70,6 +70,42 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void LargeDataSetGetWithIndexTest() {
+
+            string path = Path.GetFullPath("TestData\\LargeDataSetGetWithIndexTest");
+            int totalSize = 0;
+            int num_items = 500;
+            var timer = new Stopwatch();
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                // Generate a data value that is larger than the block size.
+                var value = ByteArray.Random(Config.SortedBlockSize + 256);
+                var indexed = new SortedDictionary<string, byte[]>();
+
+                // Do it enough times to ensure a roll-over
+                for (int i = 0; i < num_items; i++) {
+                    var key = BitConverter.GetBytes(i);
+                    indexed["Index"] = BitConverter.GetBytes(i+10);
+                    db.Set(key, value.InternalBytes, indexed);
+                    totalSize += value.InternalBytes.Length;
+                }
+
+                timer.Start();
+                for (int i = 0; i < num_items; i++) {
+                    var key = BitConverter.GetBytes(i);
+                    var items = db.Find("Index", BitConverter.GetBytes(i + 10));
+                    var val = items.First();
+                    Assert.AreEqual(value.InternalBytes, val.Value);
+                }
+                timer.Stop();
+
+                Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
+            }
+        }
+
+        [Test]
         public void LargeDataEnumerateTest() {
 
             string path = Path.GetFullPath("TestData\\LargeDataEnumerateTest");
