@@ -101,6 +101,41 @@ namespace RazorDBTests {
             var keyB = Key.FromBytes(keyA.InternalBytes);
             Assert.AreEqual(keyA, keyB);
         }
+
+        [Test]
+        public void TestKeyEx() {
+
+            ByteArray keyBytes = ByteArray.Random(10);
+            byte[] allBytes = new byte[keyBytes.Length + 2];
+            Array.Copy(keyBytes.InternalBytes, allBytes, keyBytes.Length);
+
+            var keys = new List<KeyEx>();
+            for (int i = 10000; i >= 0; i--) {
+                keys.Add(new KeyEx(keyBytes.InternalBytes, i));
+            }
+            keys.Sort();
+            int j = 0;
+            foreach (var k in keys) {
+                Assert.AreEqual(12, k.Length);
+
+                allBytes[allBytes.Length - 2] = (byte)(j >> 8);
+                allBytes[allBytes.Length - 1] = (byte)(j & 0xff);
+                Assert.AreEqual(allBytes, k.InternalBytes);
+
+                Assert.AreEqual(j, k.SequenceNum);
+                j++;
+            }
+
+            var keyA = new KeyEx(keyBytes.InternalBytes, 23);
+            var keyB = KeyEx.FromBytes(keyA.InternalBytes);
+            Assert.AreEqual(keyA, keyB);
+
+        }
+
+        [Test,ExpectedException(typeof(ArgumentOutOfRangeException))]
+        public void TestKeyExOutOfRange() {
+            new KeyEx(new byte[] { 1 }, 40000); 
+        }
     }
 
 }
