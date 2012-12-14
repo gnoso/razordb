@@ -34,12 +34,12 @@ namespace RazorDBTests {
                 Directory.CreateDirectory(path);
             JournalWriter jw = new JournalWriter(path, 324, false);
 
-            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
             for (int i = 0; i < 10000; i++) {
-                Key randKey = Key.Random(20);
+                KeyEx randKey = KeyEx.Random(20);
                 Value randValue = Value.Random(100);
                 jw.Add(randKey, randValue);
-                items.Add(new KeyValuePair<Key, Value>(randKey, randValue));
+                items.Add(new KeyValuePair<KeyEx, Value>(randKey, randValue));
             }
             jw.Close();
 
@@ -61,22 +61,22 @@ namespace RazorDBTests {
                 Directory.CreateDirectory(path);
             JournalWriter jw = new JournalWriter(path, 324, false);
 
-            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
             for (int i = 0; i < 5000; i++) {
-                Key randKey = Key.Random(20);
+                KeyEx randKey = KeyEx.Random(20);
                 Value randValue = Value.Random(100);
                 jw.Add(randKey, randValue);
-                items.Add(new KeyValuePair<Key, Value>(randKey, randValue));
+                items.Add(new KeyValuePair<KeyEx, Value>(randKey, randValue));
             }
             jw.Close();
 
             // reopen the same log for append
             jw = new JournalWriter(path, 324, true);
             for (int i = 0; i < 5000; i++) {
-                Key randKey = Key.Random(20);
+                KeyEx randKey = KeyEx.Random(20);
                 Value randValue = Value.Random(100);
                 jw.Add(randKey, randValue);
-                items.Add(new KeyValuePair<Key, Value>(randKey, randValue));
+                items.Add(new KeyValuePair<KeyEx, Value>(randKey, randValue));
             }
             jw.Close();
 

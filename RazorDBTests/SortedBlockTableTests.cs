@@ -37,7 +37,7 @@ namespace RazorDBTests {
 
             var mt = new MemTable();
             for (int i = 0; i < 10000; i++) {
-                var k0 = Key.Random(40);
+                var k0 = KeyEx.Random(40);
                 var v0 = Value.Random(200);
                 mt.Add(k0, v0);
             }
@@ -77,7 +77,7 @@ namespace RazorDBTests {
 
             var mt = new MemTable();
             for (int i = 0; i < 10000; i++) {
-                var k0 = Key.Random(40);
+                var k0 = KeyEx.Random(40);
                 var v0 = Value.Random(200);
                 mt.Add(k0, v0);
             }
@@ -94,7 +94,7 @@ namespace RazorDBTests {
             Console.WriteLine("Counted sorted table at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
             // Confirm that the items are sorted.
-            Key lastKey = Key.Empty;
+            KeyEx lastKey = KeyEx.Empty;
             timer.Reset();
             timer.Start();
             foreach (var pair in sbt.Enumerate()) {
@@ -115,16 +115,16 @@ namespace RazorDBTests {
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
-            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
 
             int num_items = 10000;
             var mt = new MemTable();
             for (int i = 0; i < num_items; i++) {
-                var k0 = Key.Random(40);
+                var k0 = KeyEx.Random(40);
                 var v0 = Value.Random(200);
                 mt.Add(k0, v0);
 
-                items.Add(new KeyValuePair<Key, Value>(k0, v0));
+                items.Add(new KeyValuePair<KeyEx, Value>(k0, v0));
             }
 
             mt.WriteToSortedBlockTable("TestData\\V1EnumerateFromKeys", 10, 10, SortedBlockTableFormat.Razor01);
@@ -137,7 +137,7 @@ namespace RazorDBTests {
 
                 var timer = new Stopwatch();
                 timer.Start();
-                Assert.AreEqual(10000, sbt.EnumerateFromKey(indexCache, new Key(new byte[] { 0 }, 0)).Count());
+                Assert.AreEqual(10000, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0 }, 0)).Count());
                 timer.Stop();
                 Console.WriteLine("Counted from beginning at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
@@ -149,7 +149,7 @@ namespace RazorDBTests {
                 timer.Stop();
                 Console.WriteLine("Counted from halfway at a throughput of {0} MB/s", (double)mt.Size / 2 / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
-                Assert.AreEqual(0, sbt.EnumerateFromKey(indexCache, new Key(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, 0xFF)).Count());
+                Assert.AreEqual(0, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, 0xFF)).Count());
 
             } finally {
                 sbt.Close();
@@ -166,7 +166,7 @@ namespace RazorDBTests {
 
             var mt = new MemTable();
             for (int i = 0; i < 10000; i++) {
-                var k0 = Key.Random(40);
+                var k0 = KeyEx.Random(40);
                 var v0 = Value.Random(200);
                 mt.Add(k0, v0);
             }
@@ -183,7 +183,7 @@ namespace RazorDBTests {
             Console.WriteLine("Counted sorted table at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
             // Confirm that the items are sorted.
-            Key lastKey = Key.Empty;
+            KeyEx lastKey = KeyEx.Empty;
             timer.Reset();
             timer.Start();
             foreach (var pair in sbt.Enumerate()) {
@@ -204,16 +204,16 @@ namespace RazorDBTests {
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
-            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
 
             int num_items = 10000;
             var mt = new MemTable();
             for (int i = 0; i < num_items; i++) {
-                var k0 = Key.Random(40);
+                var k0 = KeyEx.Random(40);
                 var v0 = Value.Random(200);
                 mt.Add(k0, v0);
 
-                items.Add(new KeyValuePair<Key, Value>(k0, v0));
+                items.Add(new KeyValuePair<KeyEx, Value>(k0, v0));
             }
 
             mt.WriteToSortedBlockTable("TestData\\DefaultEnumerateFromKeys", 10, 10);
@@ -226,7 +226,7 @@ namespace RazorDBTests {
 
                 var timer = new Stopwatch();
                 timer.Start();
-                Assert.AreEqual(10000, sbt.EnumerateFromKey(indexCache, new Key(new byte[] { 0 },0)).Count());
+                Assert.AreEqual(10000, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0 }, 0)).Count());
                 timer.Stop();
                 Console.WriteLine("Counted from beginning at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
@@ -238,7 +238,7 @@ namespace RazorDBTests {
                 timer.Stop();
                 Console.WriteLine("Counted from halfway at a throughput of {0} MB/s", (double)mt.Size / 2 / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
-                Assert.AreEqual(0, sbt.EnumerateFromKey(indexCache, new Key(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, 0xFF)).Count());
+                Assert.AreEqual(0, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, 0xFF)).Count());
 
             } finally {
                 sbt.Close();
@@ -254,16 +254,16 @@ namespace RazorDBTests {
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
-            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
 
             int num_items = 10000;
             var mt = new MemTable();
             for (int i = 0; i < num_items; i++) {
-                var k0 = Key.Random(40);
+                var k0 = KeyEx.Random(40);
                 var v0 = Value.Random(200);
                 mt.Add(k0, v0);
 
-                items.Add(new KeyValuePair<Key, Value>(k0, v0));
+                items.Add(new KeyValuePair<KeyEx, Value>(k0, v0));
             }
 
             mt.WriteToSortedBlockTable("TestData\\DefaultRandomizedLookups", 10, 10);
@@ -283,7 +283,7 @@ namespace RazorDBTests {
             timer.Stop();
 
             Value randomValue;
-            Assert.IsFalse(SortedBlockTable.Lookup("TestData\\DefaultRandomizedLookups", 10, 10, indexCache, Key.Random(40), out randomValue));
+            Assert.IsFalse(SortedBlockTable.Lookup("TestData\\DefaultRandomizedLookups", 10, 10, indexCache, KeyEx.Random(40), out randomValue));
 
             Console.WriteLine("Randomized read sbt table at a throughput of {0} MB/s (avg {1} ms per lookup)", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double) num_items);
 
@@ -298,16 +298,16 @@ namespace RazorDBTests {
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
-            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
 
             int num_items = 10000;
             var mt = new MemTable();
             for (int i = 0; i < num_items; i++) {
-                var k0 = Key.Random(40);
+                var k0 = KeyEx.Random(40);
                 var v0 = Value.Random(200);
                 mt.Add(k0, v0);
 
-                items.Add(new KeyValuePair<Key, Value>(k0, v0));
+                items.Add(new KeyValuePair<KeyEx, Value>(k0, v0));
             }
 
             mt.WriteToSortedBlockTable("TestData\\DefaultRandomizedThreadedLookups", 10, 10);
@@ -349,16 +349,16 @@ namespace RazorDBTests {
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
-            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
 
             int num_items = 10000;
             var mt = new MemTable();
             for (int i = 0; i < num_items; i++) {
-                var k0 = Key.Random(40);
+                var k0 = KeyEx.Random(40);
                 var v0 = Value.Random(200);
                 mt.Add(k0, v0);
 
-                items.Add(new KeyValuePair<Key, Value>(k0, v0));
+                items.Add(new KeyValuePair<KeyEx, Value>(k0, v0));
             }
 
             mt.WriteToSortedBlockTable("TestData\\V1RandomizedLookups", 10, 10, SortedBlockTableFormat.Razor01);
@@ -378,7 +378,7 @@ namespace RazorDBTests {
             timer.Stop();
 
             Value randomValue;
-            Assert.IsFalse(SortedBlockTable.Lookup("TestData\\V1RandomizedLookups", 10, 10, indexCache, Key.Random(40), out randomValue));
+            Assert.IsFalse(SortedBlockTable.Lookup("TestData\\V1RandomizedLookups", 10, 10, indexCache, KeyEx.Random(40), out randomValue));
 
             Console.WriteLine("Randomized read sbt table at a throughput of {0} MB/s (avg {1} ms per lookup)", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
 
@@ -393,16 +393,16 @@ namespace RazorDBTests {
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
-            List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
 
             int num_items = 10000;
             var mt = new MemTable();
             for (int i = 0; i < num_items; i++) {
-                var k0 = Key.Random(40);
+                var k0 = KeyEx.Random(40);
                 var v0 = Value.Random(200);
                 mt.Add(k0, v0);
 
-                items.Add(new KeyValuePair<Key, Value>(k0, v0));
+                items.Add(new KeyValuePair<KeyEx, Value>(k0, v0));
             }
 
             mt.WriteToSortedBlockTable("TestData\\V1RandomizedThreadedLookups", 10, 10, SortedBlockTableFormat.Razor01);

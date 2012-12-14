@@ -28,10 +28,10 @@ namespace RazorDB {
         public ManifestImmutable(Manifest manifest) {
             _manifest = manifest;
             _pages = new List<PageRecord>[MaxLevels];
-            _mergeKeys = new Key[MaxLevels];
+            _mergeKeys = new KeyEx[MaxLevels];
             for (int i = 0; i < MaxLevels; i++) {
                 _pages[i] = new List<PageRecord>();
-                _mergeKeys[i] = Key.Empty;
+                _mergeKeys[i] = KeyEx.Empty;
             }
         }
 
@@ -69,8 +69,8 @@ namespace RazorDB {
             return _pages[level].Count;
         }
 
-        private Key[] _mergeKeys;
-        public PageRecord FindPageForKey(int level, Key key) {
+        private KeyEx[] _mergeKeys;
+        public PageRecord FindPageForKey(int level, KeyEx key) {
             if (level >= MaxLevels)
                 throw new IndexOutOfRangeException();
             var levelKeys = _pages[level].Select(p => p.FirstKey).ToList();
@@ -84,7 +84,7 @@ namespace RazorDB {
             }
         }
 
-        public PageRecord[] FindPagesForKeyRange(int level, Key startKey, Key endKey) {
+        public PageRecord[] FindPagesForKeyRange(int level, KeyEx startKey, KeyEx endKey) {
             if (level >= MaxLevels)
                 throw new IndexOutOfRangeException();
             var levelKeys = _pages[level].Select(p => p.FirstKey).ToList();
@@ -129,7 +129,7 @@ namespace RazorDB {
         }
 
         // Atomically add page specifications to the manifest
-        public ManifestImmutable AddPage(int level, int version, Key firstKey, Key lastKey) {
+        public ManifestImmutable AddPage(int level, int version, KeyEx firstKey, KeyEx lastKey) {
             if (level >= MaxLevels)
                 throw new IndexOutOfRangeException();
             var page = new PageRecord(level, version, firstKey, lastKey);
@@ -203,9 +203,9 @@ namespace RazorDB {
                     int level = reader.Read7BitEncodedInt();
                     int version = reader.Read7BitEncodedInt();
                     int num_key_bytes = reader.Read7BitEncodedInt();
-                    Key startkey = Key.FromBytes(reader.ReadBytes(num_key_bytes));
+                    KeyEx startkey = KeyEx.FromBytes(reader.ReadBytes(num_key_bytes));
                     num_key_bytes = reader.Read7BitEncodedInt();
-                    Key endkey = Key.FromBytes(reader.ReadBytes(num_key_bytes));
+                    KeyEx endkey = KeyEx.FromBytes(reader.ReadBytes(num_key_bytes));
                     var page = new PageRecord(level, version, startkey, endkey);
                     page.AddRef();
                     _pages[j].Add(page);
@@ -213,7 +213,7 @@ namespace RazorDB {
             }
             for (int k = 0; k < num_pages; k++) {
                 int num_key_bytes = reader.Read7BitEncodedInt();
-                _mergeKeys[k] = Key.FromBytes(reader.ReadBytes(num_key_bytes));
+                _mergeKeys[k] = KeyEx.FromBytes(reader.ReadBytes(num_key_bytes));
             }
         }
 
@@ -327,7 +327,7 @@ namespace RazorDB {
             }
         }
 
-        public void AddPage(int level, int version, Key firstKey, Key lastKey) {
+        public void AddPage(int level, int version, KeyEx firstKey, KeyEx lastKey) {
             lock (manifestLock) {
                 var m = LastManifest.AddPage(level, version, firstKey, lastKey);
                 CommitManifest(m);
@@ -494,7 +494,7 @@ namespace RazorDB {
     }
 
     public class PageRecord {
-        public PageRecord(int level, int version, Key firstKey, Key lastKey) {
+        public PageRecord(int level, int version, KeyEx firstKey, KeyEx lastKey) {
             _level = level;
             _version = version;
             _firstKey = firstKey;
@@ -505,10 +505,10 @@ namespace RazorDB {
         public int Level { get { return _level; } }
         private int _version;
         public int Version { get { return _version; } }
-        private Key _firstKey;
-        public Key FirstKey { get { return _firstKey; } }
-        private Key _lastKey;
-        public Key LastKey { get { return _lastKey; } }
+        private KeyEx _firstKey;
+        public KeyEx FirstKey { get { return _firstKey; } }
+        private KeyEx _lastKey;
+        public KeyEx LastKey { get { return _lastKey; } }
 
         private int _snapshotReferenceCount;
         public int RefCount { get { return _snapshotReferenceCount; } }

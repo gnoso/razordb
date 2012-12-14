@@ -33,13 +33,13 @@ namespace RazorDBTests {
 
             MemTable mt = new MemTable();
 
-            List<KeyValuePair<Key, Value>> values = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> values = new List<KeyValuePair<KeyEx, Value>>();
 
             for (int i = 0; i < 10000; i++) {
-                var randomKey = Key.Random(40);
+                var randomKey = KeyEx.Random(40);
                 var randomValue = Value.Random(256);
 
-                values.Add(new KeyValuePair<Key, Value>(randomKey, randomValue));
+                values.Add(new KeyValuePair<KeyEx, Value>(randomKey, randomValue));
                 mt.Add(randomKey, randomValue);
             }
 
@@ -48,7 +48,7 @@ namespace RazorDBTests {
                 Assert.IsTrue(mt.Lookup(pair.Key, out value));
                 Assert.AreEqual(pair.Value, value);
             }
-            Assert.IsFalse(mt.Lookup(Key.Random(40), out value));
+            Assert.IsFalse(mt.Lookup(KeyEx.Random(40), out value));
 
             Assert.AreEqual(10000 * (40 + 256), mt.Size);
             Assert.IsTrue(mt.Full);
@@ -59,10 +59,10 @@ namespace RazorDBTests {
 
             MemTable mt = new MemTable();
 
-            Dictionary<Key, Value> values = new Dictionary<Key, Value>();
+            Dictionary<KeyEx, Value> values = new Dictionary<KeyEx, Value>();
 
             for (int i = 0; i < 10000; i++) {
-                var randomKey = new Key(new ByteArray(BitConverter.GetBytes(i % 10)));
+                var randomKey = new KeyEx(new ByteArray(BitConverter.GetBytes(i % 10)));
                 var randomValue = Value.Random(256);
 
                 values[randomKey] = randomValue;
@@ -74,7 +74,7 @@ namespace RazorDBTests {
                 Assert.IsTrue(mt.Lookup(pair.Key, out value));
                 Assert.AreEqual(pair.Value, value);
             }
-            Assert.IsFalse(mt.Lookup(Key.Random(4), out value));
+            Assert.IsFalse(mt.Lookup(KeyEx.Random(4), out value));
             Assert.AreEqual(10, mt.Enumerate().Count());
             Assert.AreEqual(10, values.Count);
         }
@@ -89,7 +89,7 @@ namespace RazorDBTests {
             MemTable mt = new MemTable();
 
             for (int i = 0; i < 10000; i++) {
-                var randomKey = Key.Random(40);
+                var randomKey = KeyEx.Random(40);
                 var randomValue = Value.Random(256);
 
                 mt.Add(randomKey, randomValue);
@@ -112,13 +112,13 @@ namespace RazorDBTests {
 
             JournalWriter jw = new JournalWriter("TestData\\AddAndLookupItemsPersisted", 523, false);
 
-            List<KeyValuePair<Key, Value>> values = new List<KeyValuePair<Key, Value>>();
+            List<KeyValuePair<KeyEx, Value>> values = new List<KeyValuePair<KeyEx, Value>>();
 
             for (int i = 0; i < 10000; i++) {
-                var randomKey = Key.Random(40);
+                var randomKey = KeyEx.Random(40);
                 var randomValue = Value.Random(256);
 
-                values.Add(new KeyValuePair<Key, Value>(randomKey, randomValue));
+                values.Add(new KeyValuePair<KeyEx, Value>(randomKey, randomValue));
                 jw.Add(randomKey, randomValue);
             }
             jw.Close();
@@ -131,7 +131,7 @@ namespace RazorDBTests {
                 Assert.IsTrue(mtl.Lookup(pair.Key, out value));
                 Assert.AreEqual(pair.Value, value);
             }
-            Assert.IsFalse(mtl.Lookup(Key.Random(40), out value));
+            Assert.IsFalse(mtl.Lookup(KeyEx.Random(40), out value));
 
             Assert.AreEqual(10000 * (40 + 256), mtl.Size);
             Assert.IsTrue(mtl.Full);
@@ -145,7 +145,7 @@ namespace RazorDBTests {
             MemTable mt = new MemTable();
 
             for (int i = 0; i < 10000; i++) {
-                var randomKey = new Key(new ByteArray(BitConverter.GetBytes(i)));
+                var randomKey = new KeyEx(new ByteArray(BitConverter.GetBytes(i)));
                 var randomValue = Value.Random(256);
 
                 mt.Add(randomKey, randomValue);

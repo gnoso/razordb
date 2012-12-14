@@ -96,25 +96,25 @@ namespace RazorDB {
 
             int valueSize = value.Length;
             if (valueSize <= Config.MaxSmallValueSize) {
-                var k = new Key(key, 0);
+                var k = new KeyEx(key, 0);
                 var v = new Value(value, ValueFlag.SmallValue);
                 InternalSet(k, v, indexedValues);
             } else {
                 lock (multiPageLock) {
-                    if (value.Length >= Config.MaxLargeValueSize)
-                        throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSize));
+                    if (value.Length >= Config.MaxLargeValueSizeV1)
+                        throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSizeV1));
 
                     int offset = 0;
                     byte seqNum = 1;
                     while (offset < valueSize) {
-                        var k = new Key(key, seqNum);
+                        var k = new KeyEx(key, seqNum);
                         int length = Math.Min(valueSize - offset, Config.MaxSmallValueSize);
                         var v = new Value(ByteArray.From(value, offset, length).InternalBytes, ValueFlag.LargeValueChunk);
                         InternalSet(k, v, null);
                         offset += length;
                         seqNum++;
                     }
-                    var dk = new Key(key, 0);
+                    var dk = new KeyEx(key, 0);
                     var dv = new Value(BitConverter.GetBytes(valueSize), ValueFlag.LargeValueDescriptor);
                     InternalSet(dk, dv, indexedValues);
                 }
@@ -147,7 +147,7 @@ namespace RazorDB {
             }
         }
 
-        private void InternalSet(Key k, Value v, IDictionary<string, byte[]> indexedValues) {
+        private void InternalSet(KeyEx k, Value v, IDictionary<string, byte[]> indexedValues) {
             int adds = 10;
             while (!_currentJournaledMemTable.Add(k, v)) {
                 adds--;
@@ -195,11 +195,11 @@ namespace RazorDB {
         }
 
         public byte[] Get(byte[] key) {
-            Key lookupKey = new Key(key, 0);
+            KeyEx lookupKey = new KeyEx(key, 0);
             return AssembleGetResult(lookupKey, InternalGet(lookupKey));
         }
 
-        private Value InternalGet(Key lookupKey) {
+        private Value InternalGet(KeyEx lookupKey) {
             Value output = Value.Empty;
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
@@ -235,7 +235,7 @@ namespace RazorDB {
             return Value.Empty;
         }
 
-        private byte[] AssembleGetResult(Key lookupKey, Value result) {
+        private byte[] AssembleGetResult(KeyEx lookupKey, Value result) {
             switch (result.Type) {
                 case ValueFlag.Null:
                 case ValueFlag.Deleted:
@@ -295,7 +295,7 @@ namespace RazorDB {
         }
 
         public void Delete(byte[] key) {
-            var k = new Key(key, 0);
+            var k = new KeyEx(key, 0);
             InternalSet(k, Value.Deleted, null);
         }
 
@@ -303,10 +303,10 @@ namespace RazorDB {
             return EnumerateFromKey(new byte[0]);
         }
 
-        private IEnumerable<KeyValuePair<Key, Value>> InternalEnumerateFromKey(byte[] startingKey) {
+        private IEnumerable<KeyValuePair<KeyEx, Value>> InternalEnumerateFromKey(byte[] startingKey) {
 
-            var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
-            Key key = new Key(startingKey, 0);
+            var enumerators = new List<IEnumerable<KeyValuePair<KeyEx, Value>>>();
+            KeyEx key = new KeyEx(startingKey, 0);
 
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
@@ -431,7 +431,7 @@ namespace RazorDB {
             try {
                 foreach (var pair in InternalEnumerateFromKey(new byte[0])) {
                     try {
-                        Key k = pair.Key;
+                        KeyEx k = pair.Key;
                         Value v = pair.Value;
 
                         totalKeyBytes += k.KeyBytes.Length;

@@ -144,6 +144,10 @@ namespace RazorDB {
             return this.CompareTo(other) == 0;
         }
 
+        public static KeyEx FromKey(Key k) {
+            return new KeyEx(k.KeyBytes, k.SequenceNum);
+        }
+
         public static KeyEx FromBytes(byte[] bytes) {
             return new KeyEx(new ByteArray(bytes));
         }

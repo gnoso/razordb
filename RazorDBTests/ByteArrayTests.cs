@@ -130,6 +130,9 @@ namespace RazorDBTests {
             var keyB = KeyEx.FromBytes(keyA.InternalBytes);
             Assert.AreEqual(keyA, keyB);
 
+            var keyC = KeyEx.FromKey(new Key(keyBytes.InternalBytes, 23));
+            Assert.AreEqual(keyB, keyA);
+            Assert.AreEqual(keyB, keyC);
         }
 
         [Test,ExpectedException(typeof(ArgumentOutOfRangeException))]

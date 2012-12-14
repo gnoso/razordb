@@ -36,11 +36,12 @@ namespace RazorDB {
 
         // Add an item to the journal. It's possible that a thread is still Adding while another thread is Closing the journal.
         // in that case, we return false and expect the caller to do the operation over again on another journal instance.
-        public bool Add(Key key, Value value) {
+        public bool Add(KeyEx key, Value value) {
             lock (_writeLock) {
                 if (_writer == null)
                     return false;
                 else {
+                    _writer.Write( (byte) 0xF0);
                     _writer.Write7BitEncodedInt(key.Length);
                     _writer.Write(key.InternalBytes);
                     _writer.Write7BitEncodedInt(value.Length);
@@ -76,12 +77,19 @@ namespace RazorDB {
         private BinaryReader _reader;
         private string _fileName;
 
-        public IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
+        public IEnumerable<KeyValuePair<KeyEx, Value>> Enumerate() {
             byte[] key = null;
             byte[] value = null;
             bool data = true;
+            bool useKeyEx = false;
             while (data) {
                 try {
+                    byte keyVersionByte = _reader.ReadByte();
+                    useKeyEx = (keyVersionByte == 0xF0);
+                    if (!useKeyEx) {
+                        _reader.BaseStream.Seek(-1,SeekOrigin.Current); // Move back if the byte wasn't what we were expecting
+                    }
+
                     int keyLen = _reader.Read7BitEncodedInt();
                     key = _reader.ReadBytes(keyLen);
                     if (key.Length != keyLen)
@@ -95,8 +103,13 @@ namespace RazorDB {
                 } catch (InvalidOperationException) {
                     data = false;
                 }
-                if (data)
-                    yield return new KeyValuePair<Key, Value>(Key.FromBytes(key), Value.FromBytes(value));
+                if (data) {
+                    if (useKeyEx) {
+                        yield return new KeyValuePair<KeyEx, Value>(KeyEx.FromBytes(key), Value.FromBytes(value));
+                    } else {
+                        yield return new KeyValuePair<KeyEx, Value>(KeyEx.FromKey(Key.FromBytes(key)), Value.FromBytes(value));
+                    }
+                }
             }
         }
                 

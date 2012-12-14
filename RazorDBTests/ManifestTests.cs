@@ -133,9 +133,9 @@ namespace RazorDBTests {
                 File.Delete(filename);
 
             var mf = new Manifest(path);
-            mf.AddPage(1, 5, Key.FromBytes(new byte[] { 5 }), Key.FromBytes(new byte[] { 5, 1 }));
-            mf.AddPage(1, 6, Key.FromBytes(new byte[] { 6 }), Key.FromBytes(new byte[] { 6, 1 }));
-            mf.AddPage(1, 4, Key.FromBytes(new byte[] { 4 }), Key.FromBytes(new byte[] { 4, 1 }));
+            mf.AddPage(1, 5, KeyEx.FromBytes(new byte[] { 5 }), KeyEx.FromBytes(new byte[] { 5, 1 }));
+            mf.AddPage(1, 6, KeyEx.FromBytes(new byte[] { 6 }), KeyEx.FromBytes(new byte[] { 6, 1 }));
+            mf.AddPage(1, 4, KeyEx.FromBytes(new byte[] { 4 }), KeyEx.FromBytes(new byte[] { 4, 1 }));
 
             using (var mfSnap = mf.GetLatestManifest()) {
                 PageRecord[] pg = mfSnap.GetPagesAtLevel(1);
@@ -150,9 +150,9 @@ namespace RazorDBTests {
             mf = new Manifest(path);
 
             mf.ModifyPages(new List<PageRecord>{
-                new PageRecord(1, 8, Key.FromBytes( new byte[] { 16 }), Key.FromBytes(new byte[] { 16, 1 }) ),
-                new PageRecord(1, 9, Key.FromBytes( new byte[] { 1 }), Key.FromBytes(new byte[] { 1, 1 }) ),
-                new PageRecord(1, 16, Key.FromBytes( new byte[] { 10 }), Key.FromBytes(new byte[] { 10, 1 }) )
+                new PageRecord(1, 8, KeyEx.FromBytes( new byte[] { 16 }), KeyEx.FromBytes(new byte[] { 16, 1 }) ),
+                new PageRecord(1, 9, KeyEx.FromBytes( new byte[] { 1 }), KeyEx.FromBytes(new byte[] { 1, 1 }) ),
+                new PageRecord(1, 16, KeyEx.FromBytes( new byte[] { 10 }), KeyEx.FromBytes(new byte[] { 10, 1 }) )
             }, new List<PageRef>{
                 new PageRef{ Level = 1, Version = 6},
                 new PageRef{ Level = 1, Version = 4},
@@ -187,19 +187,19 @@ namespace RazorDBTests {
 
             var mf = new Manifest(path);
             // Add pages and dummy files to represent their contents
-            mf.AddPage(1, 5, Key.FromBytes(new byte[] { 5 }), Key.FromBytes(new byte[] { 5, 1 }));
+            mf.AddPage(1, 5, KeyEx.FromBytes(new byte[] { 5 }), KeyEx.FromBytes(new byte[] { 5, 1 }));
             using (var file = new StreamWriter(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 5))) { file.Write("Test"); }
-            mf.AddPage(1, 6, Key.FromBytes(new byte[] { 6 }), Key.FromBytes(new byte[] { 6, 1 }));
+            mf.AddPage(1, 6, KeyEx.FromBytes(new byte[] { 6 }), KeyEx.FromBytes(new byte[] { 6, 1 }));
             using (var file = new StreamWriter(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 6))) { file.Write("Test"); }
-            mf.AddPage(1, 4, Key.FromBytes(new byte[] { 4 }), Key.FromBytes(new byte[] { 4, 1 }));
+            mf.AddPage(1, 4, KeyEx.FromBytes(new byte[] { 4 }), KeyEx.FromBytes(new byte[] { 4, 1 }));
             using (var file = new StreamWriter(Config.SortedBlockTableFile("TestData\\TestManifestSnapshot", 1, 4))) { file.Write("Test"); }
 
             using (var manifestSnapshot = mf.GetLatestManifest()) {
 
                 mf.ModifyPages(new List<PageRecord>{
-                    new PageRecord(1, 8, Key.FromBytes( new byte[] { 16 }), Key.FromBytes(new byte[] { 16, 1 }) ),
-                    new PageRecord(1, 9, Key.FromBytes( new byte[] { 1 }), Key.FromBytes(new byte[] { 1, 1 }) ),
-                    new PageRecord(1, 16, Key.FromBytes( new byte[] { 10 }), Key.FromBytes(new byte[] { 10, 1 }) )
+                    new PageRecord(1, 8, KeyEx.FromBytes( new byte[] { 16 }), KeyEx.FromBytes(new byte[] { 16, 1 }) ),
+                    new PageRecord(1, 9, KeyEx.FromBytes( new byte[] { 1 }), KeyEx.FromBytes(new byte[] { 1, 1 }) ),
+                    new PageRecord(1, 16, KeyEx.FromBytes( new byte[] { 10 }), KeyEx.FromBytes(new byte[] { 10, 1 }) )
                 }, new List<PageRef>{
                     new PageRef{ Level = 1, Version = 6},
                     new PageRef{ Level = 1, Version = 4},
