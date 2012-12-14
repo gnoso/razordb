@@ -27,7 +27,7 @@ namespace RazorDB {
         public static int DataBlockCacheSize = 100 * 1024 * 1024;               // Size of the Data Block Cache in bytes
         public static int MaxSortedBlockTableSize = 2 * 1024 * 1024;            // Maximum size we should let the sorted block table grow to before rolling over to a new file.
         public static int MaxMemTableSize = 1 * 1024 * 1024;                    // Maximum size we should let the memtable grow to in memory before compacting.
-        public static int SortedBlockSize = 32 * 1024;                          // Size of each block in the sorted table files.
+        public static int SortedBlockSize = 32 * 1024;                          // Size of each block in the sorted table files (Warning: changing this number will break future readers).
         public static int ManifestVersionCount = 1000;                          // Number of manifests to append before rolling the file over
         public static int MaxSmallValueSize = SortedBlockSize / 4;              // The maximum size of the value that we store contiguously. Anything larger than this is split into multiple parts.
         public static int MaxLargeValueSize = MaxSmallValueSize * (0xFF - 1);   // The largest size of the value that we can store (in multiple parts) using the current configuration.

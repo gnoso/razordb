@@ -24,10 +24,12 @@ namespace RazorDB {
 
     public enum RecordHeaderFlag { Record = 0xE0, EndOfBlock = 0xFF };
 
+    public enum SortedBlockTableFormat { Razor01 = 1, Razor02 = 2, Default = Razor02 };
+
     // With this implementation, the maximum sized data that can be stored is ... block size >= keylen + valuelen + (sizecounter - no more than 8 bytes)
     public class SortedBlockTableWriter {
 
-        public SortedBlockTableWriter(string baseFileName, int level, int version) {
+        public SortedBlockTableWriter(string baseFileName, int level, int version, SortedBlockTableFormat format = SortedBlockTableFormat.Default) {
             string fileName = Config.SortedBlockTableFile(baseFileName, level, version);
             _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
             _bufferA = new byte[Config.SortedBlockSize];
@@ -35,13 +37,14 @@ namespace RazorDB {
             _buffer = _bufferA;
             _bufferPos = 0;
             _pageIndex = new List<Key>();
+            _fileFormat = format;
             Version = version;
             WrittenSize = 0;
         }
 
         private FileStream _fileStream;
-        private byte[] _bufferA;     // pre-allocated bufferB
-        private byte[] _bufferB;     // pre-allocated bufferA
+        private byte[] _bufferA;     // pre-allocated bufferA
+        private byte[] _bufferB;     // pre-allocated bufferB
         private byte[] _buffer;      // current buffer that is being loaded
         private int _bufferPos;
         private IAsyncResult _async;
@@ -49,6 +52,7 @@ namespace RazorDB {
         private int dataBlocks = 0;
         private int indexBlocks = 0;
         private int totalBlocks = 0;
+        private SortedBlockTableFormat _fileFormat;
 
         public int Version { get; private set; }
         public int WrittenSize { get; private set; }
@@ -180,7 +184,16 @@ namespace RazorDB {
             MemoryStream ms = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(ms);
 
-            writer.Write(Encoding.ASCII.GetBytes("@RAZORDB"));
+            switch (_fileFormat) {
+                case SortedBlockTableFormat.Razor01:
+                    writer.Write(Encoding.ASCII.GetBytes("@RAZORDB"));
+                    break;
+                case SortedBlockTableFormat.Razor02:
+                    writer.Write(Encoding.ASCII.GetBytes("@RAZOR02"));
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
             writer.Write7BitEncodedInt(totalBlocks + 1);
             writer.Write7BitEncodedInt(dataBlocks);
             writer.Write7BitEncodedInt(indexBlocks);
@@ -239,6 +252,7 @@ namespace RazorDB {
         private int _dataBlocks;
         private int _indexBlocks;
         private int _totalBlocks;
+        private SortedBlockTableFormat _fileFormat;
         private RazorCache _cache;
 
         private static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
@@ -246,6 +260,11 @@ namespace RazorDB {
         private void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
             current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
             Array.Clear(current, 0, current.Length);
+        }
+
+        internal class IndexEntry {
+            internal Key Key;
+            internal int FileOffset;
         }
 
         internal class AsyncBlock : IAsyncResult {
@@ -327,12 +346,22 @@ namespace RazorDB {
                 numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
                 mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
             }
+            
             MemoryStream ms = new MemoryStream(mdBlock);
             BinaryReader reader = new BinaryReader(ms);
+            
             string checkString = Encoding.ASCII.GetString(reader.ReadBytes(8));
-            if (checkString != "@RAZORDB") {
-                throw new InvalidDataException("This does not appear to be a valid table file.");
+            switch (checkString) {
+                case "@RAZORDB":
+                    _fileFormat = SortedBlockTableFormat.Razor01;
+                    break;
+                case "@RAZOR02":
+                    _fileFormat = SortedBlockTableFormat.Razor02;
+                    break;
+                default:
+                    throw new InvalidDataException("This does not appear to be a valid table file.");
             }
+
             _totalBlocks = reader.Read7BitEncodedInt();
             _dataBlocks = reader.Read7BitEncodedInt();
             _indexBlocks = reader.Read7BitEncodedInt();

@@ -58,12 +58,12 @@ namespace RazorDB {
             get { lock (_tableLock) { return _internalTable.FindMax().Key; } }
         }
 
-        public void WriteToSortedBlockTable(string baseFileName, int level, int version) {
+        public void WriteToSortedBlockTable(string baseFileName, int level, int version, SortedBlockTableFormat format = SortedBlockTableFormat.Default) {
 
             lock (_tableLock) {
                 SortedBlockTableWriter tableWriter = null;
                 try {
-                    tableWriter = new SortedBlockTableWriter(baseFileName, level, version);
+                    tableWriter = new SortedBlockTableWriter(baseFileName, level, version, format);
 
                     foreach ( var pair in this.Enumerate() ) {
                         tableWriter.WritePair(pair.Key, pair.Value);
