@@ -41,6 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CacheTests.cs" />
+    <Compile Include="FileFormatTests.cs" />
     <Compile Include="LargeValueTests.cs" />
     <Compile Include="CrashTests.cs" />
     <Compile Include="IndexingTests.cs" />
