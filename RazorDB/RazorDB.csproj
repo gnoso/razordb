@@ -77,6 +77,7 @@
     <Compile Include="C5\WrappedArray.cs" />
     <Compile Include="C5\Wrappers.cs" />
     <Compile Include="Cache.cs" />
+    <Compile Include="Compression.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Journal.cs" />
     <Compile Include="JournaledMemTable.cs" />
