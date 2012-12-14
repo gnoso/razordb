@@ -116,7 +116,7 @@ namespace RazorDB {
                     }
                     var dk = new Key(key, 0);
                     var dv = new Value(BitConverter.GetBytes(valueSize), ValueFlag.LargeValueDescriptor);
-                    InternalSet(dk, dv, null);
+                    InternalSet(dk, dv, indexedValues);
                 }
             }
         }
