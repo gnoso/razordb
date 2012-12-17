@@ -176,15 +176,12 @@ namespace RazorDB {
                 foreach (var page in pageList) {
                     writer.Write7BitEncodedInt(page.Level);
                     writer.Write7BitEncodedInt(page.Version);
-                    writer.Write7BitEncodedInt(page.FirstKey.Length);
-                    writer.Write(page.FirstKey.InternalBytes);
-                    writer.Write7BitEncodedInt(page.LastKey.Length);
-                    writer.Write(page.LastKey.InternalBytes);
+                    page.FirstKey.Write(writer);
+                    page.LastKey.Write(writer);
                 }
             }
             foreach (var key in _mergeKeys) {
-                writer.Write7BitEncodedInt(key.Length);
-                writer.Write(key.InternalBytes);
+                key.Write(writer);
             }
 
             int size = (int)(writer.BaseStream.Position - startPos);
@@ -202,18 +199,15 @@ namespace RazorDB {
                 for (int k = 0; k < num_page_entries; k++) {
                     int level = reader.Read7BitEncodedInt();
                     int version = reader.Read7BitEncodedInt();
-                    int num_key_bytes = reader.Read7BitEncodedInt();
-                    KeyEx startkey = KeyEx.FromBytes(reader.ReadBytes(num_key_bytes));
-                    num_key_bytes = reader.Read7BitEncodedInt();
-                    KeyEx endkey = KeyEx.FromBytes(reader.ReadBytes(num_key_bytes));
+                    KeyEx startkey = KeyEx.FromReader(reader);
+                    KeyEx endkey = KeyEx.FromReader(reader);
                     var page = new PageRecord(level, version, startkey, endkey);
                     page.AddRef();
                     _pages[j].Add(page);
                 }
             }
             for (int k = 0; k < num_pages; k++) {
-                int num_key_bytes = reader.Read7BitEncodedInt();
-                _mergeKeys[k] = KeyEx.FromBytes(reader.ReadBytes(num_key_bytes));
+                _mergeKeys[k] = KeyEx.FromReader(reader);
             }
         }
 

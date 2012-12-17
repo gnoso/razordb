@@ -15,6 +15,7 @@ limitations under the License.
 */
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -82,6 +83,7 @@ namespace RazorDB {
         public Key WithSequence(byte seqNum) {
             return new Key(KeyBytes, seqNum);
         }
+
     }
 
     // Key with extended seqnum (uses two bytes instead of 1)
@@ -158,6 +160,25 @@ namespace RazorDB {
         public KeyEx WithSequence(byte seqNum) {
             return new KeyEx(KeyBytes, seqNum);
         }
+
+        public void Write(BinaryWriter writer) {
+            writer.Write((byte)0xF0);
+            writer.Write7BitEncodedInt(Length);
+            writer.Write(InternalBytes);
+        }
+
+        public static KeyEx FromReader(BinaryReader reader) {
+            byte keyVersionByte = reader.ReadByte();
+            if (keyVersionByte == 0xF0) {
+                int keyLen = reader.Read7BitEncodedInt();
+                return KeyEx.FromBytes(reader.ReadBytes(keyLen));
+            } else {
+                reader.BaseStream.Seek(-1, SeekOrigin.Current); // Move back if the byte wasn't what we were expecting
+                int keyLen = reader.Read7BitEncodedInt();
+                return KeyEx.FromKey(Key.FromBytes(reader.ReadBytes(keyLen)));
+            }
+        }
+
     }
 
 }

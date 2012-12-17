@@ -262,11 +262,6 @@ namespace RazorDB {
             Array.Clear(current, 0, current.Length);
         }
  
-        internal class IndexEntry {
-            internal KeyEx Key;
-            internal int FileOffset;
-        }
-
         internal class AsyncBlock : IAsyncResult {
             internal byte[] Buffer;
             internal int BlockNum;

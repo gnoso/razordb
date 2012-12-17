@@ -10,7 +10,7 @@
  namespace RazorDBTests {
  
      [TestFixture]
-     public class OldFormatTests {
+     public class FileFormatTests {
  
          [Test,Explicit("Used to generate a data for for backwards compatibility.")]
          public void CreateJournalFile() {
@@ -20,12 +20,12 @@
                  Directory.CreateDirectory(path);
              JournalWriter jw = new JournalWriter(path, 324, false);
  
-             List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
+             List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
              for (int i = 0; i < 1000; i++) {
-                 Key randKey = Key.Random(20);
+                 KeyEx randKey = KeyEx.Random(20);
                  Value randValue = Value.Random(100);
                  jw.Add(randKey, randValue);
-                 items.Add(new KeyValuePair<Key, Value>(randKey, randValue));
+                 items.Add(new KeyValuePair<KeyEx, Value>(randKey, randValue));
              }
              jw.Close();
  
@@ -53,9 +53,9 @@
                  File.Delete(filename);
  
              var mf = new Manifest(path);
-             mf.AddPage(1, 5, new Key(new byte[] { 5 }, 5), new Key(new byte[] { 5, 1 }, 5));
-             mf.AddPage(1, 6, new Key(new byte[] { 6 }, 6), new Key(new byte[] { 6, 1 }, 6));
-             mf.AddPage(1, 4, new Key(new byte[] { 4 }, 4), new Key(new byte[] { 4, 1 }, 4));
+             mf.AddPage(1, 5, new KeyEx(new byte[] { 5 }, 5), new KeyEx(new byte[] { 5, 1 }, 5));
+             mf.AddPage(1, 6, new KeyEx(new byte[] { 6 }, 6), new KeyEx(new byte[] { 6, 1 }, 6));
+             mf.AddPage(1, 4, new KeyEx(new byte[] { 4 }, 4), new KeyEx(new byte[] { 4, 1 }, 4));
  
              using (var mfSnap = mf.GetLatestManifest()) {
                  PageRecord[] pg = mfSnap.GetPagesAtLevel(1);
@@ -70,9 +70,9 @@
              mf = new Manifest(path);
  
              mf.ModifyPages(new List<PageRecord>{
-                 new PageRecord(1, 8, new Key( new byte[] { 16 }, 16), new Key(new byte[] { 16, 1 }, 16) ),
-                 new PageRecord(1, 9, new Key( new byte[] { 1 }, 1), new Key(new byte[] { 1, 1 }, 1) ),
-                 new PageRecord(1, 16, new Key( new byte[] { 10 }, 10), new Key(new byte[] { 10, 1 }, 10) )
+                 new PageRecord(1, 8, new KeyEx( new byte[] { 16 }, 16), new KeyEx(new byte[] { 16, 1 }, 16) ),
+                 new PageRecord(1, 9, new KeyEx( new byte[] { 1 }, 1), new KeyEx(new byte[] { 1, 1 }, 1) ),
+                 new PageRecord(1, 16, new KeyEx( new byte[] { 10 }, 10), new KeyEx(new byte[] { 10, 1 }, 10) )
              }, new List<PageRef>{
                  new PageRef{ Level = 1, Version = 6},
                  new PageRef{ Level = 1, Version = 4},
@@ -102,7 +102,7 @@
  
              var mt = new MemTable();
              for (int i = 0; i < 1000; i++) {
-                 var k0 = Key.Random(40);
+                 var k0 = KeyEx.Random(40);
                  var v0 = Value.Random(200);
                  mt.Add(k0, v0);
              }
@@ -119,7 +119,7 @@
              Console.WriteLine("Counted sorted table at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
  
              // Confirm that the items are sorted.
-             Key lastKey = Key.Empty;
+             KeyEx lastKey = KeyEx.Empty;
              timer.Reset();
              timer.Start();
              foreach (var pair in sbt.Enumerate()) {
@@ -141,7 +141,7 @@
              JournalReader jr = new JournalReader(path, 324);
              int j = 0;
              foreach (var pair in jr.Enumerate()) {
-                 Assert.AreEqual( 20, pair.Key.Length);
+                 Assert.AreEqual( 21, pair.Key.Length);
                  Assert.AreEqual(100, pair.Value.Length);
                  j++;
              }
@@ -159,6 +159,8 @@
                  var pg = mfSnap.GetPagesAtLevel(1);
                  Assert.AreEqual(1, pg[0].Level);
                  Assert.AreEqual(9, pg[0].Version);
+                 Assert.AreEqual(new KeyEx( new byte[] { 1 }, 1),pg[0].FirstKey);
+                 Assert.AreEqual(new KeyEx(new byte[] { 1, 1 }, 1), pg[0].LastKey);
                  Assert.AreEqual(1, pg[1].Level);
                  Assert.AreEqual(5, pg[1].Version);
                  Assert.AreEqual(1, pg[2].Level);
@@ -177,7 +179,7 @@
              Assert.AreEqual(1000, sbt.Enumerate().Count());
  
              // Confirm that the items are sorted.
-             Key lastKey = Key.Empty;
+             KeyEx lastKey = KeyEx.Empty;
  
              foreach (var pair in sbt.Enumerate()) {
                  Assert.IsTrue(lastKey.CompareTo(pair.Key) < 0);
