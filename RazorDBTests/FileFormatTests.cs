@@ -53,9 +53,9 @@
                  File.Delete(filename);
  
              var mf = new Manifest(path);
-             mf.AddPage(1, 5, Key.FromBytes(new byte[] { 5 }), Key.FromBytes(new byte[] { 5, 1 }));
-             mf.AddPage(1, 6, Key.FromBytes(new byte[] { 6 }), Key.FromBytes(new byte[] { 6, 1 }));
-             mf.AddPage(1, 4, Key.FromBytes(new byte[] { 4 }), Key.FromBytes(new byte[] { 4, 1 }));
+             mf.AddPage(1, 5, new Key(new byte[] { 5 }, 5), new Key(new byte[] { 5, 1 }, 5));
+             mf.AddPage(1, 6, new Key(new byte[] { 6 }, 6), new Key(new byte[] { 6, 1 }, 6));
+             mf.AddPage(1, 4, new Key(new byte[] { 4 }, 4), new Key(new byte[] { 4, 1 }, 4));
  
              using (var mfSnap = mf.GetLatestManifest()) {
                  PageRecord[] pg = mfSnap.GetPagesAtLevel(1);
@@ -70,9 +70,9 @@
              mf = new Manifest(path);
  
              mf.ModifyPages(new List<PageRecord>{
-                 new PageRecord(1, 8, Key.FromBytes( new byte[] { 16 }), Key.FromBytes(new byte[] { 16, 1 }) ),
-                 new PageRecord(1, 9, Key.FromBytes( new byte[] { 1 }), Key.FromBytes(new byte[] { 1, 1 }) ),
-                 new PageRecord(1, 16, Key.FromBytes( new byte[] { 10 }), Key.FromBytes(new byte[] { 10, 1 }) )
+                 new PageRecord(1, 8, new Key( new byte[] { 16 }, 16), new Key(new byte[] { 16, 1 }, 16) ),
+                 new PageRecord(1, 9, new Key( new byte[] { 1 }, 1), new Key(new byte[] { 1, 1 }, 1) ),
+                 new PageRecord(1, 16, new Key( new byte[] { 10 }, 10), new Key(new byte[] { 10, 1 }, 10) )
              }, new List<PageRef>{
                  new PageRef{ Level = 1, Version = 6},
                  new PageRef{ Level = 1, Version = 4},
