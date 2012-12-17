@@ -157,7 +157,7 @@ namespace RazorDB {
         public static KeyEx Empty {
             get { return new KeyEx(new byte[0], 0); }
         }
-        public KeyEx WithSequence(byte seqNum) {
+        public KeyEx WithSequence(int seqNum) {
             return new KeyEx(KeyBytes, seqNum);
         }
 

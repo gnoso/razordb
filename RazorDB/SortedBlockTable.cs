@@ -22,7 +22,7 @@ using System.Threading;
 
 namespace RazorDB {
 
-    public enum RecordHeaderFlag { Record = 0xE0, EndOfBlock = 0xFF };
+    public enum RecordHeaderFlag { Record = 0xE0, RecordV2 = 0xE1, EndOfBlock = 0xFF };
 
     public enum SortedBlockTableFormat { Razor01 = 1, Razor02 = 2, Default = Razor02 };
 
@@ -90,7 +90,7 @@ namespace RazorDB {
             _keyOffsets.Add((ushort)_bufferPos);
 
             // This is a record header
-            _buffer[_bufferPos++] = (byte)RecordHeaderFlag.Record;
+            _buffer[_bufferPos++] = (byte)RecordHeaderFlag.RecordV2;
 
             // Add space for left and right node pointers
             _bufferPos += 4;
@@ -509,7 +509,8 @@ namespace RazorDB {
             int offset = 2; // skip over the tree root pointer
             value = Value.Empty;
 
-            while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte)RecordHeaderFlag.Record) {
+            while (offset >= 2 && offset < Config.SortedBlockSize &&
+                (block[offset] == (byte)RecordHeaderFlag.Record || block[offset] == (byte)RecordHeaderFlag.RecordV2)) {
                 int startingOffset = offset;
                 offset++; // skip past the header flag
                 offset += 4; // skip past the tree pointers
@@ -535,7 +536,8 @@ namespace RazorDB {
             int offset = BitConverter.ToUInt16(block, 0); // grab the tree root
             value = Value.Empty;
 
-            while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte) RecordHeaderFlag.Record) {
+            while (offset >= 2 && offset < Config.SortedBlockSize &&
+                (block[offset] == (byte)RecordHeaderFlag.Record || block[offset] == (byte)RecordHeaderFlag.RecordV2)) {
                 int startingOffset = offset;
                 offset += 1; // skip header
                 offset += 4; // skip tree pointers
@@ -558,11 +560,33 @@ namespace RazorDB {
         }
 
         private static KeyValuePair<KeyEx, Value> ReadPair(byte[] block, ref int offset) {
+            
+            SortedBlockTableFormat fmt;
+            switch ((RecordHeaderFlag)block[offset]) {
+                case RecordHeaderFlag.Record:
+                    fmt = SortedBlockTableFormat.Razor01;
+                    break;
+                case RecordHeaderFlag.RecordV2:
+                    fmt = SortedBlockTableFormat.Razor02;
+                    break;
+                default:
+                    throw new InvalidDataException("Unknown Record Header Flag.");
+            }
             offset += 1; // skip over header flag
+
             offset += 4; // skip over the tree pointers
+
+            // Read the key (choose Key or KeyEx depending on record header flag)
             int keySize = Helper.Decode7BitInt(block, ref offset);
-            var key = new KeyEx(ByteArray.From(block, offset, keySize));
+            var keyBytes = ByteArray.From(block, offset, keySize);
+            KeyEx key = KeyEx.Empty;
+            if (fmt == SortedBlockTableFormat.Razor01) {
+                key = KeyEx.FromKey(new Key(keyBytes));
+            } else {
+                key = new KeyEx(keyBytes);
+            }
             offset += keySize;
+            
             int valueSize = Helper.Decode7BitInt(block, ref offset);
             var val = Value.From(block, offset, valueSize);
             offset += valueSize;

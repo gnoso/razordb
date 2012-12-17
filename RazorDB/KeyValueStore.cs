@@ -101,11 +101,11 @@ namespace RazorDB {
                 InternalSet(k, v, indexedValues);
             } else {
                 lock (multiPageLock) {
-                    if (value.Length >= Config.MaxLargeValueSizeV1)
-                        throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSizeV1));
+                    if (value.Length >= Config.MaxLargeValueSize)
+                        throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSize));
 
                     int offset = 0;
-                    byte seqNum = 1;
+                    int seqNum = 1;
                     while (offset < valueSize) {
                         var k = new KeyEx(key, seqNum);
                         int length = Math.Min(valueSize - offset, Config.MaxSmallValueSize);
@@ -252,7 +252,7 @@ namespace RazorDB {
                             int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
                             byte[] bytes = new byte[valueSize];
                             int offset = 0;
-                            byte seqNum = 1;
+                            int seqNum = 1;
                             while (offset < valueSize) {
                                 var blockKey = lookupKey.WithSequence(seqNum);
                                 var block = InternalGet(blockKey);

@@ -30,8 +30,7 @@ namespace RazorDB {
         public static int SortedBlockSize = 32 * 1024;                              // Size of each block in the sorted table files (Warning: changing this number will break future readers).
         public static int ManifestVersionCount = 1000;                              // Number of manifests to append before rolling the file over
         public static int MaxSmallValueSize = SortedBlockSize / 4;                  // The maximum size of the value that we store contiguously. Anything larger than this is split into multiple parts.
-        public static int MaxLargeValueSizeV1 = MaxSmallValueSize * (0xFF - 1);     // The largest size of the value that we can store (in multiple parts) using the V1 format sbt.
-        public static int MaxLargeValueSizeV2 = MaxSmallValueSize * (0x7FFF - 1);   // The largest size of the value that we can store (in multiple parts) using the V2 format sbt.
+        public static int MaxLargeValueSize = MaxSmallValueSize * (0x7FFF - 1);     // The largest size of the value that we can store (in multiple parts) using the V2 format sbt.
 
         public static string SortedBlockTableFile(string baseName, int level, int version) {
             return baseName + "\\" + level.ToString() + "-" + version.ToString() + ".sbt";

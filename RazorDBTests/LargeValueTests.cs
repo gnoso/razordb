@@ -141,12 +141,12 @@ namespace RazorDBTests {
             }
         }
 
-        [Test, ExpectedException(typeof(InvalidDataException))]
-        public void TestTooLargeData() {
+        [Test]
+        public void TestTooLargeForV1Data() {
 
             string path = Path.GetFullPath("TestData\\TestTooLargeData");
             using (var db = new KeyValueStore(path)) {
-                db.Set(KeyEx.Random(10).KeyBytes, ByteArray.Random(Config.MaxLargeValueSizeV1).InternalBytes);
+                db.Set(KeyEx.Random(10).KeyBytes, ByteArray.Random(Config.MaxSmallValueSize * 0x100).InternalBytes);
             }
         }
 
@@ -191,7 +191,7 @@ namespace RazorDBTests {
                 // Set Evens to large
                 for (int i = 0; i < keys.Count; i++) {
                     var k = keys[i];
-                    var v = ((i & 1) == 0) ? GenerateBlock(Config.MaxLargeValueSizeV1 - 100) : GenerateBlock(10);
+                    var v = ((i & 1) == 0) ? GenerateBlock(Config.MaxSmallValueSize * 0x100) : GenerateBlock(10);
                     db.Set(k, v);
                 }
 
@@ -226,7 +226,7 @@ namespace RazorDBTests {
                 // Set Odds to large
                 for (int i = 0; i < keys.Count; i++) {
                     var k = keys[i];
-                    var v = ((i & 1) == 1) ? GenerateBlock(Config.MaxLargeValueSizeV1 - 100) : GenerateBlock(10);
+                    var v = ((i & 1) == 1) ? GenerateBlock(Config.MaxSmallValueSize * 0x100) : GenerateBlock(10);
                     db.Set(k, v);
                 }
 
@@ -264,7 +264,7 @@ namespace RazorDBTests {
                 for (int i = 0; i < keys.Count; i++) {
                     var k = keys[i];
                     if (((i & 1) == 0)) {
-                        db.Set(k, GenerateBlock(Config.MaxLargeValueSizeV1 - 100));
+                        db.Set(k, GenerateBlock(Config.MaxSmallValueSize * 0x100));
                     } else {
                         db.Set(k, GenerateBlock(10));
                     }
@@ -274,7 +274,7 @@ namespace RazorDBTests {
                 for (int i = 0; i < keys.Count; i++) {
                     var k = keys[i];
                     if (((i & 1) == 1)) {
-                        db.Set(k, GenerateBlock(Config.MaxLargeValueSizeV1 - 100));
+                        db.Set(k, GenerateBlock(Config.MaxSmallValueSize * 0x100));
                     } else {
                         db.Set(k, GenerateBlock(10));
                     }
