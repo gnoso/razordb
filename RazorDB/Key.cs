@@ -130,6 +130,17 @@ namespace RazorDB {
         public int CompareTo(byte[] other, int offset, int length) {
             return _bytes.CompareTo(other, offset, length);
         }
+        public int CompareToV1(byte[] other, int offset, int length) {
+            // Compare the bytes without the sequence number
+            int res = _bytes.CompareTo(other, offset, length-1);
+            if (res == 0) {
+                // Compare the sequence number
+                int keyVal = this.SequenceNum;
+                int otherVal = other[offset + length - 1];
+                res = keyVal.CompareTo(otherVal);
+            } 
+            return res;
+        }
         public override bool Equals(object obj) {
             return obj is KeyEx ? base.Equals((KeyEx)obj) : false;
         }

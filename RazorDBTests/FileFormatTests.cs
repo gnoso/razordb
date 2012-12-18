@@ -208,6 +208,17 @@
              sbt.Close();
  
          }
- 
+
+         [Test]
+         public void V1ReadLargeObjectsFromDatastore() {
+
+             using (var db = new KeyValueStore(@"..\FormatTestData\V1LargeObjectStore")) {
+                 foreach (var pair in db.Enumerate()) {
+                     Assert.AreEqual(40, pair.Key.Length);
+                     Assert.AreEqual(Config.MaxSmallValueSize * 100, pair.Value.Length);
+                 }
+             }
+         }
+
      }
  }

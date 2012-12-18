@@ -523,10 +523,18 @@ namespace RazorDB {
             while (offset >= 2 && offset < Config.SortedBlockSize &&
                 (block[offset] == (byte)RecordHeaderFlag.Record || block[offset] == (byte)RecordHeaderFlag.RecordV2)) {
                 int startingOffset = offset;
+                RecordHeaderFlag headerFlag = (RecordHeaderFlag)block[startingOffset];
                 offset++; // skip past the header flag
                 offset += 4; // skip past the tree pointers
                 int keySize = Helper.Decode7BitInt(block, ref offset);
-                int cmp = key.CompareTo(block, offset, keySize);
+
+                int cmp = 0;
+                if (headerFlag == RecordHeaderFlag.Record) {
+                    cmp = key.CompareToV1(block, offset, keySize);
+                } else if (headerFlag == RecordHeaderFlag.RecordV2) {
+                    cmp = key.CompareTo(block, offset, keySize);
+                } else { throw new NotSupportedException(); }
+
                 if (cmp == 0) {
                     // Found it
                     var pair = ReadPair(block, ref startingOffset);
@@ -550,10 +558,18 @@ namespace RazorDB {
             while (offset >= 2 && offset < Config.SortedBlockSize &&
                 (block[offset] == (byte)RecordHeaderFlag.Record || block[offset] == (byte)RecordHeaderFlag.RecordV2)) {
                 int startingOffset = offset;
+                RecordHeaderFlag headerFlag = (RecordHeaderFlag) block[startingOffset];
                 offset += 1; // skip header
                 offset += 4; // skip tree pointers
                 int keySize = Helper.Decode7BitInt(block, ref offset);
-                int cmp = key.CompareTo(block, offset, keySize);
+                
+                int cmp = 0;
+                if (headerFlag == RecordHeaderFlag.Record) {
+                    cmp = key.CompareToV1(block, offset, keySize);
+                } else if (headerFlag == RecordHeaderFlag.RecordV2) {
+                    cmp = key.CompareTo(block, offset, keySize);
+                } else { throw new NotSupportedException(); }
+
                 if (cmp == 0) {
                     // Found it
                     var pair = ReadPair(block, ref startingOffset);
