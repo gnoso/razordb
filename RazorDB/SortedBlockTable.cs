@@ -168,6 +168,8 @@ namespace RazorDB {
             }
 
             // write the data out to the buffer
+            _buffer[_bufferPos] = 0xF0;
+            _bufferPos++;
             Array.Copy(keySize, 0, _buffer, _bufferPos, keySizeLen);
             _bufferPos += keySizeLen;
             Array.Copy(key.InternalBytes, 0, _buffer, _bufferPos, key.Length);
@@ -494,6 +496,11 @@ namespace RazorDB {
         }
 
         private static KeyEx ReadKey(byte[] block, ref int offset) {
+            bool v2Key = false;
+            if (block[offset] == 0xF0) {
+                v2Key = true;
+                offset++;
+            }
             int keySize = Helper.Decode7BitInt(block, ref offset);
             var key = ByteArray.From(block, offset, keySize);
             offset += keySize;
@@ -502,7 +509,11 @@ namespace RazorDB {
             if (block[offset] == 0)
                 offset = -1;
 
-            return new KeyEx(key);
+            if (v2Key) {
+                return new KeyEx(key);
+            } else {
+                return KeyEx.FromKey(new Key(key));
+            }
         }
 
         private static bool ScanBlockForKey(byte[] block, KeyEx key, out Value value) {
