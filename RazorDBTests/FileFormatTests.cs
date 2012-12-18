@@ -132,7 +132,26 @@
              sbt.Close();
  
          }
- 
+
+         [Test, Explicit("Used to generate data for backwards compatibility.")]
+         public void CreateLargeObjectDataStore() {
+
+             string path = Path.GetFullPath("TestData\\LargeObjectV1");
+             if (!Directory.Exists(path))
+                 Directory.CreateDirectory(path);
+
+             using (var db = new KeyValueStore(path)) {
+                 db.Truncate();
+
+                 for (int i = 0; i < 6; i++) {
+                     var k0 = KeyEx.Random(40);
+                     var v0 = Value.Random(Config.MaxSmallValueSize * 100);
+                     db.Set(k0.InternalBytes, v0.InternalBytes);
+                 }
+             }
+
+         }
+
          [Test]
          public void V1JournalFile() {
  
