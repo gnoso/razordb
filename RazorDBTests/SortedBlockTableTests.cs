@@ -198,6 +198,56 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void DefaultCompressibleEnumerateFromKeys() {
+
+            string path = Path.GetFullPath("TestData\\DefaultCompressibleEnumerateFromKeys");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
+            List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
+            var v0 = Value.Random(200);
+
+            int num_items = 10000;
+            var mt = new MemTable();
+            for (int i = 0; i < num_items; i++) {
+                var k0 = KeyEx.Random(40);
+                mt.Add(k0, v0);
+
+                items.Add(new KeyValuePair<KeyEx, Value>(k0, v0));
+            }
+
+            mt.WriteToSortedBlockTable("TestData\\DefaultCompressibleEnumerateFromKeys", 10, 10);
+
+            //var cache = new RazorCache();
+            //var sbt = new SortedBlockTable(cache, "TestData\\DefaultEnumerateFromKeys", 10, 10);
+
+            //try {
+            //    var indexCache = new RazorCache();
+
+            //    var timer = new Stopwatch();
+            //    timer.Start();
+            //    Assert.AreEqual(10000, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0 }, 0)).Count());
+            //    timer.Stop();
+            //    Console.WriteLine("Counted from beginning at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+            //    items = items.OrderBy((a) => a.Key).ToList();
+
+            //    timer.Reset();
+            //    timer.Start();
+            //    Assert.AreEqual(5000, sbt.EnumerateFromKey(indexCache, items[5000].Key).Count());
+            //    timer.Stop();
+            //    Console.WriteLine("Counted from halfway at a throughput of {0} MB/s", (double)mt.Size / 2 / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+            //    Assert.AreEqual(0, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, 0xFF)).Count());
+
+            //} finally {
+            //    sbt.Close();
+            //}
+
+        }
+
+
+        [Test]
         public void DefaultEnumerateFromKeys() {
 
             string path = Path.GetFullPath("TestData\\DefaultEnumerateFromKeys");

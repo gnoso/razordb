@@ -34,6 +34,7 @@ namespace RazorDB {
             _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
             _bufferA = new byte[Config.SortedBlockSize];
             _bufferB = new byte[Config.SortedBlockSize];
+            _compressionBuffer = new byte[Config.SortedBlockSize * 3 / 2]; // Allocate the compression buffer slightly larger in case the data is not compressible and gets slightly larger
             _buffer = _bufferA;
             _bufferPos = 0;
             _pageIndex = new List<KeyEx>();
@@ -46,6 +47,7 @@ namespace RazorDB {
         private byte[] _bufferA;     // pre-allocated bufferA
         private byte[] _bufferB;     // pre-allocated bufferB
         private byte[] _buffer;      // current buffer that is being loaded
+        private byte[] _compressionBuffer;
         private int _bufferPos;
         private IAsyncResult _async;
         private List<KeyEx> _pageIndex;
@@ -53,6 +55,7 @@ namespace RazorDB {
         private int indexBlocks = 0;
         private int totalBlocks = 0;
         private SortedBlockTableFormat _fileFormat;
+        private List<int> onDiskBlockSizes = new List<int>();
 
         public int Version { get; private set; }
         public int WrittenSize { get; private set; }
@@ -149,8 +152,22 @@ namespace RazorDB {
             if (_async != null) {
                 _fileStream.EndWrite(_async);
             }
-            _async = _fileStream.BeginWrite(_buffer, 0, Config.SortedBlockSize, null, null);
+
+            int blockSize = Config.SortedBlockSize;
+            if (_fileFormat == SortedBlockTableFormat.Razor02) {
+                // Compress the next block in preparation for writing
+                int compressedSize = Compression.Compress(_buffer, _buffer.Length, _compressionBuffer);
+                this.onDiskBlockSizes.Add(compressedSize);
+                blockSize = compressedSize;
+            }
+
+            // Start the next asynchronous block write
+            _async = _fileStream.BeginWrite(_buffer, 0, blockSize, null, null);
+
+            // Swap the buffers over so we can continue preparing data for disk.
             SwapBuffers();
+
+            // Reset counters
             _bufferPos = 0;
             totalBlocks++;
         }
@@ -185,27 +202,48 @@ namespace RazorDB {
         private void WriteMetadata() {
             MemoryStream ms = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(ms);
+            byte[] metadata;
 
             switch (_fileFormat) {
                 case SortedBlockTableFormat.Razor01:
                     writer.Write(Encoding.ASCII.GetBytes("@RAZORDB"));
+                    writer.Write7BitEncodedInt(totalBlocks + 1);
+                    writer.Write7BitEncodedInt(dataBlocks);
+                    writer.Write7BitEncodedInt(indexBlocks);
+
+                    metadata = ms.ToArray();
+                    Array.Copy(metadata, _buffer, metadata.Length);
+
+                    // Commit the block to disk and wait for the operation to complete
+                    WriteBlock();
+                    _fileStream.EndWrite(_async);
                     break;
                 case SortedBlockTableFormat.Razor02:
                     writer.Write(Encoding.ASCII.GetBytes("@RAZOR02"));
+                    writer.Write7BitEncodedInt(totalBlocks + 1);
+                    writer.Write7BitEncodedInt(dataBlocks);
+                    writer.Write7BitEncodedInt(indexBlocks);
+
+                    writer.Write7BitEncodedInt(onDiskBlockSizes.Count);
+                    foreach (var blockSize in onDiskBlockSizes) {
+                        writer.Write7BitEncodedInt(blockSize);
+                    }
+                    // Write the length of the metadata + length of the counter
+                    writer.Write( (int)ms.Length + 4);
+
+                    metadata = ms.ToArray();
+                    // Wait for any pending writes to complete
+                    if (_async != null) { _fileStream.EndWrite(_async); }
+                    // Now write the metadata
+                    _async = _fileStream.BeginWrite(metadata, 0, metadata.Length, null, null);
+                    // Wait for the write to complete
+                    _fileStream.EndWrite(_async);
+                    _fileStream.Flush();
                     break;
                 default:
                     throw new NotSupportedException();
             }
-            writer.Write7BitEncodedInt(totalBlocks + 1);
-            writer.Write7BitEncodedInt(dataBlocks);
-            writer.Write7BitEncodedInt(indexBlocks);
 
-            byte[] metadata = ms.ToArray();
-            Array.Copy(metadata, _buffer, metadata.Length);
-
-            // Commit the block to disk and wait for the operation to complete
-            WriteBlock();
-            _fileStream.EndWrite(_async);
         }
 
         public void Close() {
@@ -256,6 +294,7 @@ namespace RazorDB {
         private int _totalBlocks;
         private SortedBlockTableFormat _fileFormat;
         private RazorCache _cache;
+        private List<int> onDiskBlockSizes = new List<int>();
 
         private static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
 
@@ -328,20 +367,37 @@ namespace RazorDB {
             return threadAllocBlock;
         }
 
+        private byte[] ReadRawMetadataBlock() {
+            byte[] mdBlock = null;
+            switch (_fileFormat) {
+                case SortedBlockTableFormat.Razor01:
+                    int numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
+                    return ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                case SortedBlockTableFormat.Razor02:
+                    mdBlock = new byte[8*1024];
+                    internalFileStream.Seek(-mdBlock.Length, SeekOrigin.End);
+                    internalFileStream.Read(mdBlock, 0, mdBlock.Length);
+                    int mdSize = BitConverter.ToInt32(mdBlock, mdBlock.Length - 4);
+                    byte[] returnVal = new byte[mdSize];
+                    Array.Copy(mdBlock, mdBlock.Length - mdSize, returnVal, 0, mdSize);
+                    return returnVal;
+                default: 
+                    throw new NotSupportedException();
+            }
+        }
+
         private void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
             if (_cache != null) {
                 mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
                 if (mdBlock == null) {
-                    numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                    mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                    mdBlock = ReadRawMetadataBlock();
                     byte[] blockCopy = (byte[])mdBlock.Clone();
                     _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
                 }
             } else {
-                numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                mdBlock = ReadRawMetadataBlock();
             }
             
             MemoryStream ms = new MemoryStream(mdBlock);
@@ -351,6 +407,7 @@ namespace RazorDB {
             switch (checkString) {
                 case "@RAZORDB":
                     _fileFormat = SortedBlockTableFormat.Razor01;
+                    numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
                     break;
                 case "@RAZOR02":
                     _fileFormat = SortedBlockTableFormat.Razor02;
@@ -367,6 +424,13 @@ namespace RazorDB {
             }
             if (_totalBlocks != (_dataBlocks + _indexBlocks + 1)) {
                 throw new InvalidDataException("Corrupted metadata.");
+            }
+
+            if (_fileFormat == SortedBlockTableFormat.Razor02) {
+                int numBlockSizes = reader.Read7BitEncodedInt();
+                for (int i = 0; i < numBlockSizes; i++) {
+                    onDiskBlockSizes.Add(reader.Read7BitEncodedInt());
+                }
             }
         }
 
