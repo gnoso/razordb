@@ -292,7 +292,7 @@ namespace RazorDB {
                             targetIndex += l;
                         } else {
                             if (o == 1) {
-                                for (int k = targetIndex; k <= targetIndex + l; k++) {
+                                for (int k = targetIndex; k < targetIndex + l; k++) {
                                     outputBuffer[k] = outputBuffer[targetIndex - 1];
                                 }
                                 targetIndex += l;
@@ -333,7 +333,7 @@ namespace RazorDB {
                             targetIndex += l;
                         } else {
                             if (o == 1) {
-                                for (int k = targetIndex; k <= targetIndex + l; k++) {
+                                for (int k = targetIndex; k < targetIndex + l; k++) {
                                     outputBuffer[k] = outputBuffer[targetIndex - 1];
                                 }
                                 targetIndex += l;
