@@ -146,6 +146,7 @@ namespace RazorDBTests {
 
             string path = Path.GetFullPath("TestData\\TestTooLargeData");
             using (var db = new KeyValueStore(path)) {
+                db.Truncate();
                 db.Set(KeyEx.Random(10).KeyBytes, ByteArray.Random(Config.MaxSmallValueSize * 0x100).InternalBytes);
             }
         }
