@@ -439,7 +439,11 @@ namespace RazorDB {
                 ms = new MemoryStream(mdBlock, 8, Config.SortedBlockSize - 8); // Create the memory stream skipping the initial 8 character marker.
             } else {
                 int mdSize = BitConverter.ToInt32(mdBlock, mdBlock.Length - 4);
-                checkString = Encoding.ASCII.GetString(mdBlock, mdBlock.Length - mdSize, 8);
+                int v2Offset = mdBlock.Length - mdSize;
+                if (v2Offset < 0 || v2Offset > mdBlock.Length - 8) {
+                    throw new InvalidDataException("The metadata size marker is not valid.");
+                }
+                checkString = Encoding.ASCII.GetString(mdBlock, v2Offset, 8);
                 if (checkString == "@RAZOR02") {
                     _fileFormat = SortedBlockTableFormat.Razor02;
                     ms = new MemoryStream(mdBlock, mdBlock.Length - mdSize + 8, mdSize - 8); // Create a memory stream from the rest of the metadata block (skip the 8 character marker string)
