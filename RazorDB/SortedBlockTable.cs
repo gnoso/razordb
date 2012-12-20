@@ -436,7 +436,7 @@ namespace RazorDB {
             if (checkString == "@RAZORDB") {
                 _fileFormat = SortedBlockTableFormat.Razor01;
                 numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                ms = new MemoryStream(mdBlock);
+                ms = new MemoryStream(mdBlock, 8, Config.SortedBlockSize - 8); // Create the memory stream skipping the initial 8 character marker.
             } else {
                 int mdSize = BitConverter.ToInt32(mdBlock, mdBlock.Length - 4);
                 checkString = Encoding.ASCII.GetString(mdBlock, mdBlock.Length - mdSize, 8);
