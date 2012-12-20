@@ -154,15 +154,17 @@ namespace RazorDB {
             }
 
             int blockSize = Config.SortedBlockSize;
+            byte[] writeBuffer = _buffer;
             if (_fileFormat == SortedBlockTableFormat.Razor02) {
                 // Compress the next block in preparation for writing
                 int compressedSize = Compression.Compress(_buffer, _buffer.Length, _compressionBuffer);
                 this.onDiskBlockSizes.Add(compressedSize);
+                writeBuffer = _compressionBuffer;
                 blockSize = compressedSize;
             }
 
             // Start the next asynchronous block write
-            _async = _fileStream.BeginWrite(_buffer, 0, blockSize, null, null);
+            _async = _fileStream.BeginWrite(writeBuffer, 0, blockSize, null, null);
 
             // Swap the buffers over so we can continue preparing data for disk.
             SwapBuffers();
@@ -295,6 +297,7 @@ namespace RazorDB {
         private SortedBlockTableFormat _fileFormat;
         private RazorCache _cache;
         private List<int> onDiskBlockSizes = new List<int>();
+        private List<int> onDiskCumBlockSizes = new List<int>();
 
         private static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
 
@@ -306,6 +309,7 @@ namespace RazorDB {
         internal class AsyncBlock : IAsyncResult {
             internal byte[] Buffer;
             internal int BlockNum;
+            internal byte[] ReturnBlock;
 
             public object AsyncState { get { return this; } }
             public WaitHandle AsyncWaitHandle { get { throw new NotImplementedException(); } }
@@ -320,22 +324,46 @@ namespace RazorDB {
                     return new AsyncBlock { Buffer = cachedBlock, BlockNum = blockNum };
                 }
             }
-            internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            return internalFileStream.BeginRead(block, 0, Config.SortedBlockSize, null, new AsyncBlock { Buffer = block, BlockNum = blockNum });
+            switch (_fileFormat) {
+                case SortedBlockTableFormat.Razor01:
+                    internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+                    return internalFileStream.BeginRead(block, 0, Config.SortedBlockSize, null, new AsyncBlock { Buffer = block, BlockNum = blockNum });
+                case SortedBlockTableFormat.Razor02:
+                    var offset = onDiskCumBlockSizes[blockNum];
+                    var length = onDiskBlockSizes[blockNum];
+                    internalFileStream.Seek(offset, SeekOrigin.Begin);
+                    byte[] tempBuffer = new byte[length];
+                    return internalFileStream.BeginRead(tempBuffer, 0, length, null, new AsyncBlock { Buffer = tempBuffer, ReturnBlock = block, BlockNum = blockNum });
+                default:
+                    throw new NotSupportedException();
+            }
         }
 
         private byte[] EndReadBlock(IAsyncResult async) {
             AsyncBlock ablock = async as AsyncBlock;
             if (ablock != null) {
+                // This represents a block read from cache, nothing to do but return it...
                 return ablock.Buffer;
             } else {
-                internalFileStream.EndRead(async);
+                var bytesRead = internalFileStream.EndRead(async);
                 ablock = (AsyncBlock)async.AsyncState;
+                byte[] returnVal = null;
+                switch (_fileFormat) {
+                    case SortedBlockTableFormat.Razor01:
+                        returnVal = ablock.Buffer;
+                        break;
+                    case SortedBlockTableFormat.Razor02:
+                        Compression.Decompress(ablock.Buffer, 0, ablock.Buffer.Length, ablock.ReturnBlock, 0);
+                        returnVal = ablock.ReturnBlock;
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
                 if (_cache != null) {
-                    var blockCopy = (byte[])ablock.Buffer.Clone();
+                    var blockCopy = (byte[])returnVal.Clone();
                     _cache.SetBlock(_baseFileName, _level, _version, ablock.BlockNum, blockCopy);
                 }
-                return ablock.Buffer;
+                return returnVal;
             }
         }
 
@@ -346,8 +374,22 @@ namespace RazorDB {
                     return cachedBlock;
                 }
             }
-            internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            internalFileStream.Read(block, 0, Config.SortedBlockSize);
+            switch (_fileFormat) {
+                case SortedBlockTableFormat.Razor01:
+                    internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+                    internalFileStream.Read(block, 0, Config.SortedBlockSize);
+                    break;
+                case SortedBlockTableFormat.Razor02:
+                    var offset = onDiskCumBlockSizes[blockNum];
+                    var length = onDiskBlockSizes[blockNum];
+                    byte[] tempBuffer = new byte[length];
+                    internalFileStream.Seek(offset, SeekOrigin.Begin);
+                    internalFileStream.Read(tempBuffer, 0, length);
+                    Compression.Decompress(tempBuffer, 0, tempBuffer.Length, block, 0);
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
             if (_cache != null) {
                 var blockCopy = (byte[])block.Clone();
                 _cache.SetBlock(_baseFileName, _level, _version, blockNum, blockCopy);
@@ -367,55 +409,44 @@ namespace RazorDB {
             return threadAllocBlock;
         }
 
-        private byte[] ReadRawMetadataBlock() {
-            byte[] mdBlock = null;
-            switch (_fileFormat) {
-                case SortedBlockTableFormat.Razor01:
-                    int numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                    return ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
-                case SortedBlockTableFormat.Razor02:
-                    mdBlock = new byte[8*1024];
-                    internalFileStream.Seek(-mdBlock.Length, SeekOrigin.End);
-                    internalFileStream.Read(mdBlock, 0, mdBlock.Length);
-                    int mdSize = BitConverter.ToInt32(mdBlock, mdBlock.Length - 4);
-                    byte[] returnVal = new byte[mdSize];
-                    Array.Copy(mdBlock, mdBlock.Length - mdSize, returnVal, 0, mdSize);
-                    return returnVal;
-                default: 
-                    throw new NotSupportedException();
-            }
-        }
-
-        private void ReadMetadata() {
+         private void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
             if (_cache != null) {
                 mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
                 if (mdBlock == null) {
-                    mdBlock = ReadRawMetadataBlock();
+                    // Start by reading the last block-sized chunk of data from the file
+                    mdBlock = LocalThreadAllocatedBlock();
+                    int lastBlockSize = Math.Min(Config.SortedBlockSize, (int)internalFileStream.Length); // should the block of size SortedBlockSize unless the file is smaller than that, in which case we read the entire file
+                    internalFileStream.Seek(-lastBlockSize, SeekOrigin.End);
+                    internalFileStream.Read(mdBlock, 0, lastBlockSize);
                     byte[] blockCopy = (byte[])mdBlock.Clone();
                     _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
                 }
             } else {
-                mdBlock = ReadRawMetadataBlock();
-            }
-            
-            MemoryStream ms = new MemoryStream(mdBlock);
-            BinaryReader reader = new BinaryReader(ms);
-            
-            string checkString = Encoding.ASCII.GetString(reader.ReadBytes(8));
-            switch (checkString) {
-                case "@RAZORDB":
-                    _fileFormat = SortedBlockTableFormat.Razor01;
-                    numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                    break;
-                case "@RAZOR02":
-                    _fileFormat = SortedBlockTableFormat.Razor02;
-                    break;
-                default:
-                    throw new InvalidDataException("This does not appear to be a valid table file.");
+                mdBlock = LocalThreadAllocatedBlock();
+                internalFileStream.Seek(-Config.SortedBlockSize, SeekOrigin.End);
+                internalFileStream.Read(mdBlock, 0, Config.SortedBlockSize);
             }
 
+            MemoryStream ms;
+            string checkString = Encoding.ASCII.GetString(mdBlock,0,8);
+            if (checkString == "@RAZORDB") {
+                _fileFormat = SortedBlockTableFormat.Razor01;
+                numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
+                ms = new MemoryStream(mdBlock);
+            } else {
+                int mdSize = BitConverter.ToInt32(mdBlock, mdBlock.Length - 4);
+                checkString = Encoding.ASCII.GetString(mdBlock, mdBlock.Length - mdSize, 8);
+                if (checkString == "@RAZOR02") {
+                    _fileFormat = SortedBlockTableFormat.Razor02;
+                    ms = new MemoryStream(mdBlock, mdBlock.Length - mdSize + 8, mdSize - 8); // Create a memory stream from the rest of the metadata block (skip the 8 character marker string)
+                } else {
+                    throw new NotSupportedException();
+                }
+            }
+            BinaryReader reader = new BinaryReader(ms);
+            
             _totalBlocks = reader.Read7BitEncodedInt();
             _dataBlocks = reader.Read7BitEncodedInt();
             _indexBlocks = reader.Read7BitEncodedInt();
@@ -428,8 +459,12 @@ namespace RazorDB {
 
             if (_fileFormat == SortedBlockTableFormat.Razor02) {
                 int numBlockSizes = reader.Read7BitEncodedInt();
+                int cumSize = 0;
                 for (int i = 0; i < numBlockSizes; i++) {
-                    onDiskBlockSizes.Add(reader.Read7BitEncodedInt());
+                    int size = reader.Read7BitEncodedInt();
+                    onDiskBlockSizes.Add(size);
+                    onDiskCumBlockSizes.Add(cumSize);
+                    cumSize += size;
                 }
             }
         }
@@ -490,7 +525,7 @@ namespace RazorDB {
                         asyncResult = null;
 
                         // Go ahead and kick off the next block read asynchronously while we parse the last one
-                        if (i < _dataBlocks) {
+                        if (i < _dataBlocks - 1) {
                             SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
                             asyncResult = BeginReadBlock(currentBlock, i + 1);
                         }
@@ -539,7 +574,7 @@ namespace RazorDB {
                     asyncResult = null;
 
                     // Go ahead and kick off the next block read asynchronously while we parse the last one
-                    if (i < endIndexBlocks) {
+                    if (i < endIndexBlocks - 1) {
                         SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
                         asyncResult = BeginReadBlock(currentBlock, i + 1);
                     }

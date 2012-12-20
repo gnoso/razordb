@@ -218,31 +218,31 @@ namespace RazorDBTests {
 
             mt.WriteToSortedBlockTable("TestData\\DefaultCompressibleEnumerateFromKeys", 10, 10);
 
-            //var cache = new RazorCache();
-            //var sbt = new SortedBlockTable(cache, "TestData\\DefaultEnumerateFromKeys", 10, 10);
+            var cache = new RazorCache();
+            var sbt = new SortedBlockTable(cache, "TestData\\DefaultCompressibleEnumerateFromKeys", 10, 10);
 
-            //try {
-            //    var indexCache = new RazorCache();
+            try {
+                var indexCache = new RazorCache();
 
-            //    var timer = new Stopwatch();
-            //    timer.Start();
-            //    Assert.AreEqual(10000, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0 }, 0)).Count());
-            //    timer.Stop();
-            //    Console.WriteLine("Counted from beginning at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+                var timer = new Stopwatch();
+                timer.Start();
+                Assert.AreEqual(10000, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0 }, 0)).Count());
+                timer.Stop();
+                Console.WriteLine("Counted from beginning at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
-            //    items = items.OrderBy((a) => a.Key).ToList();
+                items = items.OrderBy((a) => a.Key).ToList();
 
-            //    timer.Reset();
-            //    timer.Start();
-            //    Assert.AreEqual(5000, sbt.EnumerateFromKey(indexCache, items[5000].Key).Count());
-            //    timer.Stop();
-            //    Console.WriteLine("Counted from halfway at a throughput of {0} MB/s", (double)mt.Size / 2 / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+                timer.Reset();
+                timer.Start();
+                Assert.AreEqual(5000, sbt.EnumerateFromKey(indexCache, items[5000].Key).Count());
+                timer.Stop();
+                Console.WriteLine("Counted from halfway at a throughput of {0} MB/s", (double)mt.Size / 2 / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
-            //    Assert.AreEqual(0, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, 0xFF)).Count());
+                Assert.AreEqual(0, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, 0xFF)).Count());
 
-            //} finally {
-            //    sbt.Close();
-            //}
+            } finally {
+                sbt.Close();
+            }
 
         }
 
