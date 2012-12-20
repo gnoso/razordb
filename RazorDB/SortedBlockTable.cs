@@ -412,21 +412,23 @@ namespace RazorDB {
          private void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
-            if (_cache != null) {
+            int lastBlockSize = Math.Min(Config.SortedBlockSize, (int)internalFileStream.Length); // should the block of size SortedBlockSize unless the file is smaller than that, in which case we read the entire file
+            int offset = Config.SortedBlockSize - lastBlockSize; // Make sure the block ends at the end of the buffer, even if it's shorter than the full buffer.
+
+             if (_cache != null) {
                 mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
                 if (mdBlock == null) {
                     // Start by reading the last block-sized chunk of data from the file
                     mdBlock = LocalThreadAllocatedBlock();
-                    int lastBlockSize = Math.Min(Config.SortedBlockSize, (int)internalFileStream.Length); // should the block of size SortedBlockSize unless the file is smaller than that, in which case we read the entire file
                     internalFileStream.Seek(-lastBlockSize, SeekOrigin.End);
-                    internalFileStream.Read(mdBlock, 0, lastBlockSize);
+                    internalFileStream.Read(mdBlock, offset, lastBlockSize);
                     byte[] blockCopy = (byte[])mdBlock.Clone();
                     _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
                 }
             } else {
                 mdBlock = LocalThreadAllocatedBlock();
-                internalFileStream.Seek(-Config.SortedBlockSize, SeekOrigin.End);
-                internalFileStream.Read(mdBlock, 0, Config.SortedBlockSize);
+                internalFileStream.Seek(-lastBlockSize, SeekOrigin.End);
+                internalFileStream.Read(mdBlock, offset, lastBlockSize);
             }
 
             MemoryStream ms;
