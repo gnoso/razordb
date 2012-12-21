@@ -297,7 +297,7 @@ namespace RazorDB {
         private SortedBlockTableFormat _fileFormat;
         private RazorCache _cache;
         private List<int> onDiskBlockSizes = new List<int>();
-        private List<int> onDiskCumBlockSizes = new List<int>();
+        private List<int> onDiskCumulativeBlockSizes = new List<int>();
 
         private static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
 
@@ -308,8 +308,9 @@ namespace RazorDB {
  
         internal class AsyncBlock : IAsyncResult {
             internal byte[] Buffer;
+            internal int BuffCountBytes;
+            internal byte[] CompBuffer;
             internal int BlockNum;
-            internal byte[] ReturnBlock;
 
             public object AsyncState { get { return this; } }
             public WaitHandle AsyncWaitHandle { get { throw new NotImplementedException(); } }
@@ -317,7 +318,7 @@ namespace RazorDB {
             public bool IsCompleted { get { return true; } }
         }
 
-        private IAsyncResult BeginReadBlock(byte[] block, int blockNum) {
+        private IAsyncResult BeginReadBlock(byte[] block, byte[] compBlock, int blockNum) {
             if (_cache != null) {
                 byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
                 if (cachedBlock != null) {
@@ -329,11 +330,10 @@ namespace RazorDB {
                     internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
                     return internalFileStream.BeginRead(block, 0, Config.SortedBlockSize, null, new AsyncBlock { Buffer = block, BlockNum = blockNum });
                 case SortedBlockTableFormat.Razor02:
-                    var offset = onDiskCumBlockSizes[blockNum];
+                    var offset = onDiskCumulativeBlockSizes[blockNum];
                     var length = onDiskBlockSizes[blockNum];
                     internalFileStream.Seek(offset, SeekOrigin.Begin);
-                    byte[] tempBuffer = new byte[length];
-                    return internalFileStream.BeginRead(tempBuffer, 0, length, null, new AsyncBlock { Buffer = tempBuffer, ReturnBlock = block, BlockNum = blockNum });
+                    return internalFileStream.BeginRead(block, 0, length, null, new AsyncBlock { Buffer = block, BuffCountBytes = length, CompBuffer = compBlock, BlockNum = blockNum });
                 default:
                     throw new NotSupportedException();
             }
@@ -353,8 +353,9 @@ namespace RazorDB {
                         returnVal = ablock.Buffer;
                         break;
                     case SortedBlockTableFormat.Razor02:
-                        Compression.Decompress(ablock.Buffer, 0, ablock.Buffer.Length, ablock.ReturnBlock, 0);
-                        returnVal = ablock.ReturnBlock;
+                        // Decompress the data
+                        Compression.Decompress(ablock.Buffer, 0, ablock.BuffCountBytes, ablock.CompBuffer, 0);
+                        returnVal = ablock.CompBuffer;
                         break;
                     default:
                         throw new NotSupportedException();
@@ -367,34 +368,36 @@ namespace RazorDB {
             }
         }
 
-        private byte[] ReadBlock(byte[] block, int blockNum) {
+        private byte[] ReadBlock(byte[] block, byte[] compBlock, int blockNum) {
             if (_cache != null) {
                 byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
                 if (cachedBlock != null) {
                     return cachedBlock;
                 }
             }
+            byte[] returnval;
             switch (_fileFormat) {
                 case SortedBlockTableFormat.Razor01:
                     internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
                     internalFileStream.Read(block, 0, Config.SortedBlockSize);
+                    returnval = block;
                     break;
                 case SortedBlockTableFormat.Razor02:
-                    var offset = onDiskCumBlockSizes[blockNum];
+                    var offset = onDiskCumulativeBlockSizes[blockNum];
                     var length = onDiskBlockSizes[blockNum];
-                    byte[] tempBuffer = new byte[length];
                     internalFileStream.Seek(offset, SeekOrigin.Begin);
-                    internalFileStream.Read(tempBuffer, 0, length);
-                    Compression.Decompress(tempBuffer, 0, tempBuffer.Length, block, 0);
+                    internalFileStream.Read(block, 0, length);
+                    Compression.Decompress(block, 0, length, compBlock, 0);
+                    returnval = compBlock;
                     break;
                 default:
                     throw new NotSupportedException();
             }
             if (_cache != null) {
-                var blockCopy = (byte[])block.Clone();
+                var blockCopy = (byte[])returnval.Clone();
                 _cache.SetBlock(_baseFileName, _level, _version, blockNum, blockCopy);
             }
-            return block;
+            return returnval;
         }
 
         [ThreadStatic]
@@ -409,7 +412,19 @@ namespace RazorDB {
             return threadAllocBlock;
         }
 
-         private void ReadMetadata() {
+        [ThreadStatic]
+        private static byte[] threadAllocCompBlock = null;
+
+        private static byte[] LocalThreadAllocatedCompBlock() {
+            if (threadAllocCompBlock == null) {
+                threadAllocCompBlock = new byte[Config.SortedBlockSize * 6 / 5];
+            } else {
+                Array.Clear(threadAllocCompBlock, 0, threadAllocCompBlock.Length);
+            }
+            return threadAllocCompBlock;
+        }
+        
+        private void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
             int lastBlockSize = Math.Min(Config.SortedBlockSize, (int)internalFileStream.Length); // should the block of size SortedBlockSize unless the file is smaller than that, in which case we read the entire file
@@ -469,7 +484,7 @@ namespace RazorDB {
                 for (int i = 0; i < numBlockSizes; i++) {
                     int size = reader.Read7BitEncodedInt();
                     onDiskBlockSizes.Add(size);
-                    onDiskCumBlockSizes.Add(cumSize);
+                    onDiskCumulativeBlockSizes.Add(cumSize);
                     cumSize += size;
                 }
             }
@@ -481,7 +496,7 @@ namespace RazorDB {
                 int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
 
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
-                    byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
+                    byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), LocalThreadAllocatedCompBlock(), dataBlockNum);
                     return SearchBlockForKey(block, key, out value);
                 } 
             } finally {
@@ -519,8 +534,12 @@ namespace RazorDB {
                 byte[] allocBlockA = new byte[Config.SortedBlockSize];
                 byte[] allocBlockB = new byte[Config.SortedBlockSize];
                 byte[] currentBlock = allocBlockA;
+                byte[] compressionBlockA = new byte[Config.SortedBlockSize * 6 / 5];
+                byte[] compressionBlockB = new byte[Config.SortedBlockSize * 6 / 5];
+                byte[] compressionBlock = compressionBlockA;
 
-                var asyncResult = BeginReadBlock(currentBlock, startingBlock);
+
+                var asyncResult = BeginReadBlock(currentBlock, compressionBlock, startingBlock);
 
                 try {
 
@@ -533,7 +552,8 @@ namespace RazorDB {
                         // Go ahead and kick off the next block read asynchronously while we parse the last one
                         if (i < _dataBlocks - 1) {
                             SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
-                            asyncResult = BeginReadBlock(currentBlock, i + 1);
+                            SwapBlocks(compressionBlockA, compressionBlockB, ref compressionBlock); // swap the blocks so we can issue another disk i/o
+                            asyncResult = BeginReadBlock(currentBlock, compressionBlock, i + 1);
                         }
 
                         int offset = 2; // reset offset, start after tree root pointer
@@ -568,9 +588,12 @@ namespace RazorDB {
             byte[] allocBlockA = new byte[Config.SortedBlockSize];
             byte[] allocBlockB = new byte[Config.SortedBlockSize];
             byte[] currentBlock = allocBlockA;
+            byte[] compressionBlockA = new byte[Config.SortedBlockSize];
+            byte[] compressionBlockB = new byte[Config.SortedBlockSize];
+            byte[] compressionBlock = compressionBlockA;
 
             var endIndexBlocks = (_dataBlocks + _indexBlocks);
-            var asyncResult = BeginReadBlock(currentBlock, _dataBlocks);
+            var asyncResult = BeginReadBlock(currentBlock, compressionBlock, _dataBlocks);
 
             try {
                 for (int i = _dataBlocks; i < endIndexBlocks; i++) {
@@ -582,7 +605,8 @@ namespace RazorDB {
                     // Go ahead and kick off the next block read asynchronously while we parse the last one
                     if (i < endIndexBlocks - 1) {
                         SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
-                        asyncResult = BeginReadBlock(currentBlock, i + 1);
+                        SwapBlocks(compressionBlockA, compressionBlockB, ref compressionBlock); // swap the blocks so we can issue another disk i/o
+                        asyncResult = BeginReadBlock(currentBlock, compressionBlock, i + 1);
                     }
 
                     int offset = 0;
@@ -784,7 +808,7 @@ namespace RazorDB {
             msg("");
             for (int i = 0; i < _dataBlocks; i++) {
                 msg(string.Format("\n*** Data Block {0} ***",i));
-                byte[] block = ReadBlock( new byte[Config.SortedBlockSize], i);
+                byte[] block = ReadBlock( new byte[Config.SortedBlockSize], new byte[Config.SortedBlockSize * 6 / 5], i);
 
                 int treePtr = BitConverter.ToUInt16(block, 0);
                 msg(string.Format("{0:X4} \"{1}\" Tree Offset: {2:X4}", 0, BytesToString(block,0,2), treePtr));

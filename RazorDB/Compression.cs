@@ -23,7 +23,7 @@ namespace RazorDB {
             ThreadPool.QueueUserWorkItem((object state) => {
                 outputLengthA = Compress(inputBufferA, lengthA, outputBufferA);
                 evtA.Set();
-            });
+             });
             ThreadPool.QueueUserWorkItem((object state) => {
                 outputLengthB = Compress(inputBufferB, lengthB, outputBufferB);
                 evtB.Set();
