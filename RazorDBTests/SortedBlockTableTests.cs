@@ -230,6 +230,12 @@ namespace RazorDBTests {
                 timer.Stop();
                 Console.WriteLine("Counted from beginning at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
+                timer.Reset();
+                timer.Start();
+                Assert.AreEqual(10000, sbt.EnumerateFromKey(indexCache, new KeyEx(new byte[] { 0 }, 0)).Count());
+                timer.Stop();
+                Console.WriteLine("Counted from beginning again at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
                 items = items.OrderBy((a) => a.Key).ToList();
 
                 timer.Reset();
