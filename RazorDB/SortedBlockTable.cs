@@ -538,7 +538,6 @@ namespace RazorDB {
                 byte[] compressionBlockB = new byte[Config.SortedBlockSize * 6 / 5];
                 byte[] compressionBlock = compressionBlockA;
 
-
                 var asyncResult = BeginReadBlock(currentBlock, compressionBlock, startingBlock);
 
                 try {
