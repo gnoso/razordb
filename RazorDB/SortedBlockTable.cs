@@ -311,6 +311,7 @@ namespace RazorDB {
             internal int BuffCountBytes;
             internal byte[] CompBuffer;
             internal int BlockNum;
+            internal ManualResetEvent Done;
 
             public object AsyncState { get { return this; } }
             public WaitHandle AsyncWaitHandle { get { throw new NotImplementedException(); } }
@@ -333,7 +334,11 @@ namespace RazorDB {
                     var offset = onDiskCumulativeBlockSizes[blockNum];
                     var length = onDiskBlockSizes[blockNum];
                     internalFileStream.Seek(offset, SeekOrigin.Begin);
-                    return internalFileStream.BeginRead(block, 0, length, null, new AsyncBlock { Buffer = block, BuffCountBytes = length, CompBuffer = compBlock, BlockNum = blockNum });
+                    var asyncBlock = new AsyncBlock { Buffer = block, BuffCountBytes = length, CompBuffer = compBlock, BlockNum = blockNum, Done = new ManualResetEvent(false) };
+                    return internalFileStream.BeginRead(block, 0, length, (ar) => {
+                        Compression.Decompress(asyncBlock.Buffer, 0, asyncBlock.BuffCountBytes, asyncBlock.CompBuffer, 0);
+                        asyncBlock.Done.Set();
+                    }, asyncBlock);
                 default:
                     throw new NotSupportedException();
             }
@@ -354,7 +359,7 @@ namespace RazorDB {
                         break;
                     case SortedBlockTableFormat.Razor02:
                         // Decompress the data
-                        Compression.Decompress(ablock.Buffer, 0, ablock.BuffCountBytes, ablock.CompBuffer, 0);
+                        ablock.Done.WaitOne();
                         returnVal = ablock.CompBuffer;
                         break;
                     default:
