@@ -84,7 +84,7 @@ namespace RazorDB {
                     keyEx = KeyEx.FromReader(_reader);
                     int valueLen = _reader.Read7BitEncodedInt();
                     value = _reader.ReadBytes(valueLen);
-                    if (valueLen != value.Length)
+                    if (valueLen <= 0 || valueLen != value.Length)
                         throw new InvalidOperationException();
                 } catch (EndOfStreamException) {
                     data = false;
