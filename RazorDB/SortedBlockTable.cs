@@ -35,6 +35,7 @@ namespace RazorDB {
             _bufferA = new byte[Config.SortedBlockSize];
             _bufferB = new byte[Config.SortedBlockSize];
             _compressionBuffer = new byte[Config.SortedBlockSize * 3 / 2]; // Allocate the compression buffer slightly larger in case the data is not compressible and gets slightly larger
+            _verifyBuffer = new byte[Config.SortedBlockSize * 3 / 2]; 
             _buffer = _bufferA;
             _bufferPos = 0;
             _pageIndex = new List<KeyEx>();
@@ -48,6 +49,7 @@ namespace RazorDB {
         private byte[] _bufferB;     // pre-allocated bufferB
         private byte[] _buffer;      // current buffer that is being loaded
         private byte[] _compressionBuffer;
+        private byte[] _verifyBuffer;
         private int _bufferPos;
         private IAsyncResult _async;
         private List<KeyEx> _pageIndex;
@@ -157,11 +159,37 @@ namespace RazorDB {
             byte[] writeBuffer = _buffer;
             if (_fileFormat == SortedBlockTableFormat.Razor02) {
                 // Compress the next block in preparation for writing
-                int compressedSize = Compression.Compress(_buffer, _buffer.Length, _compressionBuffer);
-                this.onDiskBlockSizes.Add(compressedSize);
-                writeBuffer = _compressionBuffer;
-                blockSize = compressedSize;
+                int compressedSize = Compression.Compress(_buffer, _buffer.Length, _compressionBuffer, 2) - 2;
+
+                // Make sure compressed block is actually smaller
+                if (compressedSize < _buffer.Length) {
+
+                    // Decompress the block and verify the contents to be sure it matches (fail-safe)
+                    bool errorThrown = false;
+                    int decompSize = 0;
+                    try {
+                        decompSize = Compression.Decompress(_compressionBuffer, 2, compressedSize, _verifyBuffer, 0);
+                    } catch (Exception e) {
+                        System.Diagnostics.Trace.WriteLine(string.Format("Decompression Error Detected: {0}", e.Message));
+                        errorThrown = true;
+                    }
+
+                    // Only proceed with compression if no anomalies were detected in the compression process
+                    if (!errorThrown &&                     // No exceptions thrown
+                        _buffer.Length == decompSize &&     // decompressed size is the same as the source data size
+                        Crc32.Compute(_buffer, 0, _buffer.Length) == Crc32.Compute(_verifyBuffer, 0, decompSize)) // CRC32 of the source data is same as the CRC32 of the decompressed data
+                    {
+                        _compressionBuffer[0] = 0xFF; // Signal compressed buffer (first two bytes FFEE)
+                        _compressionBuffer[1] = 0xEE; // These two bytes cannot occur naturally as the first two bytes of a block
+                        // (index block starts with F0 and data block is the tree root pointer which won't be that large)
+                        compressedSize += 2;
+
+                        writeBuffer = _compressionBuffer;
+                        blockSize = compressedSize;
+                    }
+                }
             }
+            this.onDiskBlockSizes.Add(blockSize);
 
             // Start the next asynchronous block write
             _async = _fileStream.BeginWrite(writeBuffer, 0, blockSize, null, null);
@@ -173,7 +201,6 @@ namespace RazorDB {
             _bufferPos = 0;
             totalBlocks++;
         }
-
 
         private void WriteIndexKey(KeyEx key) {
             byte[] keySize = new byte[8];
@@ -336,8 +363,14 @@ namespace RazorDB {
                     internalFileStream.Seek(offset, SeekOrigin.Begin);
                     var asyncBlock = new AsyncBlock { Buffer = block, BuffCountBytes = length, CompBuffer = compBlock, BlockNum = blockNum, Done = new ManualResetEvent(false) };
                     return internalFileStream.BeginRead(block, 0, length, (ar) => {
-                        Compression.Decompress(asyncBlock.Buffer, 0, asyncBlock.BuffCountBytes, asyncBlock.CompBuffer, 0);
+
+                        if (asyncBlock.Buffer[0] == 0xFF && asyncBlock.Buffer[1] == 0xEE) { // Check for the signal preamble to determine whether we decompress this block or not
+                            Compression.Decompress(asyncBlock.Buffer, 2, asyncBlock.BuffCountBytes - 2, asyncBlock.CompBuffer, 0);
+                        } else {
+                            asyncBlock.CompBuffer = asyncBlock.Buffer;
+                        }
                         asyncBlock.Done.Set();
+
                     }, asyncBlock);
                 default:
                     throw new NotSupportedException();
@@ -392,8 +425,12 @@ namespace RazorDB {
                     var length = onDiskBlockSizes[blockNum];
                     internalFileStream.Seek(offset, SeekOrigin.Begin);
                     internalFileStream.Read(block, 0, length);
-                    Compression.Decompress(block, 0, length, compBlock, 0);
-                    returnval = compBlock;
+                    if (block[0] == 0xFF && block[1] == 0xEE) { // Check for the signal preamble to determine whether we decompress this block or not
+                        Compression.Decompress(block, 2, length - 2, compBlock, 0);
+                        returnval = compBlock;
+                    } else {
+                        returnval = block;
+                    }
                     break;
                 default:
                     throw new NotSupportedException();

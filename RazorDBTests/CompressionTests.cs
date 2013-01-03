@@ -31,7 +31,7 @@ namespace RazorDBTests {
             timer.Start();
             for (int i = 0; i < 10000; i++) {
                 inputBytes += buff.Length;
-                int outSize = Compression.Compress(buff, buff.Length, outBuff);
+                int outSize = Compression.Compress(buff, buff.Length, outBuff, 0);
                 outputBytes += outSize;
             }
             timer.Stop();
@@ -54,7 +54,7 @@ namespace RazorDBTests {
                 ifile.Read(buff, 0, buff.Length);
                 ifile.Close();
             }
-            int outSize = Compression.Compress(buff, buff.Length, outBuff);
+            int outSize = Compression.Compress(buff, buff.Length, outBuff, 0);
 
             Stopwatch timer = new Stopwatch();
             timer.Start();
@@ -115,12 +115,12 @@ namespace RazorDBTests {
                 ifile.Read(buff, 0, buff.Length);
                 ifile.Close();
             }
-            int outSize = Compression.Compress(buff, buff.Length, outBuff);
+            int outSize = Compression.Compress(buff, buff.Length, outBuff, 0);
 
             Stopwatch timer = new Stopwatch();
             timer.Start();
             for (int i = 0; i < 10000; i++) {
-                inputBytes += outSize;
+                inputBytes += outSize * 2;
                 PairInt decompSize = Compression.ParallelDecompress(outBuff, 0, outSize, outBuff, 0, outSize, compBuffA, 0, compBuffB, 0);
                 outputBytes += decompSize.lengthA + decompSize.lengthB;
             }
