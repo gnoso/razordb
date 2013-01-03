@@ -262,7 +262,7 @@ namespace RazorDBTests {
             List<KeyValuePair<KeyEx, Value>> items = new List<KeyValuePair<KeyEx, Value>>();
             var v0 = Value.Random(100);
 
-            int num_items = 50000;
+            int num_items = 15000;
             var mt = new MemTable();
             for (int i = 0; i < num_items; i++) {
                 var k0 = KeyEx.Random(40);
@@ -271,30 +271,32 @@ namespace RazorDBTests {
                 items.Add(new KeyValuePair<KeyEx, Value>(k0, v0));
             }
 
-            mt.WriteToSortedBlockTable("TestData\\DefaultCompressibleNoCacheEnumerateFromKeys", 10, 10);
+            double throughput = 0;
+            int ct = 20;
 
-            var sbt = new SortedBlockTable(null, "TestData\\DefaultCompressibleNoCacheEnumerateFromKeys", 10, 10);
+            for (int i = 0; i < ct; i++) {
+                var timer = new Stopwatch();
+                timer.Start();
+                mt.WriteToSortedBlockTable("TestData\\DefaultCompressibleNoCacheEnumerateFromKeys", 2, i);
+                timer.Stop();
+                double wtp = (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0);
+                timer.Reset();
 
-            try {
-                double throughput = 0;
-                int ct = 50;
-
-                for (int i = 0; i < ct; i++) {
-                    var timer = new Stopwatch();
-                    timer.Start();
-                    Assert.AreEqual(50000, sbt.EnumerateFromKey(new RazorCache(), new KeyEx(new byte[] { 0 }, 0)).Count());
-                    timer.Stop();
-                    double tp = (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0);
-                    throughput += tp;
-                    Console.WriteLine("{1}: Scanned at a throughput of {0} MB/s", tp, i);
+                timer.Start();
+                SortedBlockTable sbt = null;
+                try {
+                    sbt = new SortedBlockTable(null, "TestData\\DefaultCompressibleNoCacheEnumerateFromKeys", 2, i);
+                    Assert.AreEqual(15000, sbt.EnumerateFromKey(new RazorCache(), new KeyEx(new byte[] { 0 }, 0)).Count());
+                } finally {
+                    sbt.Close();
                 }
-
-                Console.WriteLine("Scanned at an average throughput of {0} MB/s", throughput / ct);
-
-            } finally {
-                sbt.Close();
+                timer.Stop();
+                double tp = (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0);
+                throughput += tp;
+                Console.WriteLine("{0}: Write throughput: {1} MB/s Scan throughput: {2} MB/s", i, wtp, tp);
             }
 
+            Console.WriteLine("Scanned at an average throughput of {0} MB/s", throughput / ct);
         }
 
         [Test]
