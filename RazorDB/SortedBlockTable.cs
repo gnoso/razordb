@@ -39,6 +39,7 @@ namespace RazorDB {
             _fileFormat = format;
             Version = version;
             WrittenSize = 0;
+            InitializeWritePipeline();
         }
 
         private FileStream _fileStream;
@@ -46,7 +47,6 @@ namespace RazorDB {
         private byte[] _buffer;      // current buffer that is being loaded
 
         private int _bufferPos;
-        private IAsyncResult _async;
         private List<KeyEx> _pageIndex;
         private int dataBlocks = 0;
         private int indexBlocks = 0;
@@ -58,6 +58,95 @@ namespace RazorDB {
         public int WrittenSize { get; private set; }
 
         private List<ushort> _keyOffsets = new List<ushort>();
+
+        public struct Block {
+            public byte[] Buffer;
+            public int Offset;
+            public int Length;
+        }
+        public struct TransformedBlock {
+            public Block Input;
+            public Block Output;
+        }
+        private Pipeline<Block> plCompression;
+        private Pipeline<TransformedBlock> plVerify;
+        private Pipeline<Block> plBlockWriter;
+
+        private void InitializeWritePipeline() {
+
+            // Final stage in the pipeline == Write data blocks to disk
+            plBlockWriter = new Pipeline<Block>( (block) => {
+                // Account for the block 
+                onDiskBlockSizes.Add(block.Length);
+
+                // Synchronously Write the block to disk
+                _fileStream.Write(block.Buffer, block.Offset, block.Length);
+
+                // Return buffer to pool for re-use since we no longer need it
+                _bufferPool.ReturnBuffer(block.Buffer);
+            });
+
+            // Second to last stage - Verify the compression stage as a failsafe
+            plVerify = new Pipeline<TransformedBlock>((transform) => {
+
+                var verifyBuffer = _bufferPool.GetBuffer();
+                
+                // Decompress the block and verify the contents to be sure it matches (fail-safe)
+                bool errorThrown = false;
+                int decompSize = 0;
+                try {
+                    decompSize = Compression.Decompress(transform.Output.Buffer, 2, transform.Output.Length - 2, verifyBuffer, 0);
+                } catch (Exception e) {
+                    System.Diagnostics.Trace.WriteLine(string.Format("Decompression Error Detected: {0}", e.Message));
+                    errorThrown = true;
+                }
+
+                // Only proceed with compression if no anomalies were detected in the compression process
+                if (!errorThrown &&                             // No exceptions thrown
+                    Config.SortedBlockSize == decompSize &&     // decompressed size is the same as the source data size
+                    Crc32.Compute(transform.Input.Buffer, 0, transform.Input.Length) == Crc32.Compute(verifyBuffer, 0, decompSize)) // CRC32 of the source data is same as the CRC32 of the decompressed data
+                {
+                    transform.Output.Buffer[0] = 0xFF; // Signal compressed buffer (first two bytes FFEE)
+                    transform.Output.Buffer[1] = 0xEE; // These two bytes cannot occur naturally as the first two bytes of a block
+                    // (index block starts with F0 and data block is the tree root pointer which won't be that large)
+
+                    // Go ahead and push the compressed output to disk stage
+                    plBlockWriter.Push(transform.Output);
+                    _bufferPool.ReturnBuffer(transform.Input.Buffer);
+                } else {
+                    plBlockWriter.Push(transform.Input);
+                    _bufferPool.ReturnBuffer(transform.Output.Buffer);
+                }
+
+                _bufferPool.ReturnBuffer(verifyBuffer);
+            });
+
+            // First stage - Compress the block
+            plCompression = new Pipeline<Block>((input) => {
+
+                var compressionBuffer = _bufferPool.GetBuffer();
+                int compressedSize = Compression.Compress(input.Buffer, input.Length, compressionBuffer, 2);
+
+                // Make sure compressed block is actually smaller
+                if (compressedSize < Config.SortedBlockSize) {
+                    plVerify.Push(new TransformedBlock {
+                        Input = input, 
+                        Output = new Block {
+                            Buffer = compressionBuffer, 
+                            Offset = 0, 
+                            Length = compressedSize 
+                        } 
+                    });
+                }
+            });
+
+        }
+
+        private void FlushPipeline() {
+            plCompression.WaitForDrain();
+            plVerify.WaitForDrain();
+            plBlockWriter.WaitForDrain();
+        }
 
         // Write a new key value pair to the output file. This method assumes that the data is being fed in key-sorted order.
         public void WritePair(KeyEx key, Value value) {
@@ -140,64 +229,20 @@ namespace RazorDB {
 
         private void WriteBlock() {
 
-            // make sure any outstanding writes are completed
-            if (_async != null) {
-                _fileStream.EndWrite(_async);
-                _bufferPool.ReturnBuffer(_async.AsyncState as byte[]);
-            }
-
-            int blockSize = Config.SortedBlockSize;
-            byte[] writeBuffer = _buffer;
+            var block = new Block {
+                Buffer = _buffer,
+                Offset = 0,
+                Length = Config.SortedBlockSize,
+            };
             if (_fileFormat == SortedBlockTableFormat.Razor02) {
-                byte[] compressionBuffer = null;
-                byte[] verifyBuffer = null;
-                try {
-                    compressionBuffer = _bufferPool.GetBuffer();
-                    verifyBuffer = _bufferPool.GetBuffer();
-                    int compressedSize = Compression.Compress(writeBuffer, Config.SortedBlockSize, compressionBuffer, 2) - 2;
-
-                    // Make sure compressed block is actually smaller
-                    if (compressedSize < Config.SortedBlockSize) {
-
-                        // Decompress the block and verify the contents to be sure it matches (fail-safe)
-                        bool errorThrown = false;
-                        int decompSize = 0;
-                        try {
-                            decompSize = Compression.Decompress(compressionBuffer, 2, compressedSize, verifyBuffer, 0);
-                        } catch (Exception e) {
-                            System.Diagnostics.Trace.WriteLine(string.Format("Decompression Error Detected: {0}", e.Message));
-                            errorThrown = true;
-                        }
-
-                        // Only proceed with compression if no anomalies were detected in the compression process
-                        if (!errorThrown &&                     // No exceptions thrown
-                            Config.SortedBlockSize == decompSize &&     // decompressed size is the same as the source data size
-                            Crc32.Compute(writeBuffer, 0, Config.SortedBlockSize) == Crc32.Compute(verifyBuffer, 0, decompSize)) // CRC32 of the source data is same as the CRC32 of the decompressed data
-                        {
-                            compressionBuffer[0] = 0xFF; // Signal compressed buffer (first two bytes FFEE)
-                            compressionBuffer[1] = 0xEE; // These two bytes cannot occur naturally as the first two bytes of a block
-                            // (index block starts with F0 and data block is the tree root pointer which won't be that large)
-                            compressedSize += 2;
-
-                            // Swap write and compress buffer so we write the compressed one to disk
-                            var temp = compressionBuffer;
-                            compressionBuffer = writeBuffer;
-                            writeBuffer = temp;
-                            // Reset the new block size
-                            blockSize = compressedSize;
-                        }
-                    }
-                } finally {
-                    _bufferPool.ReturnBuffer(compressionBuffer);
-                    _bufferPool.ReturnBuffer(verifyBuffer);
-                }
+                // If we are doing the Razor 2 format, then push data into the compression pipeline
+                plCompression.Push(block);
+            } else {
+                // Old version, so push data directly into the write pipeline
+                plBlockWriter.Push(block);
             }
-            this.onDiskBlockSizes.Add(blockSize);
 
-            // Start the next asynchronous block write
-            _async = _fileStream.BeginWrite(writeBuffer, 0, blockSize, null, writeBuffer);
-
-            // Swap the buffers over so we can continue preparing data for disk.
+            // Request a new buffer so we can continue preparing data for disk.
             _buffer = _bufferPool.GetBuffer();
 
             // Reset counters
@@ -248,9 +293,15 @@ namespace RazorDB {
 
                     // Commit the block to disk and wait for the operation to complete
                     WriteBlock();
-                    _fileStream.EndWrite(_async);
+
+                    // Flush remaining blocks through the pipeline
+                    FlushPipeline();
                     break;
                 case SortedBlockTableFormat.Razor02:
+                    // Flush out any blocks before writing directly to the filestream
+                    // or reading metadata values (which could change while data is going through the pipeline)
+                    FlushPipeline();
+
                     writer.Write(Encoding.ASCII.GetBytes("@RAZOR02"));
                     writer.Write7BitEncodedInt(totalBlocks + 1);
                     writer.Write7BitEncodedInt(dataBlocks);
@@ -264,12 +315,9 @@ namespace RazorDB {
                     writer.Write( (int)ms.Length + 4);
 
                     metadata = ms.ToArray();
-                    // Wait for any pending writes to complete
-                    if (_async != null) { _fileStream.EndWrite(_async); }
+                    
                     // Now write the metadata
-                    _async = _fileStream.BeginWrite(metadata, 0, metadata.Length, null, null);
-                    // Wait for the write to complete
-                    _fileStream.EndWrite(_async);
+                    _fileStream.Write(metadata, 0, metadata.Length);
                     _fileStream.Flush();
                     break;
                 default:
