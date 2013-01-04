@@ -154,5 +154,44 @@ namespace RazorDBTests {
             pipeline.WaitForDrain();
             Assert.True(error != null && error is NotSupportedException);
         }
+
+        [Test]
+        public void MultiThreadedPipeline() {
+
+            int finalTotal = 0;
+            int lastNumber = -1;
+            bool pipelineInOrder = true;
+
+            Pipeline<int> FinishPipeline = new Pipeline<int>((i) => {
+                if (Interlocked.Increment(ref lastNumber) != i) {
+                    pipelineInOrder = false;
+                }
+                finalTotal += i;
+            });
+            Pipeline<int> WaitPipeline = new Pipeline<int>((i) => {
+                if ((i & 1) == 0) {
+                    Thread.Sleep(50); // force items to come in out of order
+                } else {
+                    Thread.Sleep(1);
+                }
+                FinishPipeline.Push(i);
+            },10,2);
+            Pipeline<int> FirstPipeline = new Pipeline<int>((i) => {
+                WaitPipeline.Push(i);
+            });
+
+            for (int i = 0; i < 200; i++) {
+                FirstPipeline.Push(i);
+            }
+
+            Console.WriteLine("Done pushing.");
+            FirstPipeline.WaitForDrain();
+            WaitPipeline.WaitForDrain();
+            FinishPipeline.WaitForDrain();
+            Console.WriteLine("Max 0: {0} Max 1: {1} Max 2: {2}", FirstPipeline.MaxQueueSize, WaitPipeline.MaxQueueSize, FinishPipeline.MaxQueueSize);
+            Console.WriteLine("Done.");
+            Assert.AreEqual(19900, finalTotal);
+            Assert. True(pipelineInOrder);
+        }
     }
 }
