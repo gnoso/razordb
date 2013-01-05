@@ -47,7 +47,7 @@ namespace RazorDB {
 
     public class Pipeline<T> : IDisposable {
 
-        public Pipeline(Action<T> work, int queueLimit = 10) {
+        public Pipeline(Action<T> work, int queueLimit = 10, int numThreads = 1) {
             if (work == null) {
                 throw new ArgumentNullException();
             }
@@ -55,22 +55,28 @@ namespace RazorDB {
             this.work = work;
             this.queue = new Queue<T>();
             this.queueCapacity = new Semaphore(queueLimit, queueLimit);
-            this.workerThread = new Thread(ThreadMain);
-            this.workerThread.Start();
+
+            this.workerThreads = new Thread[numThreads];
+            for (int i = 0; i < numThreads; i++) {
+                this.workerThreads[i] = new Thread(ThreadMain);
+                this.workerThreads[i].Start();
+            }
         }
         ~Pipeline() {
             Dispose();
         }
         public void Dispose() {
             running = false;
-            workerThread.Abort();
+            foreach (var t in workerThreads) {
+                t.Abort();
+            }
         }
         private bool running = true;
 
         private Action<T> work;
         public Action<Exception> OnError { get; set; }
         private Queue<T> queue;
-        private Thread workerThread;
+        private Thread[] workerThreads;
         public int MaxQueueSize { get; private set; }
         public int QueueLimit { get; private set; }
         private Semaphore queueCapacity;
@@ -93,7 +99,9 @@ namespace RazorDB {
         public void WaitForDrain() {
             running = false;
             queuePopulatedEvent.Set();
-            workerThread.Join();
+            foreach (var t in workerThreads) {
+                t.Join();
+            }
         }
 
         private ManualResetEvent queuePopulatedEvent = new ManualResetEvent(true);
