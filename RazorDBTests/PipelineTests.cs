@@ -193,5 +193,32 @@ namespace RazorDBTests {
             Assert.AreEqual(19900, finalTotal);
             Assert. True(pipelineInOrder);
         }
+
+        [Test]
+        public void OrderedQueueTest() {
+
+            var q = new OrderingQueue<string>();
+
+            q.Enqueue(0, "Zero");
+            Assert.True(q.CanDequeue);
+            Assert.AreEqual("Zero",q.Dequeue());
+
+            q.Enqueue(2, "Two");
+            Assert.False(q.CanDequeue);
+
+            q.Enqueue(3, "Three");
+            Assert.False(q.CanDequeue);
+
+            q.Enqueue(1, "One");
+            Assert.True(q.CanDequeue);
+            Assert.AreEqual("One",q.Dequeue());
+            Assert.True(q.CanDequeue);
+            Assert.AreEqual("Two",q.Dequeue());
+            Assert.True(q.CanDequeue);
+            Assert.AreEqual("Three",q.Dequeue());
+            Assert.False(q.CanDequeue);
+
+        }
+
     }
 }

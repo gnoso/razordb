@@ -45,6 +45,38 @@ namespace RazorDB {
         }
     }
 
+    public class OrderingQueue <T> {
+
+        private SortedList<int, T> list = new SortedList<int, T>();
+        private int seqNum = 0;
+
+        public void Enqueue(int sequence, T item) {
+            lock (list) {
+                list.Add(sequence, item);
+            }
+        }
+
+        public bool CanDequeue {
+            get {
+                lock (list) { return list.Count > 0 && list.First().Key == seqNum; }
+            }
+        }
+
+        public T Dequeue() {
+            lock (list) {
+                if (list.Count > 0) {
+                    var v = list.First().Value;
+                    list.Remove(seqNum);
+                    seqNum++;
+                    return v;
+                } else {
+                    throw new InvalidOperationException("Queue is empty.");
+                }
+            }
+        }
+
+    }
+
     public class Pipeline<T> : IDisposable {
 
         public Pipeline(Action<T> work, int queueLimit = 10, int numThreads = 1) {
@@ -85,7 +117,7 @@ namespace RazorDB {
             if (!running) {
                 throw new InvalidOperationException("Pipeline is not running.");
             }
-            // Possibly apply backpressure through use of a semaphore if the queue gets too backed up
+            // Apply backpressure through use of a semaphore if the queue gets too backed up
             queueCapacity.WaitOne();
 
             // Go ahead and put our value on the queue
