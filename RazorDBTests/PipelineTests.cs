@@ -170,11 +170,11 @@ namespace RazorDBTests {
             });
             Pipeline<int> WaitPipeline = new Pipeline<int>((i) => {
                 if ((i & 1) == 0) {
-                    Thread.Sleep(50); // force items to come in out of order
+                    Thread.Sleep(5); // force items to come in out of order
                 } else {
                     Thread.Sleep(1);
                 }
-                FinishPipeline.Push(i);
+                FinishPipeline.OrderedPush(i,i);
             },10,2);
             Pipeline<int> FirstPipeline = new Pipeline<int>((i) => {
                 WaitPipeline.Push(i);

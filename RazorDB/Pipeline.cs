@@ -86,6 +86,7 @@ namespace RazorDB {
             QueueLimit = queueLimit;
             this.work = work;
             this.queue = new Queue<T>();
+            this.orderingQueue = new OrderingQueue<T>();
             this.queueCapacity = new Semaphore(queueLimit, queueLimit);
 
             this.workerThreads = new Thread[numThreads];
@@ -112,6 +113,19 @@ namespace RazorDB {
         public int MaxQueueSize { get; private set; }
         public int QueueLimit { get; private set; }
         private Semaphore queueCapacity;
+        private OrderingQueue<T> orderingQueue;
+
+        public void OrderedPush(int seqNum, T value) {
+            lock (orderingQueue) {
+                // Push a "packet" on the ordered queue
+                orderingQueue.Enqueue(seqNum, value);
+                // Pull off as many as we can (as many as can be done in order)
+                while (orderingQueue.CanDequeue) {
+                    var v = orderingQueue.Dequeue();
+                    Push(v);
+                }
+            }
+        }
 
         public void Push(T value) {
             if (!running) {
