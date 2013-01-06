@@ -63,6 +63,7 @@ namespace RazorDB {
             public byte[] Buffer;
             public int Offset;
             public int Length;
+            public int SequenceNum;
         }
         public struct TransformedBlock {
             public Block Input;
@@ -84,7 +85,7 @@ namespace RazorDB {
 
                 // Return buffer to pool for re-use since we no longer need it
                 _bufferPool.ReturnBuffer(block.Buffer);
-            });
+            },4,1);
 
             // Second to last stage - Verify the compression stage as a failsafe
             plVerify = new Pipeline<TransformedBlock>((transform) => {
@@ -111,15 +112,15 @@ namespace RazorDB {
                     // (index block starts with F0 and data block is the tree root pointer which won't be that large)
 
                     // Go ahead and push the compressed output to disk stage
-                    plBlockWriter.Push(transform.Output);
+                    plBlockWriter.OrderedPush(transform.Output.SequenceNum, transform.Output);
                     _bufferPool.ReturnBuffer(transform.Input.Buffer);
                 } else {
-                    plBlockWriter.Push(transform.Input);
+                    plBlockWriter.OrderedPush(transform.Input.SequenceNum, transform.Input);
                     _bufferPool.ReturnBuffer(transform.Output.Buffer);
                 }
 
                 _bufferPool.ReturnBuffer(verifyBuffer);
-            });
+            },4,1);
 
             // First stage - Compress the block
             plCompression = new Pipeline<Block>((input) => {
@@ -134,11 +135,12 @@ namespace RazorDB {
                         Output = new Block {
                             Buffer = compressionBuffer, 
                             Offset = 0, 
-                            Length = compressedSize 
+                            Length = compressedSize,
+                            SequenceNum = input.SequenceNum,
                         } 
                     });
                 }
-            });
+            },4,2);
 
         }
 
@@ -233,6 +235,7 @@ namespace RazorDB {
                 Buffer = _buffer,
                 Offset = 0,
                 Length = Config.SortedBlockSize,
+                SequenceNum = totalBlocks,
             };
             if (_fileFormat == SortedBlockTableFormat.Razor02) {
                 // If we are doing the Razor 2 format, then push data into the compression pipeline

@@ -271,7 +271,8 @@ namespace RazorDBTests {
                 items.Add(new KeyValuePair<KeyEx, Value>(k0, v0));
             }
 
-            double throughput = 0;
+            double scanThroughput = 0;
+            double writeThroughput = 0;
             int ct = 20;
 
             for (int i = 0; i < ct; i++) {
@@ -292,11 +293,12 @@ namespace RazorDBTests {
                 }
                 timer.Stop();
                 double tp = (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0);
-                throughput += tp;
+                scanThroughput += tp;
+                writeThroughput += wtp;
                 Console.WriteLine("{0}: Write throughput: {1} MB/s Scan throughput: {2} MB/s", i, wtp, tp);
             }
 
-            Console.WriteLine("Scanned at an average throughput of {0} MB/s", throughput / ct);
+            Console.WriteLine("Average write throughput: {0} MB/s Scan throughput: {1} MB/s", writeThroughput / ct, scanThroughput / ct);
         }
 
         [Test]
