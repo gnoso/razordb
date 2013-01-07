@@ -245,125 +245,132 @@ namespace RazorDB {
             return new PairInt(outputLengthA, outputLengthB);
         }
 
-        public static int Decompress(byte[] inputBuffer, int inputOffset, int inputCount, byte[] outputBuffer, int outputOffset) {
+        public static int Decompress(byte[] inpBuffer, int inputOffset, int inputCount, byte[] outBuffer, int outputOffset) {
 
-            int i = 0, l, o, c;
-            int sourceIndex = inputOffset, targetIndex = outputOffset;
-            int targetLength = 0;
+            unchecked {
+                unsafe {
+                    fixed( byte* inputBuffer = inpBuffer )
+                    fixed (byte* outputBuffer = outBuffer) {
 
-            i = 0;
-            do {
-                targetLength += (inputBuffer[sourceIndex] & 0x7f) << (i++ * 7);
-            } while ((inputBuffer[sourceIndex++] & 0x80) == 0x80);
+                        int i = 0, l, o, c;
+                        int sourceIndex = inputOffset, targetIndex = outputOffset;
+                        int targetLength = 0;
 
-            while (sourceIndex < inputOffset + inputCount) {
+                        i = 0;
+                        do {
+                            targetLength += (inputBuffer[sourceIndex] & 0x7f) << (i++ * 7);
+                        } while ((inputBuffer[sourceIndex++] & 0x80) == 0x80);
 
-                if (targetIndex >= targetLength) {
-                    throw new FormatException("Superfluous input data encountered on offset " + sourceIndex.ToString());
-                }
+                        while (sourceIndex < inputOffset + inputCount) {
 
-                switch (inputBuffer[sourceIndex] & 3) {
-                    case 0:
-                        l = (inputBuffer[sourceIndex++] >> 2) & 0x3f;
-                        switch (l) {
-                            case 60:
-                                l = inputBuffer[sourceIndex++] & 0xff;
-                                l++;
-                                break;
-                            case 61:
-                                l = inputBuffer[sourceIndex++] & 0xff;
-                                l |= (inputBuffer[sourceIndex++] & 0xff) << 8;
-                                l++;
-                                break;
-                            case 62:
-                                l = inputBuffer[sourceIndex++] & 0xff;
-                                l |= (inputBuffer[sourceIndex++] & 0xff) << 8;
-                                l |= (inputBuffer[sourceIndex++] & 0xff) << 16;
-                                l++;
-                                break;
-                            case 63:
-                                l = inputBuffer[sourceIndex++] & 0xff;
-                                l |= (inputBuffer[sourceIndex++] & 0xff) << 8;
-                                l |= (inputBuffer[sourceIndex++] & 0xff) << 16;
-                                l |= (inputBuffer[sourceIndex++] & 0xff) << 24;
-                                l++;
-                                break;
-                            default:
-                                l++;
-                                break;
-                        }
-                        Array.Copy(inputBuffer, sourceIndex, outputBuffer, targetIndex, l);
-                        sourceIndex += l;
-                        targetIndex += l;
-                        break;
-                    case 1:
-                        l = 4 + ((inputBuffer[sourceIndex] >> 2) & 7);
-                        o = (inputBuffer[sourceIndex++] & 0xe0) << 3;
-                        o |= inputBuffer[sourceIndex++] & 0xff;
-                        if (l < o) {
-                            Array.Copy(outputBuffer, targetIndex - o, outputBuffer, targetIndex, l);
-                            targetIndex += l;
-                        } else {
-                            if (o == 1) {
-                                for (int k = targetIndex; k < targetIndex + l; k++) {
-                                    outputBuffer[k] = outputBuffer[targetIndex - 1];
-                                }
-                                targetIndex += l;
-                            } else {
-                                while (l > 0) {
-                                    c = l > o ? o : l;
-                                    Array.Copy(outputBuffer, targetIndex - o, outputBuffer, targetIndex, c);
-                                    targetIndex += c;
-                                    l -= c;
-                                }
+                            if (targetIndex >= targetLength) {
+                                throw new FormatException("Superfluous input data encountered on offset " + sourceIndex.ToString());
+                            }
+
+                            switch (inputBuffer[sourceIndex] & 3) {
+                                case 0:
+                                    l = (inputBuffer[sourceIndex++] >> 2) & 0x3f;
+                                    switch (l) {
+                                        case 60:
+                                            l = inputBuffer[sourceIndex++] & 0xff;
+                                            l++;
+                                            break;
+                                        case 61:
+                                            l = inputBuffer[sourceIndex++] & 0xff;
+                                            l |= (inputBuffer[sourceIndex++] & 0xff) << 8;
+                                            l++;
+                                            break;
+                                        case 62:
+                                            l = inputBuffer[sourceIndex++] & 0xff;
+                                            l |= (inputBuffer[sourceIndex++] & 0xff) << 8;
+                                            l |= (inputBuffer[sourceIndex++] & 0xff) << 16;
+                                            l++;
+                                            break;
+                                        case 63:
+                                            l = inputBuffer[sourceIndex++] & 0xff;
+                                            l |= (inputBuffer[sourceIndex++] & 0xff) << 8;
+                                            l |= (inputBuffer[sourceIndex++] & 0xff) << 16;
+                                            l |= (inputBuffer[sourceIndex++] & 0xff) << 24;
+                                            l++;
+                                            break;
+                                        default:
+                                            l++;
+                                            break;
+                                    }
+                                    memcpy(outputBuffer + targetIndex, inputBuffer + sourceIndex, l);
+                                    sourceIndex += l;
+                                    targetIndex += l;
+                                    break;
+                                case 1:
+                                    l = 4 + ((inputBuffer[sourceIndex] >> 2) & 7);
+                                    o = (inputBuffer[sourceIndex++] & 0xe0) << 3;
+                                    o |= inputBuffer[sourceIndex++] & 0xff;
+                                    if (l < o) {
+                                        memcpy(outputBuffer + targetIndex, outputBuffer + targetIndex - o, l);
+                                        targetIndex += l;
+                                    } else {
+                                        if (o == 1) {
+                                            for (int k = targetIndex; k < targetIndex + l; k++) {
+                                                outputBuffer[k] = outputBuffer[targetIndex - 1];
+                                            }
+                                            targetIndex += l;
+                                        } else {
+                                            while (l > 0) {
+                                                c = l > o ? o : l;
+                                                memcpy(outputBuffer + targetIndex, outputBuffer + targetIndex - o, c);
+                                                targetIndex += c;
+                                                l -= c;
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case 2:
+                                    l = ((inputBuffer[sourceIndex++] >> 2) & 0x3f) + 1;
+                                    o = inputBuffer[sourceIndex++] & 0xff;
+                                    o |= (inputBuffer[sourceIndex++] & 0xff) << 8;
+                                    if (l < o) {
+                                        memcpy(outputBuffer + targetIndex, outputBuffer + targetIndex - o, l);
+                                        targetIndex += l;
+                                    } else {
+                                        while (l > 0) {
+                                            c = l > o ? o : l;
+                                            memcpy(outputBuffer + targetIndex, outputBuffer + targetIndex - o, c);
+                                            targetIndex += c;
+                                            l -= c;
+                                        }
+                                    }
+                                    break;
+                                case 3:
+                                    l = ((inputBuffer[sourceIndex++] >> 2) & 0x3f) + 1;
+                                    o = inputBuffer[sourceIndex++] & 0xff;
+                                    o |= (inputBuffer[sourceIndex++] & 0xff) << 8;
+                                    o |= (inputBuffer[sourceIndex++] & 0xff) << 16;
+                                    o |= (inputBuffer[sourceIndex++] & 0xff) << 24;
+                                    if (l < o) {
+                                        memcpy(outputBuffer + targetIndex, outputBuffer + targetIndex - o, l);
+                                        targetIndex += l;
+                                    } else {
+                                        if (o == 1) {
+                                            for (int k = targetIndex; k < targetIndex + l; k++) {
+                                                outputBuffer[k] = outputBuffer[targetIndex - 1];
+                                            }
+                                            targetIndex += l;
+                                        } else {
+                                            while (l > 0) {
+                                                c = l > o ? o : l;
+                                                memcpy(outputBuffer + targetIndex, outputBuffer + targetIndex - o, c);
+                                                targetIndex += c;
+                                                l -= c;
+                                            }
+                                        }
+                                    }
+                                    break;
                             }
                         }
-                        break;
-                    case 2:
-                        l = ((inputBuffer[sourceIndex++] >> 2) & 0x3f) + 1;
-                        o = inputBuffer[sourceIndex++] & 0xff;
-                        o |= (inputBuffer[sourceIndex++] & 0xff) << 8;
-                        if (l < o) {
-                            Array.Copy(outputBuffer, targetIndex - o, outputBuffer, targetIndex, l);
-                            targetIndex += l;
-                        } else {
-                            while (l > 0) {
-                                c = l > o ? o : l;
-                                Array.Copy(outputBuffer, targetIndex - o, outputBuffer, targetIndex, c);
-                                targetIndex += c;
-                                l -= c;
-                            }
-                        }
-                        break;
-                    case 3:
-                        l = ((inputBuffer[sourceIndex++] >> 2) & 0x3f) + 1;
-                        o = inputBuffer[sourceIndex++] & 0xff;
-                        o |= (inputBuffer[sourceIndex++] & 0xff) << 8;
-                        o |= (inputBuffer[sourceIndex++] & 0xff) << 16;
-                        o |= (inputBuffer[sourceIndex++] & 0xff) << 24;
-                        if (l < o) {
-                            Array.Copy(outputBuffer, targetIndex - o, outputBuffer, targetIndex, l);
-                            targetIndex += l;
-                        } else {
-                            if (o == 1) {
-                                for (int k = targetIndex; k < targetIndex + l; k++) {
-                                    outputBuffer[k] = outputBuffer[targetIndex - 1];
-                                }
-                                targetIndex += l;
-                            } else {
-                                while (l > 0) {
-                                    c = l > o ? o : l;
-                                    Array.Copy(outputBuffer, targetIndex - o, outputBuffer, targetIndex, c);
-                                    targetIndex += c;
-                                    l -= c;
-                                }
-                            }
-                        }
-                        break;
+                        return targetIndex;
+                    }
                 }
             }
-
-            return targetIndex;
         }
 
     }
