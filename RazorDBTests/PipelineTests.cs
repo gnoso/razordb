@@ -119,6 +119,7 @@ namespace RazorDBTests {
         public void DisposeTest() {
             bool failed = false;
             Pipeline<int> pipeline = new Pipeline<int>((i) => {
+                Thread.Sleep(50);
                 failed = true; // this should not run because the dispose will kill the thread before it gets scheduled
             });
 
@@ -131,6 +132,7 @@ namespace RazorDBTests {
         public void DisposeTest2() {
             bool failed = false;
             Pipeline<int> pipeline = new Pipeline<int>((i) => {
+                Thread.Sleep(50);
                 failed = true; // this should not run because the dispose will kill the thread before it gets scheduled
             });
 
