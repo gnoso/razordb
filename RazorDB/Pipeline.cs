@@ -104,7 +104,7 @@ namespace RazorDB {
                 t.Abort();
             }
         }
-        private bool running = true;
+        private volatile bool running = true;
 
         private Action<T> work;
         public Action<Exception> OnError { get; set; }
