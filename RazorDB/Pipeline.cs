@@ -169,7 +169,7 @@ namespace RazorDB {
                         queueCapacity.Release();
 
                         // If the queue has run empty, then set an event so we don't spin waiting for more work
-                        if (queue.Count == 0) {
+                        if (queue.Count == 0 && running) {
                             queuePopulatedEvent.Reset();
                         }
                     } else if (!running) {
@@ -177,7 +177,8 @@ namespace RazorDB {
                         break;
                     } else {
                         // The queue was actually empty, so reset and jump back to the top of the loop
-                        queuePopulatedEvent.Reset();
+                        if (running)
+                            queuePopulatedEvent.Reset();
                         continue;
                     }
                 }
