@@ -101,6 +101,40 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void FindStartsWith() {
+
+            string path = Path.GetFullPath("TestData\\FindStartsWith");
+            var timer = new Stopwatch();
+
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+
+                var indexed = new SortedDictionary<string, byte[]>();
+                indexed["Bytes"] = Encoding.UTF8.GetBytes("112");
+                db.Set(BitConverter.GetBytes(112), Encoding.UTF8.GetBytes("112"), indexed);
+                indexed["Bytes"] = Encoding.UTF8.GetBytes("1123");
+                db.Set(BitConverter.GetBytes(1123), Encoding.UTF8.GetBytes("1123"), indexed);
+                indexed["Bytes"] = Encoding.UTF8.GetBytes("11235");
+                db.Set(BitConverter.GetBytes(11235), Encoding.UTF8.GetBytes("11235"), indexed);
+                indexed["Bytes"] = Encoding.UTF8.GetBytes("112358");
+                db.Set(BitConverter.GetBytes(112358), Encoding.UTF8.GetBytes("112358"), indexed);
+
+            }
+            using (var db = new KeyValueStore(path)) {
+                var exact = db.Find("Bytes", Encoding.UTF8.GetBytes("1123")).ToList();
+                Assert.AreEqual(1, exact.Count());
+                Assert.AreEqual("1123", Encoding.UTF8.GetString(exact[0].Value));
+                
+                var startsWith = db.FindStartsWith("Bytes", Encoding.UTF8.GetBytes("1123")).ToList();
+                Assert.AreEqual(3, startsWith.Count());
+                Assert.AreEqual("112358", Encoding.UTF8.GetString(startsWith[0].Value));
+                Assert.AreEqual("11235", Encoding.UTF8.GetString(startsWith[1].Value));
+                Assert.AreEqual("1123", Encoding.UTF8.GetString(startsWith[2].Value));
+            }
+        }
+
+
+        [Test]
         public void AddObjectsAndLookupWhileMerging() {
 
             string path = Path.GetFullPath("TestData\\AddObjectsAndLookupWhileMerging");
