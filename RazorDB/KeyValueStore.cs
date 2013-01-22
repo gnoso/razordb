@@ -294,6 +294,28 @@ namespace RazorDB {
             }
         }
 
+        public IEnumerable<KeyValuePair<byte[], byte[]>> FindStartsWith(string indexName, byte[] lookupValue) {
+
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+            // Loop over the values
+            foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
+                var key = pair.Key;
+                var value = pair.Value;
+                // construct our index key pattern (lookupvalue | key)
+                if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+                    if (key.Length >= (value.Length + lookupValue.Length)){
+                        // Lookup the value of the actual object using the key that was found
+                        var primaryValue = Get(value);
+                        if (primaryValue != null)
+                            yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
+                    }
+                } else {
+                    // if the above condition was not met then we must have enumerated past the end of the indexed value
+                    yield break;
+                }
+            }
+        }
+
         public void Delete(byte[] key) {
             var k = new Key(key, 0);
             InternalSet(k, Value.Deleted, null);
