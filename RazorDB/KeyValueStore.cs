@@ -327,6 +327,10 @@ namespace RazorDB {
 
         private IEnumerable<KeyValuePair<Key, Value>> InternalEnumerateFromKey(byte[] startingKey) {
 
+            if (startingKey == null) {
+                yield break;
+            }
+
             var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
             Key key = new Key(startingKey, 0);
 
