@@ -77,6 +77,13 @@ namespace RazorUtil {
                             CheckDatabase(args[1]);
                         }
                         break;
+                    case "remove-orphans":
+                        if (args.Length < 2) {
+                            Console.WriteLine("Invalid parameters");
+                        } else {
+                            RemoveOrphanedTables(args[1]);
+                        }
+                        break;
                     default:
                         Console.WriteLine("Unknown command: {0}",args[0]);
                     break;
@@ -117,6 +124,20 @@ namespace RazorUtil {
             }
         }
 
+        static void RemoveOrphanedTables(string baseDir) {
+            Console.WriteLine("Removing Orphaned Tables '{0}'", baseDir);
+
+            RazorCache cache = new RazorCache();
+            var kv = new KeyValueStore(baseDir, cache);
+            kv.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+            try {
+                kv.RemoveOrphanedPages();
+            } finally {
+                kv.Close();
+            }
+        }
+
         static void DumpFile(string baseDir, int level, int version) {
             RazorCache cache = new RazorCache();
             var tablefile = new SortedBlockTable(cache, baseDir, level, version);
@@ -134,5 +155,6 @@ namespace RazorUtil {
                 Console.WriteLine("{0} => {1}", pair.Key.ToString(), pair.Value.ToString());
             }
         }
+
     }
 }

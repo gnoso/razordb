@@ -520,6 +520,62 @@ namespace RazorDB {
 
         }
 
+        // List all the pages in the directory and delete those that are not in the manifest.
+        public void RemoveOrphanedPages() {
+            
+            using (var manifestInst = this.Manifest.GetLatestManifest()) {
+
+                int maxVersion = 0;
+                // find all the sbt files in the data directory
+                var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary( f => Path.GetFileNameWithoutExtension(f.ToLower()) );
+                for (int level = 1; level < manifestInst.NumLevels - 1; level++) {
+
+                    foreach (var page in manifestInst.GetPagesAtLevel(level)) {
+
+                        // Yes this is kind of backwards to add the file path and then strip it off, but I want to make sure we are using the exact same logic
+                        // as that which creates the file names.
+                        string fileForPage = Path.GetFileNameWithoutExtension( Config.SortedBlockTableFile(this.Manifest.BaseFileName, page.Level, page.Version) );
+                        // Remove the page from the file list because it's in the manifest and we've accounted for it.
+                        files.Remove(fileForPage);
+
+                        maxVersion = Math.Max(page.Version, maxVersion);
+                    }
+                }
+
+                // Loop over the leftover files and handle them
+                foreach (var file in files.Keys) {
+                    try {
+                        var parts = file.Split('-');
+                        int level = int.Parse(parts[0]);
+                        int version = int.Parse(parts[1]);
+                        
+                        // First let's check the version number, we don't want to remove any new files that are being created while this is happening
+                        if (version < maxVersion && level < manifestInst.NumLevels) {
+
+                            string orphanedFile = Config.SortedBlockTableFile(Manifest.BaseFileName, level, version);
+
+                            // Delete the file.
+                            File.Delete(orphanedFile);
+
+                            Manifest.LogMessage("Removing Orphaned Pages '{0}'", orphanedFile);
+                        }
+                    } catch {
+                        // Best effort, here. If we fail, continue.
+                    }
+                }
+
+            }
+
+            // Now process the indexes as well
+            Manifest.LogMessage("Removing Orphaned Index Pages");
+
+            lock (_secondaryIndexes) {
+                foreach (var idx in _secondaryIndexes) {
+                    idx.Value.RemoveOrphanedPages();
+                }
+            }
+        }
+
     }
 
 }
