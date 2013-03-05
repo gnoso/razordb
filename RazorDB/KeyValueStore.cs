@@ -61,6 +61,13 @@ namespace RazorDB {
 
         internal RazorCache Cache { get { return _cache; } }
 
+        public int DataCacheSize {
+            get { return Cache.DataCacheSize; }
+        }
+        public int IndexCacheSize {
+            get { return Cache.IndexCacheSize; }
+        }
+
         private volatile JournaledMemTable _currentJournaledMemTable;
 
         public void Truncate() {

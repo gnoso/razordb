@@ -101,6 +101,9 @@ namespace RazorDB {
         private Cache<Key[]> _blockIndexCache;
         private Cache<byte[]> _blockDataCache;
 
+        public int IndexCacheSize { get { return _blockIndexCache.CurrentSize; } }
+        public int DataCacheSize { get { return _blockDataCache.CurrentSize; } }
+
         public Key[] GetBlockTableIndex(string baseName, int level, int version) {
 
             string fileName = Config.SortedBlockTableFile(baseName, level, version);
