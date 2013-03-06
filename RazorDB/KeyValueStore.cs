@@ -528,7 +528,7 @@ namespace RazorDB {
                 int maxVersion = 0;
                 // find all the sbt files in the data directory
                 var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary( f => Path.GetFileNameWithoutExtension(f.ToLower()) );
-                for (int level = 1; level < manifestInst.NumLevels - 1; level++) {
+                for (int level = 0; level < manifestInst.NumLevels - 1; level++) {
 
                     foreach (var page in manifestInst.GetPagesAtLevel(level)) {
 
