@@ -23,8 +23,8 @@ namespace RazorDB {
 
     public static class Config {
 
-        public static int IndexCacheSize = 10 * 1024 * 1024;                    // Size of the Block Index Cache in bytes
-        public static int DataBlockCacheSize = 100 * 1024 * 1024;               // Size of the Data Block Cache in bytes
+        public static int IndexCacheSize = 50 * 1024 * 1024;                    // Size of the Block Index Cache in bytes
+        public static int DataBlockCacheSize = 300 * 1024 * 1024;               // Size of the Data Block Cache in bytes
         public static int MaxSortedBlockTableSize = 2 * 1024 * 1024;            // Maximum size we should let the sorted block table grow to before rolling over to a new file.
         public static int MaxMemTableSize = 1 * 1024 * 1024;                    // Maximum size we should let the memtable grow to in memory before compacting.
         public static int SortedBlockSize = 32 * 1024;                          // Size of each block in the sorted table files.
