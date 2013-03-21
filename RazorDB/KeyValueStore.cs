@@ -59,6 +59,8 @@ namespace RazorDB {
 
         public Manifest Manifest { get { return _manifest; } }
 
+        public Action<int, IEnumerable<PageRecord>, IEnumerable<PageRecord>> MergeCallback { get; set; }
+
         internal RazorCache Cache { get { return _cache; } }
 
         public int DataCacheSize {
