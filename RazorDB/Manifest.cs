@@ -367,7 +367,14 @@ namespace RazorDB {
                 }
 
                 // Swap new file into position
+                int ct = 10;
+                while (File.Exists(manifestFile)) {
+                    if (ct-- <= 0) {
+                        throw new IOException("Cannot delete old manifest file.");
+                    }
                 File.Delete(manifestFile);
+                    Thread.Sleep(100);
+                }
                 File.Move(tempManifestFile, manifestFile);
             } else {
                 FileStream fs = new FileStream(manifestFile, FileMode.Append, FileAccess.Write, FileShare.None, 1024, false);
