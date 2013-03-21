@@ -125,6 +125,31 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void WriteSpeedTests() {
+
+            Action<KeyValueStore, int, int, int> InsertDenseBlock = (KeyValueStore db, int key, int density, int count) => {
+                byte[] value = ByteArray.Random(Config.MaxSmallValueSize - 12).InternalBytes;
+                for (int i = 0; i < count; i++) {
+                    byte[] keyBytes = BitConverter.GetBytes(key + density * i);
+                    Array.Reverse(keyBytes); // make sure they are in lexicographical order so they sort closely together.
+
+                    db.Set(keyBytes, value);
+                }
+            };
+
+            // Make sure that when we have high key density, pages don't start to overlap with more than 10 pages at the level higher than the current one.
+            string path = Path.GetFullPath("TestData\\WriteSpeedTests");
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                InsertDenseBlock(db, 0, 1, 10000);
+                InsertDenseBlock(db, 20000, 1, 10000);
+                InsertDenseBlock(db, 15000, 1, 10000);
+            }
+        }
+
+        [Test]
         public void KeyDensityMaximumPageOverlapTest() {
 
             Action<KeyValueStore, int,int, int> InsertDenseBlock = (KeyValueStore db, int key, int density, int count) => {
