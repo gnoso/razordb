@@ -586,7 +586,10 @@ namespace RazorDB {
                 writer = null;
             };
 
-            foreach (var pair in EnumerateMergedTables(cache, mf.BaseFileName, orderedTableSpecs)) {
+            // Read the merged data into memory prior to writing it out so we aren't interleaving reads and writes
+            var preMergedData = EnumerateMergedTables(cache, mf.BaseFileName, orderedTableSpecs).ToList();
+
+            foreach (var pair in preMergedData) {
                 if (writer == null) {
                     OpenPage(pair);
                 }
