@@ -550,14 +550,14 @@ namespace RazorDB {
             return new KeyValuePair<Key, Value>(key, val);
         }
 
-        public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTables(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
+        public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
              var tables = tableSpecs
                .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
                .ToList();
              try {
-                 foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), t => t.Key)) {
-                     yield return pair;
-                 }
+                foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate().ToList().AsEnumerable()), t => t.Key)) {
+                    yield return pair;
+                }
              } finally {
                  tables.ForEach(t => t.Close());
              }
@@ -586,10 +586,7 @@ namespace RazorDB {
                 writer = null;
             };
 
-            // Read the merged data into memory prior to writing it out so we aren't interleaving reads and writes
-            var preMergedData = EnumerateMergedTables(cache, mf.BaseFileName, orderedTableSpecs).ToList();
-
-            foreach (var pair in preMergedData) {
+            foreach (var pair in EnumerateMergedTablesPreCached(cache, mf.BaseFileName, orderedTableSpecs)) {
                 if (writer == null) {
                     OpenPage(pair);
                 }
