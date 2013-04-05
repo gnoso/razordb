@@ -63,6 +63,21 @@ namespace RazorUtil {
                             }
                         }
                         break;
+                    case "split-manifest":
+                        if (args.Length < 2) {
+                            Console.WriteLine("Invalid parameters");
+                        } else {
+                            var dummyMf = Manifest.NewDummyManifest();
+                            dummyMf.Logger = msg => Console.WriteLine(msg);
+                            int ct = 0;
+                            foreach (var mf in Manifest.ReadAllManifests(args[1])) {
+                                using (var bw = new BinaryWriter(new FileStream(Path.Combine(args[1], "S" + ct.ToString() + ".mf"), FileMode.CreateNew, FileAccess.Write, FileShare.None, 40096))) {
+                                    mf.WriteManifestContents(bw);
+                                }
+                                ct++;
+                            }
+                        }
+                        break;
                     case "check-each-table":
                         if (args.Length < 2) {
                             Console.WriteLine("Invalid parameters");
