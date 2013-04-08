@@ -533,7 +533,6 @@ namespace RazorDB {
             
             using (var manifestInst = this.Manifest.GetLatestManifest()) {
 
-                int maxVersion = 0;
                 // find all the sbt files in the data directory
                 var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary( f => Path.GetFileNameWithoutExtension(f.ToLower()) );
                 for (int level = 0; level < manifestInst.NumLevels - 1; level++) {
@@ -545,8 +544,6 @@ namespace RazorDB {
                         string fileForPage = Path.GetFileNameWithoutExtension( Config.SortedBlockTableFile(this.Manifest.BaseFileName, page.Level, page.Version) );
                         // Remove the page from the file list because it's in the manifest and we've accounted for it.
                         files.Remove(fileForPage);
-
-                        maxVersion = Math.Max(page.Version, maxVersion);
                     }
                 }
 
@@ -558,7 +555,7 @@ namespace RazorDB {
                         int version = int.Parse(parts[1]);
                         
                         // First let's check the version number, we don't want to remove any new files that are being created while this is happening
-                        if (version < maxVersion && level < manifestInst.NumLevels) {
+                        if (level < manifestInst.NumLevels && version < manifestInst.CurrentVersion(level)) {
 
                             string orphanedFile = Config.SortedBlockTableFile(Manifest.BaseFileName, level, version);
 

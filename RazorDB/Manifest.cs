@@ -202,7 +202,7 @@ namespace RazorDB {
 
 
         // Read/Write manifest data
-        internal void WriteManifestContents(BinaryWriter writer) {
+        public void WriteManifestContents(BinaryWriter writer) {
             long startPos = writer.BaseStream.Position;
 
             writer.Write7BitEncodedInt(_versions.Length);
@@ -264,10 +264,8 @@ namespace RazorDB {
                 manifest.LogMessage("Version: {0}", _versions[level]);
                 var pages = GetPagesAtLevel(level);
                 foreach (var page in pages) {
-                    using (var mf = manifest.GetLatestManifest()) {
-                        var mergePages = mf.FindPagesForKeyRange(level + 1, page.FirstKey, page.LastKey).Count();
-                        manifest.LogMessage("Page {0}-{1} [{2} -> {3}] Ref({4}) Overlap({5})", page.Level, page.Version, page.FirstKey, page.LastKey, page.RefCount, mergePages);
-                    }
+                    var mergePages = FindPagesForKeyRange(level + 1, page.FirstKey, page.LastKey).Count();
+                    manifest.LogMessage("Page {0}-{1} [{2} -> {3}] Ref({4}) Overlap({5})", page.Level, page.Version, page.FirstKey, page.LastKey, page.RefCount, mergePages);
                 }
             }
         }
