@@ -56,6 +56,7 @@ namespace RazorDB {
         // For Table Manager 
         internal long ticksTillNextMerge = 0;
         internal object mergeLock = new object();
+        internal int mergeCount = 0;
 
         public Manifest Manifest { get { return _manifest; } }
 
