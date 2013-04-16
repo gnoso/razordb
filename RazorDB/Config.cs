@@ -42,6 +42,9 @@ namespace RazorDB {
         public static string ManifestFile(string baseName) {
             return baseName + "\\0.mf";
         }
+        public static string AltManifestFile(string baseName) {
+            return baseName + "\\1.mf";
+        }
         public static string IndexBaseName(string baseName, string indexName) {
             return baseName + "\\" + indexName;
         }

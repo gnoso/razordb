@@ -314,6 +314,11 @@ namespace RazorDB {
             get { return _manifestVersion; }
         }
 
+        private int _altManifestVersion = Config.ManifestVersionCount / 4;
+        public int AltManifestVersion {
+            get { return _altManifestVersion; }
+        }
+
         public int CurrentVersion(int level) {
             lock (manifestLock) {
                 return LastManifest.CurrentVersion(level);
@@ -390,39 +395,38 @@ namespace RazorDB {
 
         private void Write(ManifestImmutable m) {
 
-            string manifestFile = Config.ManifestFile(BaseFileName);
-            string tempManifestFile = manifestFile + "~";
+            // Get an in-memory copy of the all the bytes that will be written to the manifest
+            var ms = new MemoryStream();
+            var writer = new BinaryWriter(ms);
+            m.WriteManifestContents(writer);
+            writer.Close();
+            var manifestBytes = ms.ToArray();
 
+            // Increment manifest versions, we're getting ready to write another copy
             _manifestVersion++;
+            _altManifestVersion++;
 
-            if (ManifestVersion > Config.ManifestVersionCount) {
+            // Write primary manifest
+            FileMode fileMode = FileMode.Append;
+            if (_manifestVersion > Config.ManifestVersionCount) {
+                fileMode = FileMode.Create;
+                _manifestVersion = 0;
+            }
+            using (FileStream mfs = new FileStream(Config.ManifestFile(BaseFileName), fileMode, FileAccess.Write, FileShare.None, 8, FileOptions.WriteThrough)) {
+                IAsyncResult manifestWrite = mfs.BeginWrite(manifestBytes, 0, manifestBytes.Length, null, null);
 
-                FileStream fs = new FileStream(tempManifestFile, FileMode.Create, FileAccess.Write, FileShare.None, 1024, false);
-                BinaryWriter writer = new BinaryWriter(fs);
-
-                try {
-                    m.WriteManifestContents(writer);
-                } finally {
-                    writer.Close();
+                // Write alternative manifest
+                fileMode = FileMode.Append;
+                if (_altManifestVersion > Config.ManifestVersionCount) {
+                    fileMode = FileMode.Create;
+                    _altManifestVersion = 0;
                 }
+                using (FileStream afs = new FileStream(Config.AltManifestFile(BaseFileName), fileMode, FileAccess.Write, FileShare.None, 8, FileOptions.WriteThrough)) {
+                    IAsyncResult altManifestWrite = afs.BeginWrite(manifestBytes, 0, manifestBytes.Length, null, null);
 
-                // Swap new file into position
-                int ct = 10;
-                while (File.Exists(manifestFile)) {
-                    if (ct-- <= 0) {
-                        throw new IOException("Cannot delete old manifest file.");
-                    }
-                    File.Delete(manifestFile);
-                    Thread.Sleep(100);
-                }
-                File.Move(tempManifestFile, manifestFile);
-            } else {
-                FileStream fs = new FileStream(manifestFile, FileMode.Append, FileAccess.Write, FileShare.None, 1024, false);
-                BinaryWriter writer = new BinaryWriter(fs);
-                try {
-                    m.WriteManifestContents(writer);
-                } finally {
-                    writer.Close();
+                    // Wait for i/o's to complete
+                    mfs.EndWrite(manifestWrite);
+                    afs.EndWrite(altManifestWrite);
                 }
             }
         }
