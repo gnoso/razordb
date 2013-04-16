@@ -77,7 +77,7 @@ namespace RazorDB {
             _currentJournaledMemTable.Close();
             TableManager.Default.Close(this);
             foreach (var pair in _secondaryIndexes) {
-                pair.Value.Close();
+                pair.Value.Close(FastClose);
             }
 
             string basePath = Path.GetFullPath(Manifest.BaseFileName);
@@ -426,17 +426,23 @@ namespace RazorDB {
         }
 
         public void Dispose() {
-            Close();
+            Close(FastClose);
         }
 
-        public void Close() {
+        private bool _fastClose = false;
+        public bool FastClose {
+            get { return _fastClose; }
+            set { _fastClose = value; }
+        }
+
+        public void Close(bool fast = false) {
             // Make sure any inflight rotations have occurred before shutting down.
             if (!_rotationSemaphore.WaitOne(30000))
                 throw new TimeoutException("Timed out waiting for table rotation to complete.");
             // Release again in case another thread tries to close it again.
             _rotationSemaphore.Release();
 
-            if (!finalizing) {
+            if (!finalizing && !fast) {
                 TableManager.Default.Close(this);
             }
             if (_currentJournaledMemTable != null) {
@@ -446,7 +452,7 @@ namespace RazorDB {
 
             if (_secondaryIndexes != null) {
                 foreach (var idx in _secondaryIndexes) {
-                    idx.Value.Close();
+                    idx.Value.Close(fast);
                 }
             }
 

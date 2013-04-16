@@ -99,7 +99,7 @@ namespace RazorDB {
                     yield return new KeyValuePair<Key, Value>(Key.FromBytes(key), Value.FromBytes(value));
             }
         }
-                
+
         public void Close() {
             if (_reader != null)
                 _reader.Close();
