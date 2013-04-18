@@ -7,9 +7,7 @@ using RazorDB;
 using System.Text.RegularExpressions;
 
 namespace RazorView {
-
     public class ByteViz : IDataViz {
-
         public string TransformKey(byte[] key) {
             return key.ToHexString();
         }
@@ -26,22 +24,27 @@ namespace RazorView {
             value = pair.Value;
             _viz = viz;
         }
-        private IDataViz _viz;
+        IDataViz _viz;
 
-        public int Index { get; set; }
+        public int Index {
+			get; set;
+		}
 
-        private byte[] key;
+        byte[] key;
         public string Key {
-            get { return _viz.TransformKey(key); }
+            get {
+				return _viz.TransformKey(key);
+			}
         }
-        private byte[] value;
+        byte[] value;
         public string Value {
-            get { return _viz.TransformValue(value); }
+            get {
+				return _viz.TransformValue(value);
+			}
         }
     }
 
     public class DBController {
-
         public DBController(string journalFile, IEnumerable<IDataVizFactory> vizFactories) {
             string path = Path.GetDirectoryName(journalFile);
             _db = new KeyValueStore(path);
@@ -53,12 +56,11 @@ namespace RazorView {
                     break;
                 }
             }
-            if (_viz == null)
-                _viz = new ByteViz();
+            if (_viz == null) _viz = new ByteViz();
         }
 
-        private KeyValueStore _db;
-        private IDataViz _viz;
+        KeyValueStore _db;
+        IDataViz _viz;
 
         public IEnumerable<Record> GetRecords(string keyFilter, string valueFilter) {
             int index = 0;

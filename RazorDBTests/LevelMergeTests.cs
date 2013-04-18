@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,13 +8,8 @@ using System.Diagnostics;
 using System.IO;
 
 namespace RazorDBTests {
-
-    [TestFixture]
-    public class LevelMergeTests {
-
-        [Test]
-        public void TestMergeIterator() {
-
+    [TestFixture] public class LevelMergeTests {
+        [Test] public void TestMergeIterator() {
             Random r = new Random();
             int totalElements = 0;
             // Create 10 randomly sized lists of random numbers
@@ -56,8 +36,7 @@ namespace RazorDBTests {
             Assert.AreEqual(totalElements, numElements);
         }
 
-        [Test]
-        public void TestEmptyMergeIterator() {
+        [Test] public void TestEmptyMergeIterator() {
 
             var enumerators = new List<IEnumerable<int>>();
             Assert.AreEqual(0, MergeEnumerator.Merge(enumerators).Count());
@@ -67,8 +46,7 @@ namespace RazorDBTests {
             Assert.AreEqual(0, MergeEnumerator.Merge(enumerators).Count());
         }
 
-        [Test]
-        public void TestDuplicateMergeIterator() {
+        [Test] public void TestDuplicateMergeIterator() {
             var enumerators = new List<IEnumerable<int>>();
             enumerators.Add( Enumerable.Range(1,10) );
             Assert.AreEqual(55, MergeEnumerator.Merge(enumerators).Sum());
@@ -86,9 +64,7 @@ namespace RazorDBTests {
             Assert.AreEqual(55, MergeEnumerator.Merge(enumerators).Sum());
         }
 
-        [Test]
-        public void LevelMergeReadTest() {
-
+        [Test] public void LevelMergeReadTest() {
             string path = Path.GetFullPath("TestData\\LevelMergeReadTest");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
@@ -127,16 +103,12 @@ namespace RazorDBTests {
             timer.Stop();
 
             sbts.ForEach(s => s.Close());
-
             Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
 
-        [Test]
-        public void LevelMergeReadTest2() {
-
+        [Test] public void LevelMergeReadTest2() {
             string path = Path.GetFullPath("TestData\\LevelMergeReadTest2");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             
             int num_tables_to_merge = 4;
             int items_per_table = 2500;
@@ -159,11 +131,19 @@ namespace RazorDBTests {
             timer.Start();
             foreach (var pair in SortedBlockTable.EnumerateMergedTablesPreCached(cache, "TestData\\LevelMergeReadTest2", 
                 new List<PageRef>{
-                                                              new PageRef { Level = 0, Version = 0},
-                                                              new PageRef { Level = 0, Version = 1},
-                                                              new PageRef { Level = 0, Version = 2},
-                                                              new PageRef { Level = 0, Version = 3}
-                })) {
+				new PageRef {
+					Level = 0, Version = 0
+				},
+				new PageRef {
+					Level = 0, Version = 1
+				},
+				new PageRef {
+					Level = 0, Version = 2
+				},
+				new PageRef {
+					Level = 0, Version = 3
+				}
+			})) {
                 Assert.True(key.CompareTo(pair.Key) < 0);
                 key = pair.Key;
                 ct++;
@@ -173,12 +153,9 @@ namespace RazorDBTests {
             Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
 
-        [Test]
-        public void LevelMergeOutputTest() {
-
+        [Test] public void LevelMergeOutputTest() {
             string path = Path.GetFullPath("TestData\\LevelMergeOutputTest");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
             
             int num_tables_to_merge = 4;
             int items_per_table = 2500;
@@ -195,25 +172,30 @@ namespace RazorDBTests {
             }
 
             var cache = new RazorCache();
-            ByteArray key = new ByteArray(new byte[] { 0 });
             var timer = new Stopwatch();
             timer.Start();
 
             Manifest mf = new Manifest("TestData\\LevelMergeOutputTest");
-            var outputTables = SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
-                                                                                                new PageRef { Level = 0, Version = 0},
-                                                                                                new PageRef { Level = 0, Version = 1},
-                                                                                                new PageRef { Level = 0, Version = 2},
-                                                                                                new PageRef { Level = 0, Version = 3}
-                                                                                            });
+            SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef> {
+				new PageRef {
+					Level = 0, Version = 0
+				},
+				new PageRef {
+					Level = 0, Version = 1
+				},
+				new PageRef {
+					Level = 0, Version = 2
+				},
+				new PageRef {
+					Level = 0, Version = 3
+				}
+			});
             timer.Stop();
 
             Console.WriteLine("Wrote a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
 
-        [Test]
-        public void LevelMergeDuplicateValuesTest() {
-
+        [Test] public void LevelMergeDuplicateValuesTest() {
             string path = Path.GetFullPath("TestData\\LevelMergeDuplicateValuesTest");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
@@ -241,12 +223,20 @@ namespace RazorDBTests {
             timer.Start();
 
             Manifest mf = new Manifest("TestData\\LevelMergeDuplicateValuesTest");
-            var outputTables = SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
-                                                                                                new PageRef { Level = 0, Version = 0},
-                                                                                                new PageRef { Level = 0, Version = 1},
-                                                                                                new PageRef { Level = 0, Version = 2},
-                                                                                                new PageRef { Level = 0, Version = 3}
-                                                                                            });
+            SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef> {
+				new PageRef {
+					Level = 0, Version = 0
+				},
+				new PageRef {
+					Level = 0, Version = 1
+				},
+				new PageRef {
+					Level = 0, Version = 2
+				},
+				new PageRef {
+					Level = 0, Version = 3
+				}
+			});
             timer.Stop();
 
             // Open the block table and scan it to check the stored values
@@ -258,9 +248,7 @@ namespace RazorDBTests {
             } finally {
                 sbt.Close();
             }
-
             Console.WriteLine("Wrote a multilevel merge with duplicates at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
-
     }
 }

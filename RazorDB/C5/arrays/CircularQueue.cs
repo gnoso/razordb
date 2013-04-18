@@ -1,66 +1,33 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
-namespace RazorDB.C5
-{
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <typeparam name="T"></typeparam>
-  public class CircularQueue<T> : SequencedBase<T>, IQueue<T>, IStack<T>
-  {
-    #region Fields
-    /*
+
+namespace RazorDB.C5 {
+	public class CircularQueue<T> : SequencedBase<T>, IQueue<T>, IStack<T> {
+		#region Fields
+		/*
         Invariant: the itemes in the queue ar the elements from front upwards, 
         possibly wrapping around at the end of array, to back.
 
         if front<=back then size = back - front + 1;
         else size = array.Length + back - front + 1;
+		 */
 
-        */
-    int front, back;
-    /// <summary>
-    /// The internal container array is doubled when necessary, but never shrinked.
-    /// </summary>
-    T[] array;
-    bool forwards = true, original = true;
-    #endregion
-
-    #region Events
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
-    public override EventTypeEnum ListenableEvents { get { return EventTypeEnum.Basic; } }
-
-    #endregion
-
-    #region Util
-    void expand()
-    {
-      int newlength = 2 * array.Length;
+		int front, back;
+		/// The internal container array is doubled when necessary, but never shrinked.
+		T[] array;
+		bool forwards = true, original = true;
+#endregion
+		#region Events
+		public override EventTypeEnum ListenableEvents {
+			get {
+				return EventTypeEnum.Basic;
+			}
+		}
+#endregion
+		#region Util
+		void expand() {
+			int newlength = 2 * array.Length;
       T[] newarray = new T[newlength];
 
       if (front <= back)

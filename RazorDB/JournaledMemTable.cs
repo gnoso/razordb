@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,9 +6,7 @@ using System.Threading;
 using System.IO;
 
 namespace RazorDB {
-
     public class JournaledMemTable {
-
         public JournaledMemTable(string baseFileName, int version) {
             _baseFileName = baseFileName;
             _version = version;
@@ -44,13 +27,12 @@ namespace RazorDB {
             } else {
                 _journal = new JournalWriter(baseFileName, version, false);
             }
-
         }
 
-        private JournalWriter _journal;
-        private MemTable _memTable;
-        private string _baseFileName;
-        private int _version;
+        JournalWriter _journal;
+        MemTable _memTable;
+        string _baseFileName;
+        int _version;
 
         public IEnumerable<KeyValuePair<Key, Value>> EnumerateSnapshot() {
             // Grab sorted copy of the internal memtable contents
@@ -61,10 +43,13 @@ namespace RazorDB {
             return _memTable.GetEnumerableSnapshot().Where(pair => pair.Key.CompareTo(key) >= 0);
         }
 
-        public int Version { get { return _version; } }
+        public int Version {
+			get {
+				return _version;
+			}
+		}
 
         public bool Add(Key key, Value value) {
-
             if (_journal == null || _memTable == null)
                 return false;
 
@@ -74,7 +59,6 @@ namespace RazorDB {
             } else {
                 return false;
             }
-
         }
 
         public bool Lookup(Key key, out Value value) {
@@ -82,15 +66,21 @@ namespace RazorDB {
         }
 
         public bool Full {
-            get { return _memTable.Full; }
+            get {
+				return _memTable.Full;
+			}
         }
 
         public Key FirstKey {
-            get { return _memTable.FirstKey; }
+            get {
+				return _memTable.FirstKey;
+			}
         }
 
         public Key LastKey {
-            get { return _memTable.LastKey; }
+            get {
+				return _memTable.LastKey;
+			}
         }
 
         public void WriteToSortedBlockTable(Manifest manifest) {
@@ -105,11 +95,9 @@ namespace RazorDB {
         }
 
         public void Close() {
-            if (_journal != null)
-                _journal.Close();
+            if (_journal != null) _journal.Close();
             _journal = null;
             _memTable = null;
         }
-
     }
 }

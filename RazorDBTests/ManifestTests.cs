@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,16 +9,10 @@ using System.Diagnostics;
 using System.Threading;
 
 namespace RazorDBTests {
-
-    [TestFixture]
-    public class ManifestTests {
-
-        [Test]
-        public void WriteAndReadManifest() {
-
+	[TestFixture] public class ManifestTests {
+		[Test] public void WriteAndReadManifest() {
             var path = Path.GetFullPath("TestData\\WriteAndReadManifest");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
             // Remove the file if it exists
             var filename = Config.ManifestFile(path);
@@ -55,9 +34,7 @@ namespace RazorDBTests {
             Assert.AreEqual(1, mf2.ManifestVersion);
         }
 
-        [Test]
-        public void WriteAndReadManifestMany() {
-
+        [Test] public void WriteAndReadManifestMany() {
             var path = Path.GetFullPath("TestData\\WriteAndReadManifestMany");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
@@ -83,9 +60,7 @@ namespace RazorDBTests {
             Assert.AreEqual(1100, mf2.CurrentVersion(0));
         }
 
-        [Test]
-        public void WriteAndReadManifestThreaded() {
-
+        [Test] public void WriteAndReadManifestThreaded() {
             var path = Path.GetFullPath("TestData\\WriteAndReadManifestMulti");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
@@ -120,9 +95,7 @@ namespace RazorDBTests {
             Assert.AreEqual(1100, mf2.CurrentVersion(0));
         }
 
-        [Test]
-        public void ManifestAddPages() {
-
+        [Test] public void ManifestAddPages() {
             var path = Path.GetFullPath("TestData\\ManifestAddPages");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
@@ -173,9 +146,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void TestManifestSnapshot() {
-
+        [Test] public void TestManifestSnapshot() {
             var path = Path.GetFullPath("TestData\\TestManifestSnapshot");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
@@ -226,27 +197,23 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void TestManifestFileRollover() {
-
+        [Test] public void TestManifestFileRollover() {
             var path = Path.GetFullPath("TestData\\TestManifestFileRollover");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
             // Remove the file if it exists
             var filename = Config.ManifestFile(path);
-            if (File.Exists(filename))
-                File.Delete(filename);
+            if (File.Exists(filename)) File.Delete(filename);
 
             var mf = new Manifest(path);
             for (int i = 0; i < Config.ManifestVersionCount - 10; i++) {
-                var level = mf.NextVersion(1);
+                mf.NextVersion(1);
             }
 
             var manifestSize = new FileInfo(filename).Length;
 
             for (int i = 0; i < 30; i++) {
-                var level = mf.NextVersion(1);
+                mf.NextVersion(1);
             }
 
             var newManifestSize = new FileInfo(filename).Length;

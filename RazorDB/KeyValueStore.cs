@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,9 +7,7 @@ using System.IO;
 using System.Diagnostics;
 
 namespace RazorDB {
-    
     public class KeyValueStore : IDisposable {
-
         public KeyValueStore(string baseFileName) : this(baseFileName, null) {}
 
         public KeyValueStore(string baseFileName, RazorCache cache) {
@@ -39,7 +22,6 @@ namespace RazorDB {
             CheckForIncompleteJournalRotation(baseFileName, memTableVersion);
             // Create new journal for this run (and potentially load from disk, if there was data loaded previously)
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
-            
             _cache = cache == null ? new RazorCache() : cache;
         }
 
@@ -49,41 +31,57 @@ namespace RazorDB {
             Dispose();
         }
 
-        private Manifest _manifest;
-        private RazorCache _cache;
-        private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string, KeyValueStore>(StringComparer.OrdinalIgnoreCase);
+        Manifest _manifest;
+        RazorCache _cache;
+        Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string, KeyValueStore>(StringComparer.OrdinalIgnoreCase);
 
         // For Table Manager 
         internal long ticksTillNextMerge = 0;
         internal object mergeLock = new object();
         internal int mergeCount = 0;
 
-        public Manifest Manifest { get { return _manifest; } }
+        public Manifest Manifest {
+			get {
+				return _manifest;
+			}
+		}
 
-        public Action<int, IEnumerable<PageRecord>, IEnumerable<PageRecord>> MergeCallback { get; set; }
+        public Action<int, IEnumerable<PageRecord>, IEnumerable<PageRecord>> MergeCallback {
+			get; set;
+		}
 
-        internal RazorCache Cache { get { return _cache; } }
+        internal RazorCache Cache {
+			get {
+				return _cache;
+			}
+		}
 
         public int DataCacheSize {
-            get { return Cache.DataCacheSize; }
+            get {
+				return Cache.DataCacheSize;
+			}
         }
         public int IndexCacheSize {
-            get { return Cache.IndexCacheSize; }
+            get {
+				return Cache.IndexCacheSize;
+			}
         }
 
-        private volatile JournaledMemTable _currentJournaledMemTable;
+        volatile JournaledMemTable _currentJournaledMemTable;
 
         public void Truncate() {
             _currentJournaledMemTable.Close();
             TableManager.Default.Close(this);
+			string basePath = Path.GetFullPath(Manifest.BaseFileName);
+
             foreach (var pair in _secondaryIndexes) {
                 pair.Value.Close(FastClose);
             }
 
-            string basePath = Path.GetFullPath(Manifest.BaseFileName);
             foreach (string file in Directory.GetFiles(basePath, "*.*", SearchOption.AllDirectories)) {
                 File.Delete(file);
             }
+
             foreach (string dir in Directory.GetDirectories(basePath, "*.*", SearchOption.AllDirectories)) {
                 Directory.Delete(dir,true);
             }
@@ -111,9 +109,7 @@ namespace RazorDB {
                 InternalSet(k, v, indexedValues);
             } else {
                 lock (multiPageLock) {
-                    if (value.Length >= Config.MaxLargeValueSize)
-                        throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSize));
-
+                    if (value.Length >= Config.MaxLargeValueSize) throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSize));
                     int offset = 0;
                     byte seqNum = 1;
                     while (offset < valueSize) {
@@ -133,8 +129,7 @@ namespace RazorDB {
 
         public void RemoveFromIndex(byte[] key, IDictionary<string, byte[]> indexedValues) {
             foreach (var pair in indexedValues) {
-                string IndexName = pair.Key;
-
+				string IndexName = pair.Key;
                 // Construct Index key by concatenating the indexed value and the target key
                 byte[] indexValue = pair.Value;
                 byte[] indexKey = new byte[key.Length + indexValue.Length];
@@ -157,7 +152,7 @@ namespace RazorDB {
             }
         }
 
-        private void InternalSet(Key k, Value v, IDictionary<string, byte[]> indexedValues) {
+        void InternalSet(Key k, Value v, IDictionary<string, byte[]> indexedValues) {
             int adds = 10;
             while (!_currentJournaledMemTable.Add(k, v)) {
                 adds--;
@@ -171,7 +166,6 @@ namespace RazorDB {
             if (_currentJournaledMemTable.Full) {
                 RotateMemTable();
             }
-
             TableManager.Default.MarkKeyValueStoreAsModified(this);
         }
 
@@ -190,7 +184,7 @@ namespace RazorDB {
             }
         }
 
-        private KeyValueStore GetSecondaryIndex(string IndexName) {
+        KeyValueStore GetSecondaryIndex(string IndexName) {
             KeyValueStore indexStore = null;
             lock (_secondaryIndexes) {
                 if (!_secondaryIndexes.TryGetValue(IndexName, out indexStore)) {
@@ -209,7 +203,7 @@ namespace RazorDB {
             return AssembleGetResult(lookupKey, InternalGet(lookupKey));
         }
 
-        private Value InternalGet(Key lookupKey) {
+        Value InternalGet(Key lookupKey) {
             Value output = Value.Empty;
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
@@ -245,7 +239,7 @@ namespace RazorDB {
             return Value.Empty;
         }
 
-        private byte[] AssembleGetResult(Key lookupKey, Value result) {
+        byte[] AssembleGetResult(Key lookupKey, Value result) {
             switch (result.Type) {
                 case ValueFlag.Null:
                 case ValueFlag.Deleted:
@@ -277,8 +271,7 @@ namespace RazorDB {
                         }
                     }
                 }
-                default:
-                    throw new InvalidOperationException("Unexpected value flag for result.");
+                default: throw new InvalidOperationException("Unexpected value flag for result.");
             }
         }
 
@@ -335,7 +328,7 @@ namespace RazorDB {
             return EnumerateFromKey(new byte[0]);
         }
 
-        private IEnumerable<KeyValuePair<Key, Value>> InternalEnumerateFromKey(byte[] startingKey) {
+        IEnumerable<KeyValuePair<Key, Value>> InternalEnumerateFromKey(byte[] startingKey) {
 
             if (startingKey == null) {
                 yield break;
@@ -389,16 +382,16 @@ namespace RazorDB {
             }
         }
 
-        private object memTableRotationLock = new object();
-        private JournaledMemTable _rotatedJournaledMemTable;
-        private Semaphore _rotationSemaphore = new Semaphore(1, 1);
+        object memTableRotationLock = new object();
+        JournaledMemTable _rotatedJournaledMemTable;
+        Semaphore _rotationSemaphore = new Semaphore(1, 1);
 
 #pragma warning disable 420
         public void RotateMemTable() {
             lock (memTableRotationLock) {
                 // Double check the flag in case we have multiple threads that make it into this routine
                 if (_currentJournaledMemTable.Full) {
-                    _rotationSemaphore.WaitOne();    // Wait for the rotation gate to be open, and automatically reset once a single thread gets through.
+                    _rotationSemaphore.WaitOne(); // Wait for the rotation gate to be open, and automatically reset once a single thread gets through.
 
                     _rotatedJournaledMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
 
@@ -415,7 +408,7 @@ namespace RazorDB {
         }
 #pragma warning restore 420
 
-        private void CheckForIncompleteJournalRotation(string baseFileName, int currentMemTableVersion) {
+        void CheckForIncompleteJournalRotation(string baseFileName, int currentMemTableVersion) {
             int previousMemTableVersion = currentMemTableVersion - 1;
             // Is there a left-over journal from a previous rotation that was aborted while in rotation.
             if (File.Exists(Config.JournalFile(baseFileName, previousMemTableVersion))) {
@@ -429,7 +422,7 @@ namespace RazorDB {
             Close(FastClose);
         }
 
-        private bool _fastClose = false;
+        bool _fastClose = false;
         public bool FastClose {
             get { return _fastClose; }
             set { _fastClose = value; }
@@ -445,6 +438,7 @@ namespace RazorDB {
             if (!finalizing && !fast) {
                 TableManager.Default.Close(this);
             }
+
             if (_currentJournaledMemTable != null) {
                 _currentJournaledMemTable.Close();
                 _currentJournaledMemTable = null;
@@ -455,13 +449,11 @@ namespace RazorDB {
                     idx.Value.Close(fast);
                 }
             }
-
             // Don't finalize since we already closed it.
             GC.SuppressFinalize(this);
         }
 
         public void ScanCheck() {
-
             long totalKeyBytes = 0;
             long totalValueBytes = 0;
             int totalRecords = 0;
@@ -526,14 +518,11 @@ namespace RazorDB {
                 Console.WriteLine("  KeyBytes: {0}, ValueBytes: {1}\n  Records: {2} Deleted: {3} Null: {4} Small: {5} LargeDesc: {6} LargeChunk: {7}",
                     totalKeyBytes, totalValueBytes, totalRecords, deletedRecords, nullRecords, smallRecords, largeDescRecords, largeChunkRecords);
             }
-
         }
 
         // List all the pages in the directory and delete those that are not in the manifest.
         public void RemoveOrphanedPages() {
-            
             using (var manifestInst = this.Manifest.GetLatestManifest()) {
-
                 // find all the sbt files in the data directory
                 var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary( f => Path.GetFileNameWithoutExtension(f.ToLower()) );
                 for (int level = 0; level < manifestInst.NumLevels - 1; level++) {
@@ -581,7 +570,5 @@ namespace RazorDB {
                 }
             }
         }
-
     }
-
 }

@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,16 +9,10 @@ using System.Diagnostics;
 using System.Threading;
 
 namespace RazorDBTests {
-
-    [TestFixture]
-    public class SortedBlockTableTests {
-
-        [Test]
-        public void TestFileOpenSpeed() {
-            
+	[TestFixture] public class SortedBlockTableTests {
+		[Test] public void TestFileOpenSpeed() {
             string path = Path.GetFullPath("TestData\\TestFileOpenSpeed");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
             var mt = new MemTable();
             for (int i = 0; i < 10000; i++) {
@@ -45,7 +24,6 @@ namespace RazorDBTests {
             mt.WriteToSortedBlockTable("TestData\\TestFileOpenSpeed", 0, 10);
 
             var openTables = new List<SortedBlockTable>();
-
             var cache = new RazorCache();
             var timer = new Stopwatch();
             timer.Start();
@@ -63,17 +41,12 @@ namespace RazorDBTests {
                 openTables[k].Close();
             }
             timer.Stop();
-
             Console.WriteLine("Close block table {0} ms", timer.Elapsed.TotalMilliseconds / 10000);
-
         }
 
-        [Test]
-        public void ReadKeys() {
-
+        [Test] public void ReadKeys() {
             string path = Path.GetFullPath("TestData\\ReadKeys");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
             var mt = new MemTable();
             for (int i = 0; i < 10000; i++) {
@@ -104,16 +77,12 @@ namespace RazorDBTests {
             timer.Stop();
             Console.WriteLine("Read & verify sorted table at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
-            sbt.Close();
-
+			sbt.Close();
         }
 
-        [Test]
-        public void EnumerateFromKeys() {
-
+        [Test] public void EnumerateFromKeys() {
             string path = Path.GetFullPath("TestData\\EnumerateFromKeys");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 
             List<KeyValuePair<Key, Value>> items = new List<KeyValuePair<Key, Value>>();
 
@@ -150,17 +119,12 @@ namespace RazorDBTests {
                 Console.WriteLine("Counted from halfway at a throughput of {0} MB/s", (double)mt.Size / 2 / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
 
                 Assert.AreEqual(0, sbt.EnumerateFromKey(indexCache, new Key(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, 0xFF)).Count());
-
             } finally {
                 sbt.Close();
             }
-
         }
 
-        [Test]
-        public void RandomizedLookups() {
-
-
+        [Test] public void RandomizedLookups() {
             string path = Path.GetFullPath("TestData\\RandomizedKeys");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
@@ -180,10 +144,8 @@ namespace RazorDBTests {
             mt.WriteToSortedBlockTable("TestData\\RandomizedKeys", 10, 10);
 
             var cache = new RazorCache();
-            var sbt = new SortedBlockTable(cache, "TestData\\RandomizedKeys", 10, 10);
-
+			var sbt = new SortedBlockTable(cache, "TestData\\RandomizedKeys", 10, 10);
             var indexCache = new RazorCache();
-
             var timer = new Stopwatch();
             timer.Start();
             foreach (var pair in items) {
@@ -199,12 +161,9 @@ namespace RazorDBTests {
             Console.WriteLine("Randomized read sbt table at a throughput of {0} MB/s (avg {1} ms per lookup)", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double) num_items);
 
             sbt.Close();
-
         }
 
-        [Test]
-        public void RandomizedThreadedLookups() {
-
+        [Test] public void RandomizedThreadedLookups() {
             string path = Path.GetFullPath("TestData\\RandomizedThreadedLookups");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
@@ -225,7 +184,6 @@ namespace RazorDBTests {
 
             var cache = new RazorCache();
             var sbt = new SortedBlockTable(cache,"TestData\\RandomizedThreadedLookups", 10, 10);
-
             var indexCache = new RazorCache();
 
             List<Thread> threads = new List<Thread>();

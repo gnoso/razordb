@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -32,16 +17,20 @@ namespace RazorDB {
             _sizeLimit = sizeLimit;
             _sizer = sizer;
         }
-        private int _sizeLimit;
-        private int _currentSize;
-        public int CurrentSize {
-            get { return _currentSize; }
-        }
-        private Func<T, int> _sizer;
 
-        private Dictionary<string, CacheEntry<T>> _hash = new Dictionary<string, CacheEntry<T>>();
-        private LinkedList<CacheEntry<T>> _list = new LinkedList<CacheEntry<T>>();
-        private object _lock = new object();
+        int _sizeLimit;
+        int _currentSize;
+
+        public int CurrentSize {
+            get {
+				return _currentSize;
+			}
+        }
+
+        Func<T, int> _sizer;
+        Dictionary<string, CacheEntry<T>> _hash = new Dictionary<string, CacheEntry<T>>();
+        LinkedList<CacheEntry<T>> _list = new LinkedList<CacheEntry<T>>();
+        object _lock = new object();
 
         public bool TryGetValue(string key, out T value) {
             lock (_lock) {
@@ -60,7 +49,6 @@ namespace RazorDB {
 
         public void Set(string key, T value) {
             lock (_lock) {
-
                 // If the hash already contains the key, we are probably in a race condition, so go ahead and abort.
                 if (_hash.ContainsKey(key))
                     return;
@@ -75,12 +63,10 @@ namespace RazorDB {
             }
         }
 
-        private void CheckCacheSizeAndEvict() {
+        void CheckCacheSizeAndEvict() {
             while (_currentSize > _sizeLimit) {
-
                 var lastEntry = _list.Last;
                 var cacheEntry = lastEntry.Value;
-
                 // Subtract the last entry from the size
                 _currentSize -= cacheEntry.Size;
                 // Remove from list
@@ -92,14 +78,13 @@ namespace RazorDB {
     }
     
     public class RazorCache {
-
         public RazorCache() {
             _blockIndexCache = new Cache<Key[]>(Config.IndexCacheSize, index => index.Sum(ba => ba.Length));
             _blockDataCache = new Cache<byte[]>(Config.DataBlockCacheSize, block => block.Length);
         }
 
-        private Cache<Key[]> _blockIndexCache;
-        private Cache<byte[]> _blockDataCache;
+        Cache<Key[]> _blockIndexCache;
+        Cache<byte[]> _blockDataCache;
 
         public int IndexCacheSize { get { return _blockIndexCache.CurrentSize; } }
         public int DataCacheSize { get { return _blockDataCache.CurrentSize; } }

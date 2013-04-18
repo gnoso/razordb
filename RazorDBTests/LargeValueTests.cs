@@ -1,20 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-using System;
+﻿using System;
 using NUnit.Framework;
 using System.Text;
 using RazorDB;
@@ -26,20 +10,14 @@ using System.Linq;
 using System.Security.Cryptography;
 
 namespace RazorDBTests {
-
-    [TestFixture]
-    public class LargeValueTests {
-
-        [TestFixtureSetUp]
-        public void Setup() {
+	[TestFixture] public class LargeValueTests {
+		[TestFixtureSetUp] public void Setup() {
             string path = Path.GetFullPath("TestData");
             if (!Directory.Exists(path)) 
                 Directory.CreateDirectory(path);
         }
 
-        [Test]
-        public void LargeDataSetGetTest() {
-
+        [Test] public void LargeDataSetGetTest() {
             string path = Path.GetFullPath("TestData\\LargeDataSetGetTest");
             int totalSize = 0;
             int num_items = 500;
@@ -64,14 +42,11 @@ namespace RazorDBTests {
                     Assert.AreEqual(value.InternalBytes, db.Get(key));
                 }
                 timer.Stop();
-
                 Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
             }
         }
 
-        [Test]
-        public void LargeDataSetGetWithIndexTest() {
-
+        [Test] public void LargeDataSetGetWithIndexTest() {
             string path = Path.GetFullPath("TestData\\LargeDataSetGetWithIndexTest");
             int totalSize = 0;
             int num_items = 500;
@@ -94,7 +69,7 @@ namespace RazorDBTests {
 
                 timer.Start();
                 for (int i = 0; i < num_items; i++) {
-                    var key = BitConverter.GetBytes(i);
+                    BitConverter.GetBytes(i);
                     var items = db.Find("Index", BitConverter.GetBytes(i + 10));
                     var val = items.First();
                     Assert.AreEqual(value.InternalBytes, val.Value);
@@ -105,9 +80,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void LargeDataEnumerateTest() {
-
+        [Test] public void LargeDataEnumerateTest() {
             string path = Path.GetFullPath("TestData\\LargeDataEnumerateTest");
             int totalSize = 0;
             int num_items = 500;
@@ -135,15 +108,11 @@ namespace RazorDBTests {
                     j++;
                 }
                 timer.Stop();
-
                 Console.WriteLine("Randomized read throughput of {0} MB/s (avg {1} ms per lookup)", (double)totalSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
-
             }
         }
 
-        [Test, ExpectedException(typeof(InvalidDataException))]
-        public void TestTooLargeData() {
-
+        [Test, ExpectedException(typeof(InvalidDataException))] public void TestTooLargeData() {
             string path = Path.GetFullPath("TestData\\TestTooLargeData");
             using (var db = new KeyValueStore(path)) {
                 db.Set(Key.Random(10).KeyBytes, ByteArray.Random(Config.MaxLargeValueSize).InternalBytes);
@@ -164,7 +133,7 @@ namespace RazorDBTests {
             return block;
         }
 
-        private void CheckBlock(byte[] bytes) {
+        void CheckBlock(byte[] bytes) {
             int num = bytes.Length - 20;
             SHA1Managed sha = new SHA1Managed();
             byte[] checksum = sha.ComputeHash(bytes, 0, num);
@@ -174,9 +143,7 @@ namespace RazorDBTests {
         }
 
 
-        [Test]
-        public void TestLargeAndSmallEvenWrites() {
-
+        [Test] public void TestLargeAndSmallEvenWrites() {
             string path = Path.GetFullPath("TestData\\TestLargeAndSmallInterlacedWrites");
             using (var db = new KeyValueStore(path)) {
 
@@ -209,9 +176,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void TestLargeAndSmallOddWrites() {
-
+        [Test] public void TestLargeAndSmallOddWrites() {
             string path = Path.GetFullPath("TestData\\TestLargeAndSmallInterlacedWrites");
             using (var db = new KeyValueStore(path)) {
 
@@ -244,9 +209,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void TestLargeAndSmallInterlacedWrites() {
-
+        [Test] public void TestLargeAndSmallInterlacedWrites() {
             string path = Path.GetFullPath("TestData\\TestLargeAndSmallInterlacedWrites");
 
             // Create a random set of keybytes
@@ -294,5 +257,4 @@ namespace RazorDBTests {
             }
         }
     }
-
 }

@@ -1,39 +1,28 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
 
 namespace RazorDB {
-
     public struct ByteArray : IComparable<ByteArray> {
-
         public ByteArray(byte[] bytes) {
             if (bytes == null)
                 throw new ArgumentNullException();
             _bytes = bytes;
         }
-        private byte[] _bytes;
 
-        public byte[] InternalBytes { get { return _bytes; } }
+        byte[] _bytes;
+        public byte[] InternalBytes {
+			get {
+				return _bytes;
+			}
+		}
 
         public int Length {
-            get { return _bytes == null ? 0 : _bytes.Length; }
+            get {
+				return _bytes == null ? 0 : _bytes.Length;
+			}
         }
 
         public int CompareTo(ByteArray other) {
@@ -59,10 +48,10 @@ namespace RazorDB {
             return CompareMemCmp(a._bytes, b._bytes) != 0;
         }
 
-        [ThreadStatic]
-        private static Random rand;
-        private static object randLock = new object();
-        private static Random getRand() {
+        [ThreadStatic] static Random rand;
+        static object randLock = new object();
+
+        static Random getRand() {
             if (rand == null)
                 lock (randLock) {
                     if (rand == null)
@@ -86,7 +75,9 @@ namespace RazorDB {
         }
 
         public static ByteArray Empty {
-            get { return new ByteArray(new byte[0]); }
+            get {
+				return new ByteArray(new byte[0]);
+			}
         }
 
         public override int GetHashCode() {
@@ -114,8 +105,8 @@ namespace RazorDB {
             return _bytes.ToHexString();
         }
 
-        [DllImport("msvcrt.dll")]
-        private static extern unsafe int memcmp(byte* b1, byte* b2, int count);
+		// import external dll
+        [DllImport("msvcrt.dll")] static extern unsafe int memcmp(byte* b1, byte* b2, int count);
 
         public static ByteArray From(byte[] block, int offset, int size) {
             byte[] bytes = new byte[size];
@@ -132,5 +123,4 @@ namespace RazorDB {
             return string.Concat(bytes.Skip(offset).Take(count).Select((b) => b.ToString("X2")).ToArray());
         }
     }
-
 }

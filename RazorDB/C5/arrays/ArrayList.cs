@@ -1,30 +1,9 @@
-
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 #define HASHINDEXnot
 
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
+
 namespace RazorDB.C5
 {
   /// <summary>
@@ -222,7 +201,7 @@ namespace RazorDB.C5
     bool equals(T i1, T i2) { return itemequalityComparer.Equals(i1, i2); }
 
     /// <summary>
-    /// Increment or decrement the private size fields
+    /// Increment or decrement the size fields
     /// </summary>
     /// <param name="delta">Increment (with sign)</param>
     void addtosize(int delta)
@@ -372,7 +351,7 @@ namespace RazorDB.C5
 #endif
     }
 
-    private void baseinsert(int i, T item)
+    void baseinsert(int i, T item)
     {
       if (underlyingsize == array.Length)
         expand();
@@ -412,9 +391,9 @@ namespace RazorDB.C5
     #region Indexing
 
 #if HASHINDEX
-    private void reindex(int start) { reindex(start, underlyingsize); }
+    void reindex(int start) { reindex(start, underlyingsize); }
 
-    private void reindex(int start, int end)
+    void reindex(int start, int end)
     {
       for (int j = start; j < end; j++)
         itemIndex.UpdateOrAdd(new KeyValuePair<T, int>(array[j], j));
@@ -923,7 +902,7 @@ namespace RazorDB.C5
         }
       }
     }
-    private void raiseForInsertAll(int index, int added)
+    void raiseForInsertAll(int index, int added)
     {
       if (ActiveEvents != 0)
       {
@@ -1076,7 +1055,7 @@ namespace RazorDB.C5
       return map<V>(mapper, res);
     }
 
-    private IList<V> map<V>(Fun<T, V> mapper, ArrayList<V> res)
+    IList<V> map<V>(Fun<T, V> mapper, ArrayList<V> res)
     {
       int stamp = this.stamp;
       if (size > 0)
@@ -2369,7 +2348,7 @@ namespace RazorDB.C5
         }
       }
     }
-    private void raiseForAddAll(int start, int added)
+    void raiseForAddAll(int start, int added)
     {
       if ((ActiveEvents & EventTypeEnum.Added) != 0)
         for (int i = start, end = start + added; i < end; i++)

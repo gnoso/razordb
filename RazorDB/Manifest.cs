@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,9 +7,7 @@ using System.Threading;
 using System.Diagnostics;
 
 namespace RazorDB {
-
     public class ManifestImmutable : IDisposable {
-
         public ManifestImmutable(Manifest manifest) {
             _manifest = manifest;
             _pages = new List<PageRecord>[MaxLevels];
@@ -35,7 +18,7 @@ namespace RazorDB {
             }
         }
 
-        private ManifestImmutable Clone() {
+        ManifestImmutable Clone() {
             // Clone this copy of the manifest
             var clone = new ManifestImmutable(_manifest);
 
@@ -51,10 +34,10 @@ namespace RazorDB {
             return clone;
         }
 
-        private Key[] _mergeKeys;
-        private List<PageRecord>[] _pages;
+        Key[] _mergeKeys;
+        List<PageRecord>[] _pages;
 
-        private int[] _versions = new int[MaxLevels];
+        int[] _versions = new int[MaxLevels];
         public int CurrentVersion(int level) {
             if (level >= MaxLevels)
                 throw new IndexOutOfRangeException();
@@ -62,7 +45,11 @@ namespace RazorDB {
         }
 
         public const int MaxLevels = 8;
-        public int NumLevels { get { return MaxLevels; } }
+        public int NumLevels {
+			get {
+				return MaxLevels;
+			}
+		}
 
         public int GetNumPagesAtLevel(int level) {
             if (level >= MaxLevels)
@@ -102,7 +89,6 @@ namespace RazorDB {
 
         // find the maximum key that we can span to avoid covering too much upper level data.
         public Key FindSpanningLimit(int level, Key startingKey) {
-
             // not a valid level
             if (level >= NumLevels)
                 return Key.Empty;
@@ -270,7 +256,7 @@ namespace RazorDB {
             }
         }
 
-        private Manifest _manifest;
+        Manifest _manifest;
 
         public void AddRef() {
             foreach (var level in _pages) {
@@ -293,7 +279,7 @@ namespace RazorDB {
 
     public class Manifest {
 
-        private Manifest() { }
+        Manifest() { }
         public Manifest(string baseFileName) {
             _baseFileName = baseFileName;
             Read();
@@ -301,20 +287,20 @@ namespace RazorDB {
         public static Manifest NewDummyManifest() {
             return new Manifest();
         }
-        private object manifestLock = new object();
-        private LinkedList<ManifestImmutable> _manifests = new LinkedList<ManifestImmutable>();
+        object manifestLock = new object();
+        LinkedList<ManifestImmutable> _manifests = new LinkedList<ManifestImmutable>();
 
-        private string _baseFileName;
+        string _baseFileName;
         public string BaseFileName {
             get { return _baseFileName; }
         }
 
-        private int _manifestVersion = 0;
+        int _manifestVersion = 0;
         public int ManifestVersion {
             get { return _manifestVersion; }
         }
 
-        private int _altManifestVersion = Config.ManifestVersionCount / 4;
+        int _altManifestVersion = Config.ManifestVersionCount / 4;
         public int AltManifestVersion {
             get { return _altManifestVersion; }
         }
@@ -325,7 +311,7 @@ namespace RazorDB {
             }
         }
 
-        private void CommitManifest(ManifestImmutable manifest) {
+        void CommitManifest(ManifestImmutable manifest) {
             lock (manifestLock) {
                 Write(manifest);
                 _manifests.AddLast(manifest);
@@ -340,13 +326,13 @@ namespace RazorDB {
             }
         }
 
-        private void ReleaseManifest(ManifestImmutable manifest) {
+        void ReleaseManifest(ManifestImmutable manifest) {
             lock (manifestLock) {
                 _manifests.Remove(manifest);
             }
         }
 
-        private ManifestImmutable LastManifest { get { return _manifests.Last.Value; } }
+        ManifestImmutable LastManifest { get { return _manifests.Last.Value; } }
 
         public void LogContents() {
             LastManifest.LogContents(this);
@@ -393,8 +379,7 @@ namespace RazorDB {
                 File.Delete(path);
         }
 
-        private void Write(ManifestImmutable m) {
-
+        void Write(ManifestImmutable m) {
             // Get an in-memory copy of the all the bytes that will be written to the manifest
             var ms = new MemoryStream();
             var writer = new BinaryWriter(ms);
@@ -431,8 +416,7 @@ namespace RazorDB {
             }
         }
 
-        private void Read() {
-
+        void Read() {
             string manifestFile = Config.ManifestFile(_baseFileName);
             if (!File.Exists(manifestFile)) {
                 _manifests.AddLast(new ManifestImmutable(this));
@@ -481,7 +465,7 @@ namespace RazorDB {
             }
         }
 
-        private Action<string> _logger;
+        Action<string> _logger;
         public Action<string> Logger {
             get { return _logger; }
             set { _logger = value; } 
@@ -493,8 +477,7 @@ namespace RazorDB {
             }
         }
 
-        [Conditional("DEBUG")]
-        public void DebugMessage(string format, params object[] parms) {
+        [Conditional("DEBUG")] public void DebugMessage(string format, params object[] parms) {
             if (Logger != null) {
                 Logger(string.Format(format, parms));
             }
@@ -552,16 +535,16 @@ namespace RazorDB {
             _lastKey = lastKey;
             _snapshotReferenceCount = 0;
         }
-        private int _level;
+        int _level;
         public int Level { get { return _level; } }
-        private int _version;
+        int _version;
         public int Version { get { return _version; } }
-        private Key _firstKey;
+        Key _firstKey;
         public Key FirstKey { get { return _firstKey; } }
-        private Key _lastKey;
+        Key _lastKey;
         public Key LastKey { get { return _lastKey; } }
 
-        private int _snapshotReferenceCount;
+        int _snapshotReferenceCount;
         public int RefCount { get { return _snapshotReferenceCount; } }
 
         public void AddRef() {

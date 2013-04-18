@@ -1,28 +1,11 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
 
 namespace RazorDB {
-
     public static class Config {
-
         public static int IndexCacheSize = 50 * 1024 * 1024;                    // Size of the Block Index Cache in bytes
         public static int DataBlockCacheSize = 300 * 1024 * 1024;               // Size of the Data Block Cache in bytes
         public static int MaxSortedBlockTableSize = 2 * 1024 * 1024;            // Maximum size we should let the sorted block table grow to before rolling over to a new file.
@@ -48,6 +31,7 @@ namespace RazorDB {
         public static string IndexBaseName(string baseName, string indexName) {
             return baseName + "\\" + indexName;
         }
+
         public static int MaxPagesOnLevel(int level) {
             if (level == 0) {
                 return 4;
@@ -58,7 +42,6 @@ namespace RazorDB {
     }
 
     public static class Helper {
-
         public static int Encode7BitInt(byte[] workingArray, int value) {
             int size = 0;
             uint num = (uint)value;
@@ -85,6 +68,7 @@ namespace RazorDB {
             while ((b & 0x80) != 0);
             return val;
         }
+
         public static int Read7BitEncodedInt(this BinaryReader rdr) {
             return (int) rdr.Read7BitEncodedUInt();
         }
@@ -107,6 +91,7 @@ namespace RazorDB {
                 throw new InvalidDataException("Negative numbers are not supported.");
             wtr.Write7BitEncodedUInt( (uint) value);
         }
+
         public static void Write7BitEncodedUInt(this BinaryWriter wtr, uint value) {
             uint num = value;
             while (num >= 0x80) {
@@ -115,6 +100,5 @@ namespace RazorDB {
             }
             wtr.Write((byte)num);
         }
-
     }
 }
