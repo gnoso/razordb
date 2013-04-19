@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,13 +10,8 @@ using RazorDB;
 using System.Reflection;
 
 namespace RazorDBTests {
-
-    [TestFixture]
-    public class CrashTests {
-
-        [Test]
-        public void CrashTestOnMerge() {
-
+    [TestFixture] public class CrashTests {
+        [Test] public void CrashTestOnMerge() {
             string path = Path.GetFullPath("TestData\\CrashTestOnMerge");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -57,7 +37,6 @@ namespace RazorDBTests {
                 int ct = 0;
                 foreach (var pair in db.Enumerate()) {
                     ByteArray k = new ByteArray(pair.Key);
-                    ByteArray v = new ByteArray(pair.Value);
                     Assert.True(lastKey.CompareTo(k) < 0);
                     lastKey = k;
                     ct++;
@@ -68,9 +47,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void CrashTestBeforeMerge() {
-
+        [Test] public void CrashTestBeforeMerge() {
             string path = Path.GetFullPath("TestData\\CrashTestBeforeMerge");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -96,7 +73,6 @@ namespace RazorDBTests {
                 int ct = 0;
                 foreach (var pair in db.Enumerate()) {
                     ByteArray k = new ByteArray(pair.Key);
-                    ByteArray v = new ByteArray(pair.Value);
                     Assert.True(lastKey.CompareTo(k) < 0);
                     lastKey = k;
                     ct++;
@@ -104,8 +80,6 @@ namespace RazorDBTests {
                 Assert.AreEqual(10000, ct);
                 Console.WriteLine("Found {0} items in the crashed database.", ct);
             }
-
         }
-
     }
 }

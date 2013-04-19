@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,9 +8,8 @@ using System.Diagnostics;
 
 namespace RazorDB {
     public class TableManager {
-
-        private static TableManager _tableManagerInstance;
-        private static object startupLock = new object();
+        static TableManager _tableManagerInstance;
+        static object startupLock = new object();
         static TableManager() {
             lock (startupLock) {
                 if (_tableManagerInstance == null)
@@ -34,18 +18,18 @@ namespace RazorDB {
         }
 
         public static TableManager Default {
-            get { return _tableManagerInstance; }
+            get {
+				return _tableManagerInstance;
+			}
         }
 
-        private TableManager() {}
+        TableManager() {}
 
-        private long pauseTime = Stopwatch.Frequency / 4;
+        long pauseTime = Stopwatch.Frequency / 4;
 
         public void MarkKeyValueStoreAsModified(KeyValueStore kvStore) {
-            
             // Only schedule a merge run if no merging is happening
             if (kvStore.mergeCount == 0) {
-
                 // determine if we've reached the next time threshold for another update
                 long ticks = Stopwatch.GetTimestamp();
                 long ticksTillNext = kvStore.ticksTillNextMerge;
@@ -64,7 +48,6 @@ namespace RazorDB {
         }
 
         public static void RunTableMergePass(KeyValueStore kvStore) {
-
             try {
                 Interlocked.Increment(ref kvStore.mergeCount);
 
@@ -114,16 +97,13 @@ namespace RazorDB {
                                 }
                             }
                         }
-
                         // No more merging is needed, we are finished with this pass
-                        if (!mergedDuringLastPass)
-                            return;
+                        if (!mergedDuringLastPass) return;
                     }
                 }
             } finally {
                 Interlocked.Decrement(ref kvStore.mergeCount);
             }
         }
-
     }
 }

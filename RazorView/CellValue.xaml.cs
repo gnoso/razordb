@@ -13,19 +13,18 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 namespace RazorView {
-    /// <summary>
     /// Interaction logic for CellValue.xaml
-    /// </summary>
     public partial class CellValue : UserControl {
         public CellValue() {
             InitializeComponent();
-
             Expanded = false;
         }
 
         bool expanded = false;
         public bool Expanded {
-            get { return expanded; }
+            get {
+				return expanded;
+			}
             set { 
                 expanded = value;
                 if (expanded) {
@@ -38,7 +37,7 @@ namespace RazorView {
             }
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e) {
+        void Button_Click(object sender, RoutedEventArgs e) {
             Expanded = !Expanded;
         }
     }

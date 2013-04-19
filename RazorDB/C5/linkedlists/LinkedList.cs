@@ -1,24 +1,3 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 #define HASHINDEXnot
 
 using System;
@@ -393,7 +372,7 @@ namespace RazorDB.C5
     }
 
 #if HASHINDEX
-    private bool dictremove(T item, out Node node)
+    bool dictremove(T item, out Node node)
     {
       if (underlying == null)
       {
@@ -894,7 +873,7 @@ namespace RazorDB.C5
     }
 
 
-    private void redistributetaggroups(TagGroup taggroup)
+    void redistributetaggroups(TagGroup taggroup)
     {
       TagGroup pred = taggroup, succ = taggroup, tmp;
       double limit = 1, bigt = Math.Pow(Taggroups, 1.0 / 30);//?????
@@ -1542,7 +1521,7 @@ namespace RazorDB.C5
 #endif
     }
 
-    private void raiseForInsertAll(Node node, int i, int added, bool insertion)
+    void raiseForInsertAll(Node node, int i, int added, bool insertion)
     {
       if (ActiveEvents != 0)
       {
@@ -1617,7 +1596,7 @@ namespace RazorDB.C5
       return map<V>(mapper, retval);
     }
 
-    private IList<V> map<V>(Fun<T, V> mapper, LinkedList<V> retval)
+    IList<V> map<V>(Fun<T, V> mapper, LinkedList<V> retval)
     {
       if (size == 0)
         return retval;
@@ -2001,7 +1980,7 @@ namespace RazorDB.C5
       (underlying ?? this).raiseCollectionChanged();
     }
 
-    private void mirrorViewSentinelsForReverse(Position[] positions, ref int poslow, ref int poshigh, Node a, Node b, int i)
+    void mirrorViewSentinelsForReverse(Position[] positions, ref int poslow, ref int poshigh, Node a, Node b, int i)
     {
 #if HASHINDEX
       int? aindex = offset + i, bindex = offset + size - 1 - i;
@@ -2197,7 +2176,7 @@ namespace RazorDB.C5
       (underlying ?? this).raiseCollectionChanged();
     }
 
-    private static Node mergeRuns(Node run1, Node run2, SCG.IComparer<T> c)
+    static Node mergeRuns(Node run1, Node run2, SCG.IComparer<T> c)
     {
       //assert run1 != null && run2 != null;
       Node prev;
@@ -3503,7 +3482,7 @@ namespace RazorDB.C5
 
     #region Diagnostic
 
-    private bool checkViews()
+    bool checkViews()
     {
       if (underlying != null)
         throw new InternalException(System.Reflection.MethodInfo.GetCurrentMethod() + " called on a view");

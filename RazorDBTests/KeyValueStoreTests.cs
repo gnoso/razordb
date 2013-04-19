@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using NUnit.Framework;
 using System.Text;
 using RazorDB;
@@ -24,21 +9,15 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace RazorDBTests {
-
-    [TestFixture]
-    public class KeyValueStoreTests {
-
-        [TestFixtureSetUp]
-        public void Setup() {
+	[TestFixture] public class KeyValueStoreTests {
+        [TestFixtureSetUp] public void Setup() {
             string path = Path.GetFullPath("TestData");
             if (!Directory.Exists(path)) 
                 Directory.CreateDirectory(path);
         }
 
-        [Test]
-        public void BasicGetAndSet() {
-
-            using (var db = new KeyValueStore("TestData\\GetAndSet")) {
+        [Test] public void BasicGetAndSet() {
+			using (var db = new KeyValueStore("TestData\\GetAndSet")) {
                 db.Truncate();
 
                 for (int i = 0; i < 10; i++) {
@@ -60,9 +39,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void BasicPersistentGetAndSet() {
-
+        [Test] public void BasicPersistentGetAndSet() {
             string path = Path.GetFullPath("TestData\\BasicPersistentGetAndSet");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -88,9 +65,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void GetAndSetWithDelete() {
-
+        [Test] public void GetAndSetWithDelete() {
             string path = Path.GetFullPath("TestData\\GetAndSetWithDelete");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -124,9 +99,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void WriteSpeedTests() {
-
+        [Test] public void WriteSpeedTests() {
             Action<KeyValueStore, int, int, int> InsertDenseBlock = (KeyValueStore db, int key, int density, int count) => {
                 byte[] value = ByteArray.Random(Config.MaxSmallValueSize - 12).InternalBytes;
                 for (int i = 0; i < count; i++) {
@@ -149,9 +122,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void KeyDensityMaximumPageOverlapTest() {
-
+        [Test] public void KeyDensityMaximumPageOverlapTest() {
             Action<KeyValueStore, int,int, int> InsertDenseBlock = (KeyValueStore db, int key, int density, int count) => {
                 byte[] value = ByteArray.Random(Config.MaxSmallValueSize - 12).InternalBytes;
                 for (int i = 0; i < count; i++) {
@@ -192,9 +163,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")]
-        public void RotationShutdownRaceTest() {
-
+        [Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")] public void RotationShutdownRaceTest() {
             // Test to be sure that the rotation page has definitely been written by the time we exit the dispose region (the db must wait for that to occur).
             string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
             using (var db = new KeyValueStore(path)) {
@@ -218,9 +187,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")]
-        public void RotationReadRaceTest() {
-
+        [Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")] public void RotationReadRaceTest() {
             string path = Path.GetFullPath("TestData\\RotationReadRaceTest");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -256,16 +223,12 @@ namespace RazorDBTests {
             Console.WriteLine("Done.");
         }
 
-        [Test]
-        public void RotationBulkRead() {
-
+        [Test] public void RotationBulkRead() {
             string path = Path.GetFullPath("TestData\\RotationBulkReadRace");
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
 
                 int num_items = 30000;
-                int multiple = 3;
-                int read_items = num_items * multiple;
 
                 byte[] split = BitConverter.GetBytes(num_items >> 2);
                 int number_we_should_scan = 0;
@@ -286,9 +249,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void BulkSetWithDelete() {
-
+        [Test] public void BulkSetWithDelete() {
             int numItems = 100000;
             string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
             using (var db = new KeyValueStore(path)) {
@@ -336,9 +297,7 @@ namespace RazorDBTests {
         }
 
 
-        [Test]
-        public void BulkSet() {
-
+        [Test] public void BulkSet() {
             string path = Path.GetFullPath("TestData\\BulkSet");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -362,9 +321,7 @@ namespace RazorDBTests {
 
        }
 
-        [Test]
-        public void BulkThreadedSet() {
-
+        [Test] public void BulkThreadedSet() {
             int numThreads = 10;
             int totalItems = 100000;
             int totalSize = 0;
@@ -404,9 +361,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void BulkSetBulkGet() {
-
+        [Test] public void BulkSetBulkGet() {
             string path = Path.GetFullPath("TestData\\BulkSetBulkGet");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -459,9 +414,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void BulkSetGetWhileReMerging() {
-
+        [Test] public void BulkSetGetWhileReMerging() {
             string path = Path.GetFullPath("TestData\\BulkSetGetWhileReMerging");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -506,9 +459,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void BulkSetBulkEnumerate() {
-
+        [Test] public void BulkSetBulkEnumerate() {
             string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerate");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -545,7 +496,6 @@ namespace RazorDBTests {
                 foreach (var pair in db.Enumerate()) {
                     try {
                         ByteArray k = new ByteArray(pair.Key);
-                        ByteArray v = new ByteArray(pair.Value);
                         Assert.True(lastKey.CompareTo(k) < 0);
                         lastKey = k;
                         ct++;
@@ -565,9 +515,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void BulkSetBulkEnumerateWhileMerging() {
-
+        [Test] public void BulkSetBulkEnumerateWhileMerging() {
             string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerateWhileMerging");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -599,7 +547,6 @@ namespace RazorDBTests {
                 foreach (var pair in db.Enumerate()) {
                     try {
                         ByteArray k = new ByteArray(pair.Key);
-                        ByteArray v = new ByteArray(pair.Value);
                         Assert.True(lastKey.CompareTo(k) < 0);
                         lastKey = k;
                         ct++;
@@ -617,9 +564,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void BulkSetBulkEnumerateWithCache() {
-
+        [Test] public void BulkSetBulkEnumerateWithCache() {
             string path = Path.GetFullPath("TestData\\BulkSetBulkEnumerateWithCache");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -658,9 +603,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void BulkSetEnumerateAll() {
-
+        [Test] public void BulkSetEnumerateAll() {
             string path = Path.GetFullPath("TestData\\BulkSetEnumerateAll");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -717,9 +660,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void BulkSetEnumerateAll2() {
-
+        [Test] public void BulkSetEnumerateAll2() {
             string path = Path.GetFullPath("TestData\\BulkSetEnumerateAll2");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -771,9 +712,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void BulkSetEnumerateAll3() {
-
+        [Test] public void BulkSetEnumerateAll3() {
             string path = Path.GetFullPath("TestData\\BulkSetEnumerateAll3");
             var timer = new Stopwatch();
 
@@ -805,9 +744,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void BulkSetEnumerateFromKey() {
-
+        [Test] public void BulkSetEnumerateFromKey() {
             string path = Path.GetFullPath("TestData\\BulkSetEnumerateFromKey");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -840,8 +777,6 @@ namespace RazorDBTests {
                 foreach (var pair in db.EnumerateFromKey( searchKey )) {
                     try {
                         int num = BitConverter.ToInt32(pair.Key.Reverse().ToArray(),0);
-                        ByteArray k = new ByteArray(pair.Key);
-                        ByteArray v = new ByteArray(pair.Value);
 
                         Assert.GreaterOrEqual(num, 50000);
                         sum += num;
@@ -864,9 +799,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void BulkSetThreadedGetWhileReMerging() {
-
+        [Test] public void BulkSetThreadedGetWhileReMerging() {
             string path = Path.GetFullPath("TestData\\BulkSetThreadedGetWhileReMerging");
             var timer = new Stopwatch();
             int totalSize = 0;
@@ -913,8 +846,6 @@ namespace RazorDBTests {
                         }
                     }));
                 }
-
-
                 timer.Reset();
                 Console.WriteLine("Begin randomized read back.");
                 timer.Start();
@@ -928,9 +859,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void TestJournalFileGrowth() {
-
+        [Test] public void TestJournalFileGrowth() {
             string path = Path.GetFullPath("TestData\\TestJournalFileGrowth");
             // Open database and store enough data to cause a page split
             using (var db = new KeyValueStore(path)) {
@@ -959,9 +888,7 @@ namespace RazorDBTests {
             
         }
 
-        [Test]
-        public void TestOverwritingAndDeleting() {
-
+        [Test] public void TestOverwritingAndDeleting() {
             var keys = new List<ByteArray>();
 
             string path = Path.GetFullPath("TestData\\TestOverwriting");
@@ -1002,5 +929,4 @@ namespace RazorDBTests {
             Assert.Less(spaceRatio, 1.4);
         }
     }
-
 }

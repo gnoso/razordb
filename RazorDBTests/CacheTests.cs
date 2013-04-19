@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,13 +6,8 @@ using NUnit.Framework;
 using RazorDB;
 
 namespace RazorDBTests {
-
-    [TestFixture]
-    public class CacheTests {
-
-        [Test]
-        public void BasicAdd() {
-
+    [TestFixture] public class CacheTests {
+        [Test] public void BasicAdd() {
             var cache = new Cache<ByteArray>(500 * 1024, ba => ba.Length );
             var items = new List<KeyValuePair<string, ByteArray>>();
 
@@ -47,8 +27,7 @@ namespace RazorDBTests {
             Assert.IsFalse(cache.TryGetValue(ByteArray.Random(40).ToString(), out oval));
         }
 
-        [Test]
-        public void CheckAddWithSize() {
+        [Test] public void CheckAddWithSize() {
 
             var cache = new Cache<ByteArray>(500 * 1024, ba => ba.Length);
 
@@ -62,9 +41,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void CheckOverSizeLimit() {
-
+        [Test] public void CheckOverSizeLimit() {
             int limit = 100 * 256;
             var cache = new Cache<ByteArray>(limit, ba => ba.Length);
             var items = new List<string>();
@@ -92,9 +69,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void CheckLRU() {
-
+        [Test] public void CheckLRU() {
             int limit = 100 * 256;
             var cache = new Cache<ByteArray>(limit, ba => ba.Length);
             var items = new List<string>();
@@ -139,6 +114,5 @@ namespace RazorDBTests {
 
             Assert.GreaterOrEqual(limit, cache.CurrentSize);
        }
-
     }
 }

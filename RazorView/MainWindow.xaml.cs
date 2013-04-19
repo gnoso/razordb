@@ -18,9 +18,7 @@ using RazorDB;
 using RazorView.Properties;
 
 namespace RazorView {
-    /// <summary>
     /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window {
         public MainWindow() {
             InitializeComponent();
@@ -39,8 +37,8 @@ namespace RazorView {
             LoadVisualizers();
         }
 
-        private void MenuItem_Close(object sender, RoutedEventArgs e) {
-            this.Close();
+         void MenuItem_Close(object sender, RoutedEventArgs e) {
+            Close();
         }
 
         protected override void OnClosed(EventArgs e) {
@@ -48,16 +46,16 @@ namespace RazorView {
             Environment.Exit(0);
         }
 
-        private void MenuItem_OpenDB(object sender, RoutedEventArgs e) {
+         void MenuItem_OpenDB(object sender, RoutedEventArgs e) {
             var dlg = new OpenFileDialog();
             dlg.CheckFileExists = false;
             dlg.CheckPathExists = false;
-            if ((bool) dlg.ShowDialog(this)) {
+            if ((bool) dlg.ShowDialog()) {
                 OpenDatabase(dlg.FileName);
             }
         }
 
-        private void OpenDatabase(string journalFile) {
+         void OpenDatabase(string journalFile) {
             try {
                 var db = new DBController(journalFile, _factories);
 
@@ -84,13 +82,13 @@ namespace RazorView {
             }
         }
 
-        private List<Assembly> _vizAssemblies = new List<Assembly>();
-        private List<IDataVizFactory> _factories = new List<IDataVizFactory>();
+         List<Assembly> _vizAssemblies = new List<Assembly>();
+         List<IDataVizFactory> _factories = new List<IDataVizFactory>();
 
-        private void MenuItem_AddViz(object sender, RoutedEventArgs e) {
+         void MenuItem_AddViz(object sender, RoutedEventArgs e) {
             var dlg = new OpenFileDialog();
             dlg.DefaultExt = "*.dll";
-            if ((bool) dlg.ShowDialog(this)) {
+            if ((bool) dlg.ShowDialog()) {
                 InternalAddVisualizer(dlg.FileName);
                 Settings.Default.AddVisualizerAssembly(dlg.FileName);
                 Settings.Default.Save();
@@ -98,7 +96,7 @@ namespace RazorView {
             }
         }
 
-        private void MenuItem_Clear(object sender, RoutedEventArgs e) {
+         void MenuItem_Clear(object sender, RoutedEventArgs e) {
             _vizAssemblies.Clear();
             _factories.Clear();
             Settings.Default.VisualizerAssemblies = "";
@@ -106,7 +104,7 @@ namespace RazorView {
             LoadVisualizers();
         }
 
-        private void InternalAddVisualizer(string assemblyFile) {
+         void InternalAddVisualizer(string assemblyFile) {
             try {
                 var a = Assembly.LoadFrom(assemblyFile);
                 _vizAssemblies.Add(a);
@@ -121,7 +119,7 @@ namespace RazorView {
             }
         }
 
-        private void LoadVisualizers() {
+         void LoadVisualizers() {
 
             menuVizList.Items.Clear();
             foreach (var assem in Settings.Default.VisualizerAssembliesList) {
@@ -136,6 +134,5 @@ namespace RazorView {
             menuVizList.Items.Add(menuClearViz);
 
         }
-
     }
 }

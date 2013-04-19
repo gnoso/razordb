@@ -4,8 +4,7 @@ using System.Linq;
 using System.Text;
 
 namespace RazorDB {
-
-    // This interface is used by the RazorView program to allow an assembly to define possibly better ways of visualizing the data in the key value store
+	// This interface is used by the RazorView program to allow an assembly to define possibly better ways of visualizing the data in the key value store
     public interface IDataVizFactory {
         IDataViz GetVisualizer(KeyValueStore kvStore);
     }

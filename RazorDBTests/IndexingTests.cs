@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,13 +8,8 @@ using System.Diagnostics;
 using System.IO;
 
 namespace RazorDBTests {
-    
-    [TestFixture]
-    public class IndexingTests {
-
-        [Test]
-        public void TruncateTest() {
-
+    [TestFixture] public class IndexingTests {
+        [Test] public void TruncateTest() {
             string path = Path.GetFullPath("TestData\\TruncateTest");
             using (var db = new KeyValueStore(path)) {
                 var indexed = new SortedDictionary<string, byte[]>();
@@ -49,11 +29,8 @@ namespace RazorDBTests {
             Assert.AreEqual(new string[0], dirs);
         }
 
-        [Test]
-        public void AddObjectsAndLookup() {
-
+        [Test] public void AddObjectsAndLookup() {
             string path = Path.GetFullPath("TestData\\AddObjectsAndLookup");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -100,11 +77,8 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void FindStartsWith() {
-
+        [Test] public void FindStartsWith() {
             string path = Path.GetFullPath("TestData\\FindStartsWith");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -134,9 +108,7 @@ namespace RazorDBTests {
         }
 
 
-        [Test]
-        public void AddObjectsAndLookupWhileMerging() {
-
+        [Test] public void AddObjectsAndLookupWhileMerging() {
             string path = Path.GetFullPath("TestData\\AddObjectsAndLookupWhileMerging");
             var timer = new Stopwatch();
 
@@ -166,9 +138,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void AddObjectsAndLookupWithMixedCase() {
-
+        [Test] public void AddObjectsAndLookupWithMixedCase() {
             string path = Path.GetFullPath("TestData\\AddObjectsAndLookupWithMixedCase");
             var timer = new Stopwatch();
 
@@ -198,9 +168,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
-        public void RemoveDeletedValuesFromIndex() {
-
+        [Test] public void RemoveDeletedValuesFromIndex() {
             string path = Path.GetFullPath("TestData\\RemoveDeletedValuesFromIndex");
             var timer = new Stopwatch();
 
@@ -254,9 +222,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void RemoveUpdatedValuesFromIndex() {
-
+        [Test] public void RemoveUpdatedValuesFromIndex() {
             string path = Path.GetFullPath("TestData\\RemoveUpdatedValuesFromIndex");
             var timer = new Stopwatch();
 
@@ -310,9 +276,7 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void RemoveUpdatedValuesFromIndex2() {
-
+        [Test] public void RemoveUpdatedValuesFromIndex2() {
             string path = Path.GetFullPath("TestData\\RemoveUpdatedValuesFromIndex2");
             var timer = new Stopwatch();
 
@@ -367,17 +331,13 @@ namespace RazorDBTests {
 
         }
 
-        [Test]
-        public void LookupOldDataFromIndex() {
-
+        [Test] public void LookupOldDataFromIndex() {
             string path = Path.GetFullPath("TestData\\LookupOldDataFromIndex");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
                 db.Manifest.Logger = msg => Console.WriteLine(msg);
 
-                var indexed = new SortedDictionary<string, byte[]> {  };
                 db.Set(Encoding.UTF8.GetBytes("KeyA"), Encoding.UTF8.GetBytes("ValueA:1"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("1") } });
                 db.Set(Encoding.UTF8.GetBytes("KeyB"), Encoding.UTF8.GetBytes("ValueB:2"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("2") } });
                 db.Set(Encoding.UTF8.GetBytes("KeyC"), Encoding.UTF8.GetBytes("ValueC:3"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("3") } });
@@ -398,21 +358,14 @@ namespace RazorDBTests {
 
                 Assert.False(db.Find("Idx", Encoding.UTF8.GetBytes("3")).Any());
             }
-
-
         }
 
-        [Test]
-        public void IndexClean() {
-
+        [Test] public void IndexClean() {
             string path = Path.GetFullPath("TestData\\IndexClean");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
                 db.Manifest.Logger = msg => Console.WriteLine(msg);
-
-                var indexed = new SortedDictionary<string, byte[]> { };
                 db.Set(Encoding.UTF8.GetBytes("KeyA"), Encoding.UTF8.GetBytes("ValueA:1"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("1") } });
                 db.Set(Encoding.UTF8.GetBytes("KeyB"), Encoding.UTF8.GetBytes("ValueB:2"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("2") } });
                 db.Set(Encoding.UTF8.GetBytes("KeyC"), Encoding.UTF8.GetBytes("ValueC:3"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("3") } });
@@ -437,8 +390,6 @@ namespace RazorDBTests {
             using (var db = new KeyValueStore(Path.Combine(path, "Idx"))) {
                 Assert.AreEqual(2, db.Enumerate().Count());
             }
-
         }
-
     }
 }
