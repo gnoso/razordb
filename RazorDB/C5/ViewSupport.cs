@@ -4,34 +4,22 @@ using SCG = System.Collections.Generic;
 
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// Characterize the mutual position of some view B (other) relative to view A (this)
-  /// </summary>
+  // Characterize the mutual position of some view B (other) relative to view A (this)
   enum MutualViewPosition
   {
-    /// <summary>
-    /// B contains A(this)
-    /// </summary>
+    // B contains A(this)
     Contains,
-    /// <summary>
-    /// B is containd in A(this), but not vice versa
-    /// </summary>
+    // B is containd in A(this), but not vice versa
     ContainedIn,
-    /// <summary>
-    /// A and B does not overlap
-    /// </summary>
+    // A and B does not overlap
     NonOverlapping,
-    /// <summary>
-    /// A and B overlap, but neither is contained in the other
-    /// </summary>
+    // A and B overlap, but neither is contained in the other
     Overlapping
   }
 
   #region View List Nested class
-  /// <summary>
-  /// This class is shared between the linked list and array list implementations.
-  /// </summary>
-  /// <typeparam name="V"></typeparam>
+  // This class is shared between the linked list and array list implementations.
+  // <typeparam name="V"></typeparam>
   [Serializable]
   class WeakViewList<V> where V : class
   {
@@ -54,17 +42,14 @@ namespace RazorDB.C5
       if (n == start) { start = start.next; if (start != null) start.prev = null; }
       else { n.prev.next = n.next; if (n.next != null) n.next.prev = n.prev; }
     }
-    /// <summary>
-    /// Note that it is safe to call views.Remove(view.myWeakReference) if view
-    /// is the currently yielded object
-    /// </summary>
-    /// <returns></returns>
+    // Note that it is safe to call views.Remove(view.myWeakReference) if view
+    // is the currently yielded object
     public SCG.IEnumerator<V> GetEnumerator()
     {
       Node n = start;
       while (n != null)
       {
-        //V view = n.weakview.Target as V; //This provokes a bug in the beta1 verifyer
+        // V view = n.weakview.Target as V; //This provokes a bug in the beta1 verifyer
         object o = n.weakview.Target;
         V view = o is V ? (V)o : null;
         if (view == null)
@@ -75,6 +60,5 @@ namespace RazorDB.C5
       }
     }
   }
-
   #endregion
 }

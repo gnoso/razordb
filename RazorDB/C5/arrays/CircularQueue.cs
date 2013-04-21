@@ -1,12 +1,10 @@
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
+
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <typeparam name="T"></typeparam>
+  // <typeparam name="T"></typeparam>
   public class CircularQueue<T> : SequencedBase<T>, IQueue<T>, IStack<T>
   {
     #region Fields
@@ -19,19 +17,12 @@ namespace RazorDB.C5
 
         */
     int front, back;
-    /// <summary>
-    /// The internal container array is doubled when necessary, but never shrinked.
-    /// </summary>
+    // The internal container array is doubled when necessary, but never shrinked.
     T[] array;
     bool forwards = true, original = true;
     #endregion
 
     #region Events
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
     public override EventTypeEnum ListenableEvents { get { return EventTypeEnum.Basic; } }
 
     #endregion
@@ -59,16 +50,8 @@ namespace RazorDB.C5
     #endregion
 
     #region Constructors
-
-    /// <summary>
-    /// 
-    /// </summary>
     public CircularQueue() : this(8) { }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="capacity"></param>
+    // <param name="capacity"></param>
     public CircularQueue(int capacity)
       : base(EqualityComparer<T>.Default)
     {
@@ -80,17 +63,12 @@ namespace RazorDB.C5
     #endregion
 
     #region IQueue<T> Members
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
     public virtual bool AllowsDuplicates { get { return true; } }
 
-    /// <summary>
-    /// Get the i'th item in the queue. The front of the queue is at index 0.
-    /// </summary>
-    /// <param name="i"></param>
-    /// <returns></returns>
+
+    // Get the i'th item in the queue. The front of the queue is at index 0.
+    // <param name="i"></param>
+    // <returns></returns>
     public virtual T this[int i]
     {
       get
@@ -103,11 +81,7 @@ namespace RazorDB.C5
       }
     }
 
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
+    // <param name="item"></param>
     [Tested]
     public virtual void Enqueue(T item)
     {
@@ -123,10 +97,6 @@ namespace RazorDB.C5
         raiseForAdd(item);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     [Tested]
     public virtual T Dequeue()
     {
@@ -145,10 +115,7 @@ namespace RazorDB.C5
       return retval;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
+    // <param name="item"></param>
     public void Push(T item) //== Enqueue
     {
       if (!original)
@@ -163,10 +130,6 @@ namespace RazorDB.C5
         raiseForAdd(item);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public T Pop()
     {
       if (!original)
@@ -197,10 +160,6 @@ namespace RazorDB.C5
         {
         }*/
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     [Tested]
     public override T Choose()
     {
@@ -212,11 +171,6 @@ namespace RazorDB.C5
     #endregion
 
     #region IEnumerable<T> Members
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public override SCG.IEnumerator<T> GetEnumerator()
     {
       int stamp = stamp;
@@ -267,11 +221,6 @@ namespace RazorDB.C5
     #endregion
 
     #region IDirectedCollectionValue<T> Members
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public override IDirectedCollectionValue<T> Backwards()
     {
       CircularQueue<T> retval = (CircularQueue<T>)MemberwiseClone();
@@ -283,22 +232,12 @@ namespace RazorDB.C5
     #endregion
 
     #region IDirectedEnumerable<T> Members
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards()
     {
       return Backwards();
     }
 
     #endregion
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public virtual bool Check()
     {
       if (front < 0 || front >= array.Length || back < 0 || back >= array.Length ||

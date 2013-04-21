@@ -3,22 +3,18 @@ using System.Diagnostics;
 using SCG = System.Collections.Generic;
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// A utility class with functions for sorting arrays with respect to an IComparer&lt;T&gt;
-  /// </summary>
+  // A utility class with functions for sorting arrays with respect to an IComparer&lt;T&gt;
   public class Sorting
   {
     Sorting() { }
 
-    /// <summary>
-    /// Sort part of array in place using IntroSort
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
-    /// and <code>count</code> arguments does not describe a valid range.</exception>
-    /// <param name="array">Array to sort</param>
-    /// <param name="start">Index of first position to sort</param>
-    /// <param name="count">Number of elements to sort</param>
-    /// <param name="comparer">IComparer&lt;T&gt; to sort by</param>
+    // Sort part of array in place using IntroSort
+    // <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
+    // and <code>count</code> arguments does not describe a valid range.</exception>
+    // <param name="array">Array to sort</param>
+    // <param name="start">Index of first position to sort</param>
+    // <param name="count">Number of elements to sort</param>
+    // <param name="comparer">IComparer&lt;T&gt; to sort by</param>
     [Tested]
     public static void IntroSort<T>(T[] array, int start, int count, SCG.IComparer<T> comparer)
     {
@@ -27,27 +23,22 @@ namespace RazorDB.C5
       new Sorter<T>(array, comparer).IntroSort(start, start + count);
     }
 
-    /// <summary>
-    /// Sort an array in place using IntroSort and default comparer
-    /// </summary>
-    /// <exception cref="NotComparableException">If T is not comparable</exception>
-    /// <param name="array">Array to sort</param>
+    // Sort an array in place using IntroSort and default comparer
+    // <exception cref="NotComparableException">If T is not comparable</exception>
+    // <param name="array">Array to sort</param>
     [Tested]
     public static void IntroSort<T>(T[] array)
     {
       new Sorter<T>(array, Comparer<T>.Default).IntroSort(0, array.Length);
     }
 
-
-    /// <summary>
-    /// Sort part of array in place using Insertion Sort
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
-    /// and <code>count</code> arguments does not describe a valid range.</exception>
-    /// <param name="array">Array to sort</param>
-    /// <param name="start">Index of first position to sort</param>
-    /// <param name="count">Number of elements to sort</param>
-    /// <param name="comparer">IComparer&lt;T&gt; to sort by</param>
+    // Sort part of array in place using Insertion Sort
+    // <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
+    // and <code>count</code> arguments does not describe a valid range.</exception>
+    // <param name="array">Array to sort</param>
+    // <param name="start">Index of first position to sort</param>
+    // <param name="count">Number of elements to sort</param>
+    // <param name="comparer">IComparer&lt;T&gt; to sort by</param>
     [Tested]
     public static void InsertionSort<T>(T[] array, int start, int count, SCG.IComparer<T> comparer)
     {
@@ -56,16 +47,13 @@ namespace RazorDB.C5
       new Sorter<T>(array, comparer).InsertionSort(start, start + count);
     }
 
-
-    /// <summary>
-    /// Sort part of array in place using Heap Sort
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
-    /// and <code>count</code> arguments does not describe a valid range.</exception>
-    /// <param name="array">Array to sort</param>
-    /// <param name="start">Index of first position to sort</param>
-    /// <param name="count">Number of elements to sort</param>
-    /// <param name="comparer">IComparer&lt;T&gt; to sort by</param>
+    // Sort part of array in place using Heap Sort
+    // <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
+    // and <code>count</code> arguments does not describe a valid range.</exception>
+    // <param name="array">Array to sort</param>
+    // <param name="start">Index of first position to sort</param>
+    // <param name="count">Number of elements to sort</param>
+    // <param name="comparer">IComparer&lt;T&gt; to sort by</param>
     [Tested]
     public static void HeapSort<T>(T[] array, int start, int count, SCG.IComparer<T> comparer)
     {

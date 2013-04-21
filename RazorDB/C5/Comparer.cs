@@ -7,10 +7,10 @@ using SCG = System.Collections.Generic;
 
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// A default item comparer for an item type that is either generic (IComparable&lt;T&gt;)
-  /// or ordinarily (System.IComparable) comparable.
-  /// </summary>
+  //
+  // A default item comparer for an item type that is either generic (IComparable&lt;T&gt;)
+  // or ordinarily (System.IComparable) comparable.
+  //
   public static class Comparer<T>
   {
     readonly static Type naturalComparerO = typeof(NaturalComparerO<>);
@@ -19,15 +19,15 @@ namespace RazorDB.C5
 
     static SCG.IComparer<T> cachedComparer = null;
 
-    /// <summary>
-    /// Create a default comparer. 
-    /// <para>The IComparer[T] object is constructed when this class is initialised, i.e. 
-    /// its static constructors called. Thus, the property will be the same object 
-    /// for the duration of an invocation of the runtime, but a value serialized in 
-    /// another invocation and deserialized here will not be the same object.</para>
-    /// </summary>
-    /// <exception cref="NotComparableException">If T is not comparable</exception>
-    /// <value>The comparer</value>
+    //
+    // Create a default comparer. 
+    // <para>The IComparer[T] object is constructed when this class is initialised, i.e. 
+    // its static constructors called. Thus, the property will be the same object 
+    // for the duration of an invocation of the runtime, but a value serialized in 
+    // another invocation and deserialized here will not be the same object.</para>
+    //
+    // <exception cref="NotComparableException">If T is not comparable</exception>
+    // <value>The comparer</value>
     [Tested]
     public static SCG.IComparer<T> Default
     {
@@ -96,65 +96,65 @@ namespace RazorDB.C5
     }
   }
 
-  /// <summary>
-  /// A natural generic IComparer for an IComparable&lt;T&gt; item type
-  /// </summary>
-  /// <typeparam name="T"></typeparam>
+  //
+  // A natural generic IComparer for an IComparable&lt;T&gt; item type
+  //
+  // <typeparam name="T"></typeparam>
   [Serializable]
   public class NaturalComparer<T> : SCG.IComparer<T>
       where T : IComparable<T>
   {
-    /// <summary>
-    /// Compare two items
-    /// </summary>
-    /// <param name="item1">First item</param>
-    /// <param name="item2">Second item</param>
-    /// <returns>item1 &lt;=&gt; item2</returns>
+    //
+    // Compare two items
+    //
+    // <param name="item1">First item</param>
+    // <param name="item2">Second item</param>
+    // <returns>item1 &lt;=&gt; item2</returns>
     [Tested]
     public int Compare(T item1, T item2) { return item1 != null ? item1.CompareTo(item2) : item2 != null ? -1 : 0; }
   }
 
-  /// <summary>
-  /// A natural generic IComparer for a System.IComparable item type
-  /// </summary>
-  /// <typeparam name="T"></typeparam>
+  //
+  // A natural generic IComparer for a System.IComparable item type
+  //
+  // <typeparam name="T"></typeparam>
   [Serializable]
   public class NaturalComparerO<T> : SCG.IComparer<T> where T : System.IComparable
   {
-    /// <summary>
-    /// Compare two items
-    /// </summary>
-    /// <param name="item1">First item</param>
-    /// <param name="item2">Second item</param>
-    /// <returns>item1 &lt;=&gt; item2</returns>
+    //
+    // Compare two items
+    //
+    // <param name="item1">First item</param>
+    // <param name="item2">Second item</param>
+    // <returns>item1 &lt;=&gt; item2</returns>
     [Tested]
     public int Compare(T item1, T item2) { return item1 != null ? item1.CompareTo(item2) : item2 != null ? -1 : 0; }
   }
 
-  /// <summary>
-  /// A generic comparer for type T based on a Comparison[T] delegate
-  /// </summary>
-  /// <typeparam name="T"></typeparam>
+  //
+  // A generic comparer for type T based on a Comparison[T] delegate
+  //
+  // <typeparam name="T"></typeparam>
   [Serializable]
   public class DelegateComparer<T> : SCG.IComparer<T>
   {
     readonly Comparison<T> cmp;
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="comparison"></param>
+    //
+    // 
+    //
+    // <param name="comparison"></param>
     public DelegateComparer(Comparison<T> comparison)
     {
       if (comparison == null)
         throw new NullReferenceException("Comparison cannot be null");
       cmp = comparison;
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item1">First item</param>
-    /// <param name="item2">Second item</param>
-    /// <returns>item1 &lt;=&gt; item2</returns>
+    //
+    // 
+    //
+    // <param name="item1">First item</param>
+    // <param name="item2">Second item</param>
+    // <returns>item1 &lt;=&gt; item2</returns>
     public int Compare(T item1, T item2) { return cmp(item1, item2); }
   }
 }

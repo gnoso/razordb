@@ -10,46 +10,46 @@ namespace RazorDB.C5
   {
     public const int HASHFACTOR = 387281;
   }
-  /// <summary>
-  /// A generic record type with two fields. 
-  /// <para>
-  /// Equality is defined field by field, using the <code>Equals</code> method 
-  /// inherited from <code>System.Object</code> (i.e. using <see cref="T:C5.NaturalEqualityComparer`1"/>).
-  /// </para>
-  /// <para>
-  /// This type is similar to <see cref="T:C5.KeyValuePair`2"/>, but the latter
-  /// uses <see cref="P:C5.EqualityComparer`1.Default"/> to define field equality instead of <see cref="T:C5.NaturalEqualityComparer`1"/>.
-  /// </para>
-  /// </summary>
-  /// <typeparam name="T1"></typeparam>
-  /// <typeparam name="T2"></typeparam>
+  //
+  // A generic record type with two fields. 
+  // <para>
+  // Equality is defined field by field, using the <code>Equals</code> method 
+  // inherited from <code>System.Object</code> (i.e. using <see cref="T:C5.NaturalEqualityComparer`1"/>).
+  // </para>
+  // <para>
+  // This type is similar to <see cref="T:C5.KeyValuePair`2"/>, but the latter
+  // uses <see cref="P:C5.EqualityComparer`1.Default"/> to define field equality instead of <see cref="T:C5.NaturalEqualityComparer`1"/>.
+  // </para>
+  //
+  // <typeparam name="T1"></typeparam>
+  // <typeparam name="T2"></typeparam>
   public struct Rec<T1, T2> : IEquatable<Rec<T1, T2>>, IShowable
   {
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public readonly T1 X1;
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public readonly T2 X2;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="x1"></param>
-    /// <param name="x2"></param>
+    //
+    // 
+    //
+    // <param name="x1"></param>
+    // <param name="x2"></param>
     [Tested]
     public Rec(T1 x1, T2 x2)
     {
       X1 = x1; X2 = x2;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="other"></param>
+    // <returns></returns>
     [Tested]
     public bool Equals(Rec<T1, T2> other)
     {
@@ -58,42 +58,42 @@ namespace RazorDB.C5
         (X2 == null ? other.X2 == null : X2.Equals(other.X2))
         ;
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="obj"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="obj"></param>
+    // <returns></returns>
     [Tested]
     public override bool Equals(object obj)
     {
       return obj is Rec<T1, T2> ? Equals((Rec<T1, T2>)obj) : false;
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="record1"></param>
-    /// <param name="record2"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="record1"></param>
+    // <param name="record2"></param>
+    // <returns></returns>
     [Tested]
     public static bool operator ==(Rec<T1, T2> record1, Rec<T1, T2> record2)
     {
       return record1.Equals(record2);
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="record1"></param>
-    /// <param name="record2"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="record1"></param>
+    // <param name="record2"></param>
+    // <returns></returns>
     [Tested]
     public static bool operator !=(Rec<T1, T2> record1, Rec<T1, T2> record2)
     {
       return !record1.Equals(record2);
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     [Tested]
     public override int GetHashCode()
     {
@@ -103,10 +103,10 @@ namespace RazorDB.C5
       return hashcode;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public override string ToString()
     {
       return String.Format("({0}, {1})", X1, X2);
@@ -114,13 +114,13 @@ namespace RazorDB.C5
 
     #region IShowable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="stringbuilder"></param>
-    /// <param name="rest"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="stringbuilder"></param>
+    // <param name="rest"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public bool Show(System.Text.StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       bool incomplete = true;
@@ -150,12 +150,12 @@ namespace RazorDB.C5
 
     #region IFormattable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="format"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="format"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public string ToString(string format, IFormatProvider formatProvider)
     {
       return Showing.ShowString(this, format, formatProvider);
@@ -163,42 +163,42 @@ namespace RazorDB.C5
 
     #endregion
   }
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <typeparam name="T1"></typeparam>
-  /// <typeparam name="T2"></typeparam>
-  /// <typeparam name="T3"></typeparam>
+  //
+  // 
+  //
+  // <typeparam name="T1"></typeparam>
+  // <typeparam name="T2"></typeparam>
+  // <typeparam name="T3"></typeparam>
   public struct Rec<T1, T2, T3> : IEquatable<Rec<T1, T2, T3>>, IShowable
   {
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public readonly T1 X1;
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public readonly T2 X2;
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public readonly T3 X3;
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="x1"></param>
-    /// <param name="x2"></param>
-    /// <param name="x3"></param>
+    //
+    // 
+    //
+    // <param name="x1"></param>
+    // <param name="x2"></param>
+    // <param name="x3"></param>
     [Tested]
     public Rec(T1 x1, T2 x2, T3 x3)
     {
       X1 = x1; X2 = x2; X3 = x3;
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="other"></param>
+    // <returns></returns>
     [Tested]
     public bool Equals(Rec<T1, T2, T3> other)
     {
@@ -208,42 +208,42 @@ namespace RazorDB.C5
         (X3 == null ? other.X3 == null : X3.Equals(other.X3))
         ;
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="obj"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="obj"></param>
+    // <returns></returns>
     [Tested]
     public override bool Equals(object obj)
     {
       return obj is Rec<T1, T2, T3> ? Equals((Rec<T1, T2, T3>)obj) : false;
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="record1"></param>
-    /// <param name="record2"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="record1"></param>
+    // <param name="record2"></param>
+    // <returns></returns>
     [Tested]
     public static bool operator ==(Rec<T1, T2, T3> record1, Rec<T1, T2, T3> record2)
     {
       return record1.Equals(record2);
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="record1"></param>
-    /// <param name="record2"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="record1"></param>
+    // <param name="record2"></param>
+    // <returns></returns>
     [Tested]
     public static bool operator !=(Rec<T1, T2, T3> record1, Rec<T1, T2, T3> record2)
     {
       return !record1.Equals(record2);
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     [Tested]
     public override int GetHashCode()
     {
@@ -254,23 +254,23 @@ namespace RazorDB.C5
       return hashcode;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public override string ToString()
     {
       return String.Format("({0}, {1}, {2})", X1, X2, X3);
     }
     #region IShowable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="stringbuilder"></param>
-    /// <param name="rest"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="stringbuilder"></param>
+    // <param name="rest"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public bool Show(System.Text.StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       bool incomplete = true;
@@ -304,12 +304,12 @@ namespace RazorDB.C5
 
     #region IFormattable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="format"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="format"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public string ToString(string format, IFormatProvider formatProvider)
     {
       return Showing.ShowString(this, format, formatProvider);
@@ -318,48 +318,48 @@ namespace RazorDB.C5
     #endregion
   }
 
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <typeparam name="T1"></typeparam>
-  /// <typeparam name="T2"></typeparam>
-  /// <typeparam name="T3"></typeparam>
-  /// <typeparam name="T4"></typeparam>
+  //
+  // 
+  //
+  // <typeparam name="T1"></typeparam>
+  // <typeparam name="T2"></typeparam>
+  // <typeparam name="T3"></typeparam>
+  // <typeparam name="T4"></typeparam>
   public struct Rec<T1, T2, T3, T4> : IEquatable<Rec<T1, T2, T3, T4>>, IShowable
   {
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public readonly T1 X1;
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public readonly T2 X2;
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public readonly T3 X3;
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public readonly T4 X4;
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="x1"></param>
-    /// <param name="x2"></param>
-    /// <param name="x3"></param>
-    /// <param name="x4"></param>
+    //
+    // 
+    //
+    // <param name="x1"></param>
+    // <param name="x2"></param>
+    // <param name="x3"></param>
+    // <param name="x4"></param>
     [Tested]
     public Rec(T1 x1, T2 x2, T3 x3, T4 x4)
     {
       X1 = x1; X2 = x2; X3 = x3; X4 = x4;
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="other"></param>
+    // <returns></returns>
     [Tested]
     public bool Equals(Rec<T1, T2, T3, T4> other)
     {
@@ -370,44 +370,44 @@ namespace RazorDB.C5
         (X4 == null ? other.X4 == null : X4.Equals(other.X4))
         ;
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="obj"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="obj"></param>
+    // <returns></returns>
     [Tested]
     public override bool Equals(object obj)
     {
       return obj is Rec<T1, T2, T3, T4> ? Equals((Rec<T1, T2, T3, T4>)obj) : false;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="record1"></param>
-    /// <param name="record2"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="record1"></param>
+    // <param name="record2"></param>
+    // <returns></returns>
     [Tested]
     public static bool operator ==(Rec<T1, T2, T3, T4> record1, Rec<T1, T2, T3, T4> record2)
     {
       return record1.Equals(record2);
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="record1"></param>
-    /// <param name="record2"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="record1"></param>
+    // <param name="record2"></param>
+    // <returns></returns>
     [Tested]
     public static bool operator !=(Rec<T1, T2, T3, T4> record1, Rec<T1, T2, T3, T4> record2)
     {
       return !record1.Equals(record2);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     [Tested]
     public override int GetHashCode()
     {
@@ -419,23 +419,23 @@ namespace RazorDB.C5
       return hashcode;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public override string ToString()
     {
       return String.Format("({0}, {1}, {2}, {3})", X1, X2, X3, X4);
     }
     #region IShowable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="stringbuilder"></param>
-    /// <param name="rest"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="stringbuilder"></param>
+    // <param name="rest"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public bool Show(System.Text.StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       bool incomplete = true;
@@ -473,12 +473,12 @@ namespace RazorDB.C5
 
     #region IFormattable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="format"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="format"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public string ToString(string format, IFormatProvider formatProvider)
     {
       return Showing.ShowString(this, format, formatProvider);

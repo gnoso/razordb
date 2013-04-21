@@ -7,40 +7,30 @@ using System.Text;
 
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// <i>(Describe usage of "L:300" format string.)</i>
-  /// </summary>
+  // <i>(Describe usage of "L:300" format string.)</i>
   public interface IShowable : IFormattable
   {
     //TODO: wonder if we should use TextWriters instead of StringBuilders?
-    /// <summary>
-    /// Format <code>this</code> using at most approximately <code>rest</code> chars and 
-    /// append the result, possibly truncated, to stringbuilder.
-    /// Subtract the actual number of used chars from <code>rest</code>.
-    /// </summary>
-    /// <param name="stringbuilder"></param>
-    /// <param name="rest"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns>True if the appended formatted string was complete (not truncated).</returns>
+    // Format <code>this</code> using at most approximately <code>rest</code> chars and 
+    // append the result, possibly truncated, to stringbuilder.
+    // Subtract the actual number of used chars from <code>rest</code>.
+    // <param name="stringbuilder"></param>
+    // <param name="rest"></param>
+    // <param name="formatProvider"></param>
+    // <returns>True if the appended formatted string was complete (not truncated).</returns>
     bool Show(StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider);
   }
   // ------------------------------------------------------------
 
-  // Static helper methods for Showing collections 
-
-  /// <summary>
-  /// 
-  /// </summary>
+  // Static helper methods for Showing collections
   public static class Showing
   {
-    /// <summary>
-    /// Show  <code>Object obj</code> by appending it to <code>stringbuilder</code>
-    /// </summary>
-    /// <param name="obj"></param>
-    /// <param name="stringbuilder"></param>
-    /// <param name="rest"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns>True if <code>obj</code> was shown completely.</returns>
+    // Show  <code>Object obj</code> by appending it to <code>stringbuilder</code>
+    // <param name="obj"></param>
+    // <param name="stringbuilder"></param>
+    // <param name="rest"></param>
+    // <param name="formatProvider"></param>
+    // <returns>True if <code>obj</code> was shown completely.</returns>
     public static bool Show(Object obj, StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       IShowable showable;
@@ -54,13 +44,10 @@ namespace RazorDB.C5
       return true;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="showable"></param>
-    /// <param name="format"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    // <param name="showable"></param>
+    // <param name="format"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public static String ShowString(IShowable showable, String format, IFormatProvider formatProvider)
     {
       int rest = maxLength(format);
@@ -69,11 +56,8 @@ namespace RazorDB.C5
       return sb.ToString();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="format"></param>
-    /// <returns></returns>
+    // <param name="format"></param>
+    // <returns></returns>
     static int maxLength(String format)
     {
       //TODO: validate format string
@@ -87,15 +71,12 @@ namespace RazorDB.C5
         return int.MaxValue;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="items"></param>
-    /// <param name="stringbuilder"></param>
-    /// <param name="rest"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns>True if collection was shown completely</returns>
+    // <typeparam name="T"></typeparam>
+    // <param name="items"></param>
+    // <param name="stringbuilder"></param>
+    // <param name="rest"></param>
+    // <param name="formatProvider"></param>
+    // <returns>True if collection was shown completely</returns>
     public static bool ShowCollectionValue<T>(ICollectionValue<T> items, StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       string startdelim = "{ ", enddelim = " }";
@@ -183,17 +164,13 @@ namespace RazorDB.C5
       return complete;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <typeparam name="K"></typeparam>
-    /// <typeparam name="V"></typeparam>
-    /// 
-    /// <param name="dictionary"></param>
-    /// <param name="stringbuilder"></param>
-    /// <param name="formatProvider"></param>
-    /// <param name="rest"></param>
-    /// <returns></returns>
+    // <typeparam name="K"></typeparam>
+    // <typeparam name="V"></typeparam>
+    // 
+    // <param name="dictionary"></param>
+    // <param name="stringbuilder"></param>
+    // <param name="formatProvider"></param>
+    // <param name="rest"></param>
     public static bool ShowDictionary<K, V>(IDictionary<K, V> dictionary, StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       bool sorted = dictionary is ISortedDictionary<K, V>;

@@ -10,50 +10,50 @@ using SCG = System.Collections.Generic;
 
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// A set collection class based on linear hashing
-  /// </summary>
+  //
+  // A set collection class based on linear hashing
+  //
   [Serializable]
   public class HashSet<T> : CollectionBase<T>, ICollection<T>
   {
     #region Feature
-    /// <summary>
-    /// Enum class to assist printing of compilation alternatives.
-    /// </summary>
+    //
+    // Enum class to assist printing of compilation alternatives.
+    //
     [Flags]
     public enum Feature : short
     {
-      /// <summary>
-      /// Nothing
-      /// </summary>
+      //
+      // Nothing
+      //
       Dummy = 0,
-      /// <summary>
-      /// Buckets are of reference type
-      /// </summary>
+      //
+      // Buckets are of reference type
+      //
       RefTypeBucket = 1,
-      /// <summary>
-      /// Primary buckets are of value type
-      /// </summary>
+      //
+      // Primary buckets are of value type
+      //
       ValueTypeBucket = 2,
-      /// <summary>
-      /// Using linear probing to resolve index clashes
-      /// </summary>
+      //
+      // Using linear probing to resolve index clashes
+      //
       LinearProbing = 4,
-      /// <summary>
-      /// Shrink table when very sparsely filled
-      /// </summary>
+      //
+      // Shrink table when very sparsely filled
+      //
       ShrinkTable = 8,
-      /// <summary>
-      /// Use chaining to resolve index clashes
-      /// </summary>
+      //
+      // Use chaining to resolve index clashes
+      //
       Chaining = 16,
-      /// <summary>
-      /// Use hash function on item hash code
-      /// </summary>
+      //
+      // Use hash function on item hash code
+      //
       InterHashing = 32,
-      /// <summary>
-      /// Use a universal family of hash functions on item hash code
-      /// </summary>
+      //
+      // Use a universal family of hash functions on item hash code
+      //
       RandomInterHashing = 64
     }
 
@@ -81,9 +81,9 @@ namespace RazorDB.C5
 ;
 
 
-    /// <summary>
-    /// Show which implementation features was chosen at compilation time
-    /// </summary>
+    //
+    // Show which implementation features was chosen at compilation time
+    //
     public static Feature Features { get { return features; } }
 
     #endregion
@@ -116,10 +116,10 @@ namespace RazorDB.C5
 
     #region Events
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public override EventTypeEnum ListenableEvents { get { return EventTypeEnum.Basic; } }
 
     #endregion
@@ -324,14 +324,14 @@ namespace RazorDB.C5
 #endif
 #endif
 
-    /// <summary>
-    /// Search for an item equal (according to itemequalityComparer) to the supplied item.  
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="add">If true, add item to table if not found.</param>
-    /// <param name="update">If true, update table entry if item found.</param>
-    /// <param name="raise">If true raise events</param>
-    /// <returns>True if found</returns>
+    //
+    // Search for an item equal (according to itemequalityComparer) to the supplied item.  
+    //
+    // <param name="item"></param>
+    // <param name="add">If true, add item to table if not found.</param>
+    // <param name="update">If true, update table entry if item found.</param>
+    // <param name="raise">If true raise events</param>
+    // <returns>True if found</returns>
     bool searchoradd(ref T item, bool add, bool update, bool raise)
     {
 
@@ -778,38 +778,38 @@ namespace RazorDB.C5
     #endregion
 
     #region Constructors
-    /// <summary>
-    /// Create a hash set with natural item equalityComparer and default fill threshold (66%)
-    /// and initial table size (16).
-    /// </summary>
+    //
+    // Create a hash set with natural item equalityComparer and default fill threshold (66%)
+    // and initial table size (16).
+    //
     public HashSet()
       : this(EqualityComparer<T>.Default) { }
 
 
-    /// <summary>
-    /// Create a hash set with external item equalityComparer and default fill threshold (66%)
-    /// and initial table size (16).
-    /// </summary>
-    /// <param name="itemequalityComparer">The external item equalityComparer</param>
+    //
+    // Create a hash set with external item equalityComparer and default fill threshold (66%)
+    // and initial table size (16).
+    //
+    // <param name="itemequalityComparer">The external item equalityComparer</param>
     public HashSet(SCG.IEqualityComparer<T> itemequalityComparer)
       : this(16, itemequalityComparer) { }
 
 
-    /// <summary>
-    /// Create a hash set with external item equalityComparer and default fill threshold (66%)
-    /// </summary>
-    /// <param name="capacity">Initial table size (rounded to power of 2, at least 16)</param>
-    /// <param name="itemequalityComparer">The external item equalityComparer</param>
+    //
+    // Create a hash set with external item equalityComparer and default fill threshold (66%)
+    //
+    // <param name="capacity">Initial table size (rounded to power of 2, at least 16)</param>
+    // <param name="itemequalityComparer">The external item equalityComparer</param>
     public HashSet(int capacity, SCG.IEqualityComparer<T> itemequalityComparer)
       : this(capacity, 0.66, itemequalityComparer) { }
 
 
-    /// <summary>
-    /// Create a hash set with external item equalityComparer.
-    /// </summary>
-    /// <param name="capacity">Initial table size (rounded to power of 2, at least 16)</param>
-    /// <param name="fill">Fill threshold (in range 10% to 90%)</param>
-    /// <param name="itemequalityComparer">The external item equalityComparer</param>
+    //
+    // Create a hash set with external item equalityComparer.
+    //
+    // <param name="capacity">Initial table size (rounded to power of 2, at least 16)</param>
+    // <param name="fill">Fill threshold (in range 10% to 90%)</param>
+    // <param name="itemequalityComparer">The external item equalityComparer</param>
     public HashSet(int capacity, double fill, SCG.IEqualityComparer<T> itemequalityComparer)
       : base(itemequalityComparer)
     {
@@ -829,96 +829,96 @@ namespace RazorDB.C5
 
     #region IEditableCollection<T> Members
 
-    /// <summary>
-    /// The complexity of the Contains operation
-    /// </summary>
-    /// <value>Always returns Speed.Constant</value>
+    //
+    // The complexity of the Contains operation
+    //
+    // <value>Always returns Speed.Constant</value>
     [Tested]
     public virtual Speed ContainsSpeed { [Tested]get { return Speed.Constant; } }
 
-    /// <summary>
-    /// Check if an item is in the set 
-    /// </summary>
-    /// <param name="item">The item to look for</param>
-    /// <returns>True if set contains item</returns>
+    //
+    // Check if an item is in the set 
+    //
+    // <param name="item">The item to look for</param>
+    // <returns>True if set contains item</returns>
     [Tested]
     public virtual bool Contains(T item) { return searchoradd(ref item, false, false, false); }
 
 
-    /// <summary>
-    /// Check if an item (collection equal to a given one) is in the set and
-    /// if so report the actual item object found.
-    /// </summary>
-    /// <param name="item">On entry, the item to look for.
-    /// On exit the item found, if any</param>
-    /// <returns>True if set contains item</returns>
+    //
+    // Check if an item (collection equal to a given one) is in the set and
+    // if so report the actual item object found.
+    //
+    // <param name="item">On entry, the item to look for.
+    // On exit the item found, if any</param>
+    // <returns>True if set contains item</returns>
     [Tested]
     public virtual bool Find(ref T item) { return searchoradd(ref item, false, false, false); }
 
 
-    /// <summary>
-    /// Check if an item (collection equal to a given one) is in the set and
-    /// if so replace the item object in the set with the supplied one.
-    /// </summary>
-    /// <param name="item">The item object to update with</param>
-    /// <returns>True if item was found (and updated)</returns>
+    //
+    // Check if an item (collection equal to a given one) is in the set and
+    // if so replace the item object in the set with the supplied one.
+    //
+    // <param name="item">The item object to update with</param>
+    // <returns>True if item was found (and updated)</returns>
     [Tested]
     public virtual bool Update(T item)
     { updatecheck(); return searchoradd(ref item, false, true, true); }
 
-    /// <summary>
-    /// Check if an item (collection equal to a given one) is in the set and
-    /// if so replace the item object in the set with the supplied one.
-    /// </summary>
-    /// <param name="item">The item object to update with</param>
-    /// <param name="olditem"></param>
-    /// <returns>True if item was found (and updated)</returns>
+    //
+    // Check if an item (collection equal to a given one) is in the set and
+    // if so replace the item object in the set with the supplied one.
+    //
+    // <param name="item">The item object to update with</param>
+    // <param name="olditem"></param>
+    // <returns>True if item was found (and updated)</returns>
     public virtual bool Update(T item, out T olditem)
     { updatecheck(); olditem = item; return searchoradd(ref olditem, false, true, true); }
 
 
-    /// <summary>
-    /// Check if an item (collection equal to a given one) is in the set.
-    /// If found, report the actual item object in the set,
-    /// else add the supplied one.
-    /// </summary>
-    /// <param name="item">On entry, the item to look for or add.
-    /// On exit the actual object found, if any.</param>
-    /// <returns>True if item was found</returns>
+    //
+    // Check if an item (collection equal to a given one) is in the set.
+    // If found, report the actual item object in the set,
+    // else add the supplied one.
+    //
+    // <param name="item">On entry, the item to look for or add.
+    // On exit the actual object found, if any.</param>
+    // <returns>True if item was found</returns>
     [Tested]
     public virtual bool FindOrAdd(ref T item)
     { updatecheck(); return searchoradd(ref item, true, false, true); }
 
 
-    /// <summary>
-    /// Check if an item (collection equal to a supplied one) is in the set and
-    /// if so replace the item object in the set with the supplied one; else
-    /// add the supplied one.
-    /// </summary>
-    /// <param name="item">The item to look for and update or add</param>
-    /// <returns>True if item was updated</returns>
+    //
+    // Check if an item (collection equal to a supplied one) is in the set and
+    // if so replace the item object in the set with the supplied one; else
+    // add the supplied one.
+    //
+    // <param name="item">The item to look for and update or add</param>
+    // <returns>True if item was updated</returns>
     [Tested]
     public virtual bool UpdateOrAdd(T item)
     { updatecheck(); return searchoradd(ref item, true, true, true); }
 
 
-    /// <summary>
-    /// Check if an item (collection equal to a supplied one) is in the set and
-    /// if so replace the item object in the set with the supplied one; else
-    /// add the supplied one.
-    /// </summary>
-    /// <param name="item">The item to look for and update or add</param>
-    /// <param name="olditem"></param>
-    /// <returns>True if item was updated</returns>
+    //
+    // Check if an item (collection equal to a supplied one) is in the set and
+    // if so replace the item object in the set with the supplied one; else
+    // add the supplied one.
+    //
+    // <param name="item">The item to look for and update or add</param>
+    // <param name="olditem"></param>
+    // <returns>True if item was updated</returns>
     public virtual bool UpdateOrAdd(T item, out T olditem)
     { updatecheck(); olditem = item; return searchoradd(ref olditem, true, true, true); }
 
 
-    /// <summary>
-    /// Remove an item from the set
-    /// </summary>
-    /// <param name="item">The item to remove</param>
-    /// <returns>True if item was (found and) removed </returns>
+    //
+    // Remove an item from the set
+    //
+    // <param name="item">The item to remove</param>
+    // <returns>True if item was (found and) removed </returns>
     [Tested]
     public virtual bool Remove(T item)
     {
@@ -937,12 +937,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove an item from the set, reporting the actual matching item object.
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
-    /// <param name="removeditem">The removed value.</param>
-    /// <returns>True if item was found.</returns>
+    //
+    // Remove an item from the set, reporting the actual matching item object.
+    //
+    // <param name="item">The value to remove.</param>
+    // <param name="removeditem">The removed value.</param>
+    // <returns>True if item was found.</returns>
     [Tested]
     public virtual bool Remove(T item, out T removeditem)
     {
@@ -962,11 +962,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove all items in a supplied collection from this set.
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to remove.</param>
+    //
+    // Remove all items in a supplied collection from this set.
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to remove.</param>
     [Tested]
     public virtual void RemoveAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -990,9 +990,9 @@ namespace RazorDB.C5
       if (raise) raiseHandler.Raise();
     }
 
-    /// <summary>
-    /// Remove all items from the set, resetting internal table to initial size.
-    /// </summary>
+    //
+    // Remove all items from the set, resetting internal table to initial size.
+    //
     [Tested]
     public virtual void Clear()
     {
@@ -1007,11 +1007,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove all items *not* in a supplied collection from this set.
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to retain</param>
+    //
+    // Remove all items *not* in a supplied collection from this set.
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to retain</param>
     [Tested]
     public virtual void RetainAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1061,13 +1061,13 @@ namespace RazorDB.C5
         raiseCollectionChanged();
     }
 
-    /// <summary>
-    /// Check if all items in a supplied collection is in this set
-    /// (ignoring multiplicities). 
-    /// </summary>
-    /// <param name="items">The items to look for.</param>
-    /// <typeparam name="U"></typeparam>
-    /// <returns>True if all items are found.</returns>
+    //
+    // Check if all items in a supplied collection is in this set
+    // (ignoring multiplicities). 
+    //
+    // <param name="items">The items to look for.</param>
+    // <typeparam name="U"></typeparam>
+    // <returns>True if all items are found.</returns>
     [Tested]
     public virtual bool ContainsAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1078,10 +1078,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Create an array containing all items in this set (in enumeration order).
-    /// </summary>
-    /// <returns>The array</returns>
+    //
+    // Create an array containing all items in this set (in enumeration order).
+    //
+    // <returns>The array</returns>
     [Tested]
     public override T[] ToArray()
     {
@@ -1132,33 +1132,33 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Count the number of times an item is in this set (either 0 or 1).
-    /// </summary>
-    /// <param name="item">The item to look for.</param>
-    /// <returns>1 if item is in set, 0 else</returns>
+    //
+    // Count the number of times an item is in this set (either 0 or 1).
+    //
+    // <param name="item">The item to look for.</param>
+    // <returns>1 if item is in set, 0 else</returns>
     [Tested]
     public virtual int ContainsCount(T item) { return Contains(item) ? 1 : 0; }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public virtual ICollectionValue<T> UniqueItems() { return this; }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public virtual ICollectionValue<KeyValuePair<T, int>> ItemMultiplicities()
     {
       return new MultiplicityOne<T>(this);
     }
 
-    /// <summary>
-    /// Remove all (at most 1) copies of item from this set.
-    /// </summary>
-    /// <param name="item">The item to remove</param>
+    //
+    // Remove all (at most 1) copies of item from this set.
+    //
+    // <param name="item">The item to remove</param>
     [Tested]
     public virtual void RemoveAllCopies(T item) { Remove(item); }
 
@@ -1167,11 +1167,11 @@ namespace RazorDB.C5
     #region IEnumerable<T> Members
 
 
-    /// <summary>
-    /// Choose some item of this collection. 
-    /// </summary>
-    /// <exception cref="NoSuchItemException">if collection is empty.</exception>
-    /// <returns></returns>
+    //
+    // Choose some item of this collection. 
+    //
+    // <exception cref="NoSuchItemException">if collection is empty.</exception>
+    // <returns></returns>
     [Tested]
     public override T Choose()
     {
@@ -1187,10 +1187,10 @@ namespace RazorDB.C5
       return table[lastchosen].item;
     }
 
-    /// <summary>
-    /// Create an enumerator for this set.
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for this set.
+    //
+    // <returns>The enumerator</returns>
     [Tested]
     public override SCG.IEnumerator<T> GetEnumerator()
     {
@@ -1277,25 +1277,25 @@ namespace RazorDB.C5
     #endregion
 
     #region ISink<T> Members
-    /// <summary>
-    /// Report if this is a set collection.
-    /// </summary>
-    /// <value>Always false</value>
+    //
+    // Report if this is a set collection.
+    //
+    // <value>Always false</value>
     [Tested]
     public virtual bool AllowsDuplicates { [Tested]get { return false; } }
 
-    /// <summary>
-    /// By convention this is true for any collection with set semantics.
-    /// </summary>
-    /// <value>True if only one representative of a group of equal items 
-    /// is kept in the collection together with the total count.</value>
+    //
+    // By convention this is true for any collection with set semantics.
+    //
+    // <value>True if only one representative of a group of equal items 
+    // is kept in the collection together with the total count.</value>
     public virtual bool DuplicatesByCounting { get { return true; } }
 
-    /// <summary>
-    /// Add an item to this set.
-    /// </summary>
-    /// <param name="item">The item to add.</param>
-    /// <returns>True if item was added (i.e. not found)</returns>
+    //
+    // Add an item to this set.
+    //
+    // <param name="item">The item to add.</param>
+    // <returns>True if item was added (i.e. not found)</returns>
     [Tested]
     public virtual bool Add(T item)
     {
@@ -1303,24 +1303,24 @@ namespace RazorDB.C5
       return !searchoradd(ref item, true, false, true);
     }
 
-    /// <summary>
-    /// Add an item to this set.
-    /// </summary>
-    /// <param name="item">The item to add.</param>
+    //
+    // Add an item to this set.
+    //
+    // <param name="item">The item to add.</param>
     [Tested]
     void SCG.ICollection<T>.Add(T item)
     {
         Add(item);
     }
 
-    /// <summary>
-    /// Add the elements from another collection with a more specialized item type 
-    /// to this collection. Since this
-    /// collection has set semantics, only items not already in the collection
-    /// will be added.
-    /// </summary>
-    /// <typeparam name="U">The type of items to add</typeparam>
-    /// <param name="items">The items to add</param>
+    //
+    // Add the elements from another collection with a more specialized item type 
+    // to this collection. Since this
+    // collection has set semantics, only items not already in the collection
+    // will be added.
+    //
+    // <typeparam name="U">The type of items to add</typeparam>
+    // <param name="items">The items to add</param>
     [Tested]
     public virtual void AddAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1352,10 +1352,10 @@ namespace RazorDB.C5
 
     #region Diagnostics
 
-    /// <summary>
-    /// Test internal structure of data (invariants)
-    /// </summary>
-    /// <returns>True if pass</returns>
+    //
+    // Test internal structure of data (invariants)
+    //
+    // <returns>True if pass</returns>
     [Tested]
     public virtual bool Check()
     {
@@ -1527,10 +1527,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Produce statistics on distribution of bucket sizes. Current implementation is incomplete.
-    /// </summary>
-    /// <returns>Histogram data.</returns>
+    //
+    // Produce statistics on distribution of bucket sizes. Current implementation is incomplete.
+    //
+    // <returns>Histogram data.</returns>
     [Tested(via = "Manually")]
     public ISortedDictionary<int, int> BucketCostDistribution()
     {
@@ -1602,10 +1602,10 @@ namespace RazorDB.C5
 
     #region ICloneable Members
 
-    /// <summary>
-    /// Make a shallow copy of this HashSet.
-    /// </summary>
-    /// <returns></returns>
+    //
+    // Make a shallow copy of this HashSet.
+    //
+    // <returns></returns>
     public virtual object Clone()
     {
       HashSet<T> clone = new HashSet<T>(size > 0 ? size : 1, itemequalityComparer);

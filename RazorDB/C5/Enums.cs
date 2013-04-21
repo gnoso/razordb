@@ -3,75 +3,46 @@ using System.Diagnostics;
 using SCG = System.Collections.Generic;
 namespace RazorDB.C5
 {
-
-  /// <summary>
-  /// The symbolic characterization of the speed of lookups for a collection.
-  /// The values may refer to worst-case, amortized and/or expected asymtotic 
-  /// complexity wrt. the collection size.
-  /// </summary>
+  // The symbolic characterization of the speed of lookups for a collection.
+  // The values may refer to worst-case, amortized and/or expected asymtotic 
+  // complexity wrt. the collection size.
   public enum Speed : short
   {
-    /// <summary>
-    /// Counting the collection with the <code>Count property</code> may not return
-    /// (for a synthetic and potentially infinite collection).
-    /// </summary>
+    // Counting the collection with the <code>Count property</code> may not return
+    // (for a synthetic and potentially infinite collection).
     PotentiallyInfinite = 1,
-    /// <summary>
-    /// Lookup operations like <code>Contains(T item)</code> or the <code>Count</code>
-    /// property may take time O(n),
-    /// where n is the size of the collection.
-    /// </summary>
+    // Lookup operations like <code>Contains(T item)</code> or the <code>Count</code>
+    // property may take time O(n),
+    // where n is the size of the collection.
     Linear = 2,
-    /// <summary>
-    /// Lookup operations like <code>Contains(T item)</code> or the <code>Count</code>
-    /// property  takes time O(log n),
-    /// where n is the size of the collection.
-    /// </summary>
+    // Lookup operations like <code>Contains(T item)</code> or the <code>Count</code>
+    // property  takes time O(log n),
+    // where n is the size of the collection.
     Log = 3,
-    /// <summary>
-    /// Lookup operations like <code>Contains(T item)</code> or the <code>Count</code>
-    /// property  takes time O(1),
-    /// where n is the size of the collection.
-    /// </summary>
+    // Lookup operations like <code>Contains(T item)</code> or the <code>Count</code>
+    // property  takes time O(1),
+    // where n is the size of the collection.
     Constant = 4
   }
   /*
-  /// <summary>
-  /// 
-  /// </summary>
   public enum ItemEqualityTypeEnum
   {
-    /// <summary>
-    /// Only an Equals(T,T)
-    /// </summary>
-    Equator, 
-    /// <summary>
-    /// Equals(T,T) and GetHashCode(T)
-    /// </summary>
-    HashingEqualityComparer, 
-    /// <summary>
-    /// Compare(T,T)
-    /// </summary>
-    Comparer, 
-    /// <summary>
-    /// Compatible Compare(T,T) and GetHashCode(T)
-    /// </summary>
+    // Only an Equals(T,T)
+    Equator,
+    // Equals(T,T) and GetHashCode(T)
+    HashingEqualityComparer,
+    // Compare(T,T)
+    Comparer,
+    // Compatible Compare(T,T) and GetHashCode(T)
     Both
   }
 */
-
-  /// <summary>
-  /// Direction of enumeration order relative to original collection.
-  /// </summary>
+  // Direction of enumeration order relative to original collection.
   public enum EnumerationDirection
   {
-    /// <summary>
-    /// Same direction
-    /// </summary>
+    // Same direction
     Forwards,
-    /// <summary>
-    /// Opposite direction
-    /// </summary>
+    // Opposite direction
     Backwards
   }
 }
