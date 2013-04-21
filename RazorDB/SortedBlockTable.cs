@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,9 +14,9 @@ namespace RazorDB {
     // With this implementation, the maximum sized data that can be stored is ... block size >= keylen + valuelen + (sizecounter - no more than 8 bytes)
     public class SortedBlockTableWriter {
 
-        public SortedBlockTableWriter(string baseFileName, int level, int version, SortedBlockTableFormat format = SortedBlockTableFormat.Default) {
-            string fileName = Config.SortedBlockTableFile(baseFileName, level, version);
-            _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
+        public SortedBlockTableWriter(FileStream fileStream, string fileName, int level, int version, SortedBlockTableFormat format = SortedBlockTableFormat.Default) {
+            _fileStream = fileStream;
+            _path = fileName;
             _bufferPool = new BufferPool(Config.SortedBlockSize * 3 / 2);
             _buffer = _bufferPool.GetBuffer();
             _bufferPos = 0;
@@ -28,6 +28,7 @@ namespace RazorDB {
         }
 
         private FileStream _fileStream;
+        private string _path;
         private BufferPool _bufferPool;
         private byte[] _buffer;      // current buffer that is being loaded
 
@@ -41,6 +42,9 @@ namespace RazorDB {
 
         public int Version { get; private set; }
         public int WrittenSize { get; private set; }
+        
+        internal string Path { get { return _path; } }
+        internal FileStream FileStream { get { return _fileStream; } }
 
         private List<ushort> _keyOffsets = new List<ushort>();
 
@@ -326,16 +330,129 @@ namespace RazorDB {
                 indexBlocks = totalBlocks - dataBlocks;
                 // Write metadata block at the end
                 WriteMetadata();
-                _fileStream.Close();
             }
-            _fileStream = null;
         }
     }
 
-    public class SortedBlockTable {
+    public class SortedBlockTable : IDisposable {
+        // Stores all open SortedBlockTable file managers.
+        // The key is the base directory of key/value store using the SBT.
+        private static Dictionary<string, SortedBlockTableFileManager> _fileManagers;
+
+        static SortedBlockTable() {
+            _fileManagers = new Dictionary<string, SortedBlockTableFileManager>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Retrieve a file manager for use with a SBT. Creates a new file manager instance 
+        /// if one does not already exist (or if it has been previously closed).
+        /// </summary>
+        /// <param name="baseFileName"></param>
+        /// <returns></returns>
+        public static SortedBlockTableFileManager GetFileManager(string baseFileName) {
+            SortedBlockTableFileManager returnValue = null;
+
+            lock (_fileManagers) {
+                if (!_fileManagers.ContainsKey(baseFileName)) {
+                    returnValue = new SortedBlockTableFileManager();
+                    _fileManagers[baseFileName] = new SortedBlockTableFileManager();
+                } else {
+                    returnValue = _fileManagers[baseFileName];
+                }
+            }
+            return returnValue;
+        }
+
+        /// <summary>
+        /// Closes a file manager and releases all of its file streams and reader/writer locks.
+        /// </summary>
+        /// <param name="baseFileName"></param>
+        public static void CloseFileManager(string baseFileName) {
+            lock (_fileManagers) {
+                if (_fileManagers.ContainsKey(baseFileName)) {
+                    _fileManagers[baseFileName].Dispose();
+                    _fileManagers.Remove(baseFileName);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Delete an SBT file safely. Obtains the needed locks and disposes file streams and locks 
+        /// associated with it.
+        /// </summary>
+        /// <param name="baseFileName"></param>
+        /// <param name="tableFileName"></param>
+        public static void DeleteFile(string baseFileName, string tableFileName) {
+            if (_fileManagers.ContainsKey(baseFileName)) {
+                var fileManager = _fileManagers[baseFileName];
+                fileManager.SafeCloseFileAction(tableFileName,
+                   () => {
+                       if (File.Exists(tableFileName)) { File.Delete(tableFileName); }
+                   });
+            } else {
+                // no file manager present for the file so delete it directly
+                if (File.Exists(tableFileName)) { File.Delete(tableFileName); }
+            }
+        }
+
+        /// <summary>
+        /// Obtain a write lock on the SBT file and execute the supplied action.
+        /// The write lock is released afterwards.
+        /// </summary>
+        /// <param name="baseFileName"></param>
+        /// <param name="level"></param>
+        /// <param name="version"></param>
+        /// <param name="format"></param>
+        /// <param name="action"></param>
+        public static void ExecuteWriter(string baseFileName, int level, int version, SortedBlockTableFormat format, Action<SortedBlockTableWriter> action) {
+            var fileManager = GetFileManager(baseFileName);
+            var fileName = Config.SortedBlockTableFile(baseFileName, level, version);
+            var writer = fileManager.BeginWrite(fileName);
+            try {
+                var table = new SortedBlockTableWriter(writer, fileName, level, version, format);
+                try {
+                    action(table);
+                } finally {
+                    table.Close();
+                }
+            } finally {
+                fileManager.EndWrite(fileName, writer);
+            }
+        }
+
+        /// <summary>
+        /// Obtains a write lock on the SBT file and opens a new SortedBlockTableWriter.
+        /// IMPORTANT: CloseWriter MUST be called after OpenWriter has been called or 
+        /// file handles and write locks will leak, which will cause bad things to happen.
+        /// </summary>
+        /// <param name="baseFileName"></param>
+        /// <param name="level"></param>
+        /// <param name="version"></param>
+        /// <returns></returns>
+        public static SortedBlockTableWriter OpenWriter(string baseFileName, int level, int version) {
+            var fileManager = GetFileManager(baseFileName);
+            var fileName = Config.SortedBlockTableFile(baseFileName, level, version);
+            var writer = fileManager.BeginWrite(fileName);
+            return new SortedBlockTableWriter(writer, fileName, level, version);
+        }
+
+        /// <summary>
+        /// Closes a SortedBlockTableWriter obtained by calling OpenWriter and releases the write lock.
+        /// </summary>
+        /// <param name="baseFileName"></param>
+        /// <param name="writer"></param>
+        public static void CloseWriter(string baseFileName, SortedBlockTableWriter writer) {
+            var fileManager = GetFileManager(baseFileName);
+            try {
+                writer.Close();
+            } finally {
+                fileManager.EndWrite(writer.Path, writer.FileStream);
+            }
+        }
 
         public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version) {
             _baseFileName = baseFileName;
+            _fileManager = GetFileManager(baseFileName);
             _level = level;
             _version = version;
             _cache = cache;
@@ -343,13 +460,15 @@ namespace RazorDB {
             ReadMetadata();
         }
         private string _path;
+        private SortedBlockTableFileManager _fileManager;
 
         // Lazy open the filestream
         private FileStream _fileStream;
-        private FileStream internalFileStream {
+        private FileStream FileStream {
             get {
-                if (_fileStream == null)
-                    _fileStream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, FileOptions.Asynchronous);
+                if (_fileStream == null) {
+                    _fileStream = _fileManager.BeginRead(_path);
+                }
                 return _fileStream; 
             }
         }
@@ -394,14 +513,14 @@ namespace RazorDB {
             }
             switch (_fileFormat) {
                 case SortedBlockTableFormat.Razor01:
-                    internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-                    return internalFileStream.BeginRead(block, 0, Config.SortedBlockSize, null, new AsyncBlock { Buffer = block, BlockNum = blockNum });
+                    FileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+                    return FileStream.BeginRead(block, 0, Config.SortedBlockSize, null, new AsyncBlock { Buffer = block, BlockNum = blockNum });
                 case SortedBlockTableFormat.Razor02:
                     var offset = onDiskCumulativeBlockSizes[blockNum];
                     var length = onDiskBlockSizes[blockNum];
-                    internalFileStream.Seek(offset, SeekOrigin.Begin);
+                    FileStream.Seek(offset, SeekOrigin.Begin);
                     var asyncBlock = new AsyncBlock { Buffer = block, BuffCountBytes = length, CompBuffer = compBlock, BlockNum = blockNum, Done = new ManualResetEvent(false) };
-                    return internalFileStream.BeginRead(block, 0, length, (ar) => {
+                    return FileStream.BeginRead(block, 0, length, (ar) => {
 
                         if (asyncBlock.Buffer[0] == 0xFF && asyncBlock.Buffer[1] == 0xEE) { // Check for the signal preamble to determine whether we decompress this block or not
                             Compression.Decompress(asyncBlock.Buffer, 2, asyncBlock.BuffCountBytes - 2, asyncBlock.CompBuffer, 0);
@@ -422,7 +541,7 @@ namespace RazorDB {
                 // This represents a block read from cache, nothing to do but return it...
                 return ablock.Buffer;
             } else {
-                var bytesRead = internalFileStream.EndRead(async);
+                var bytesRead = FileStream.EndRead(async);
                 ablock = (AsyncBlock)async.AsyncState;
                 byte[] returnVal = null;
                 switch (_fileFormat) {
@@ -455,15 +574,15 @@ namespace RazorDB {
             byte[] returnval;
             switch (_fileFormat) {
                 case SortedBlockTableFormat.Razor01:
-                    internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-                    internalFileStream.Read(block, 0, Config.SortedBlockSize);
+                    FileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+                    FileStream.Read(block, 0, Config.SortedBlockSize);
                     returnval = block;
                     break;
                 case SortedBlockTableFormat.Razor02:
                     var offset = onDiskCumulativeBlockSizes[blockNum];
                     var length = onDiskBlockSizes[blockNum];
-                    internalFileStream.Seek(offset, SeekOrigin.Begin);
-                    internalFileStream.Read(block, 0, length);
+                    FileStream.Seek(offset, SeekOrigin.Begin);
+                    FileStream.Read(block, 0, length);
                     if (block[0] == 0xFF && block[1] == 0xEE) { // Check for the signal preamble to determine whether we decompress this block or not
                         Compression.Decompress(block, 2, length - 2, compBlock, 0);
                         returnval = compBlock;
@@ -508,7 +627,7 @@ namespace RazorDB {
         private void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
-            int lastBlockSize = Math.Min(Config.SortedBlockSize, (int)internalFileStream.Length); // should the block of size SortedBlockSize unless the file is smaller than that, in which case we read the entire file
+            int lastBlockSize = Math.Min(Config.SortedBlockSize, (int)FileStream.Length); // should the block of size SortedBlockSize unless the file is smaller than that, in which case we read the entire file
             int offset = Config.SortedBlockSize - lastBlockSize; // Make sure the block ends at the end of the buffer, even if it's shorter than the full buffer.
 
              if (_cache != null) {
@@ -516,22 +635,21 @@ namespace RazorDB {
                 if (mdBlock == null) {
                     // Start by reading the last block-sized chunk of data from the file
                     mdBlock = LocalThreadAllocatedBlock();
-                    internalFileStream.Seek(-lastBlockSize, SeekOrigin.End);
-                    internalFileStream.Read(mdBlock, offset, lastBlockSize);
+                    FileStream.Seek(-lastBlockSize, SeekOrigin.End);
+                    FileStream.Read(mdBlock, offset, lastBlockSize);
                     byte[] blockCopy = (byte[])mdBlock.Clone();
                     _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
                 }
             } else {
                 mdBlock = LocalThreadAllocatedBlock();
-                internalFileStream.Seek(-lastBlockSize, SeekOrigin.End);
-                internalFileStream.Read(mdBlock, offset, lastBlockSize);
+                FileStream.Seek(-lastBlockSize, SeekOrigin.End);
+                FileStream.Read(mdBlock, offset, lastBlockSize);
             }
-
             MemoryStream ms;
             string checkString = Encoding.ASCII.GetString(mdBlock,0,8);
             if (checkString == "@RAZORDB") {
                 _fileFormat = SortedBlockTableFormat.Razor01;
-                numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
+                numBlocks = (int)FileStream.Length / Config.SortedBlockSize;
                 ms = new MemoryStream(mdBlock, 8, Config.SortedBlockSize - 8); // Create the memory stream skipping the initial 8 character marker.
             } else {
                 int mdSize = BitConverter.ToInt32(mdBlock, mdBlock.Length - 4);
@@ -547,6 +665,7 @@ namespace RazorDB {
                     throw new NotSupportedException();
                 }
             }
+
             BinaryReader reader = new BinaryReader(ms);
             
             _totalBlocks = reader.Read7BitEncodedInt();
@@ -572,19 +691,18 @@ namespace RazorDB {
         }
 
         public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, KeyEx key, out Value value) {
-            SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
-            try {
-                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
+            bool returnValue = false;
+            value = Value.Empty;
 
+            using(var sbt = new SortedBlockTable( cache, baseFileName, level, version)) {
+                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
                     byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), LocalThreadAllocatedCompBlock(), dataBlockNum);
-                    return SearchBlockForKey(block, key, out value);
-                } 
-            } finally {
-                sbt.Close();
+                    returnValue = SearchBlockForKey(block, key, out value);
+                }
             }
-            value = Value.Empty;
-            return false;
+
+            return returnValue;
         }
 
         private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, KeyEx key) {
@@ -835,45 +953,50 @@ namespace RazorDB {
         }
 
         public static IEnumerable<KeyValuePair<KeyEx, Value>> EnumerateMergedTables(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
-             var tables = tableSpecs
-               .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
-               .ToList();
-             try {
-                 foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), t => t.Key)) {
-                     yield return pair;
-                 }
-             } finally {
-                 tables.ForEach(t => t.Close());
-             }
+            var tables = tableSpecs
+                .Select(pageRef => new SortedBlockTable( cache, baseFileName, pageRef.Level, pageRef.Version))
+                .ToList();
+            try {
+                foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), t => t.Key)) {
+                    yield return pair;
+                }
+            } finally {
+                tables.ForEach(t => t.Dispose());
+            }
         }
 
         public static IEnumerable<PageRecord> MergeTables(RazorCache cache, Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs) {
-
             var orderedTableSpecs = tableSpecs.OrderByPagePriority();
             var outputTables = new List<PageRecord>();
             SortedBlockTableWriter writer = null;
 
-            KeyEx firstKey = new KeyEx();
-            KeyEx lastKey = new KeyEx();
+            try {
+                KeyEx firstKey = new KeyEx();
+                KeyEx lastKey = new KeyEx();
 
-            foreach (var pair in EnumerateMergedTables(cache, mf.BaseFileName, orderedTableSpecs)) {
-                if (writer == null) {
-                    writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
-                    firstKey = pair.Key;
+                foreach (var pair in EnumerateMergedTables(cache, mf.BaseFileName, orderedTableSpecs)) {
+                    if (writer == null) {
+                        writer = SortedBlockTable.OpenWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
+                        firstKey = pair.Key;
+                    }
+                    writer.WritePair(pair.Key, pair.Value);
+                    lastKey = pair.Key;
+                    if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {
+                        SortedBlockTable.CloseWriter(mf.BaseFileName, writer);
+                        outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
+                        writer = null;
+                    }
                 }
-                writer.WritePair(pair.Key, pair.Value);
-                lastKey = pair.Key;
-                if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {
-                    writer.Close();
+                if (writer != null) {
+                    SortedBlockTable.CloseWriter(mf.BaseFileName, writer);
                     outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
                     writer = null;
                 }
+            } finally {
+                if (writer != null) {
+                    SortedBlockTable.CloseWriter(mf.BaseFileName, writer);
+                }
             }
-            if (writer != null) {
-                writer.Close();
-                outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
-            }
-
             return outputTables;
         }
 
@@ -975,9 +1098,23 @@ namespace RazorDB {
 
         public void Close() {
             if (_fileStream != null) {
-                _fileStream.Close();
+                _fileManager.EndRead(_path, _fileStream);
+                _fileStream = null;
             }
-            _fileStream = null;
+        }
+
+        private bool _disposed;
+
+        private void _Dispose(bool disposing) {
+            if (!_disposed) {
+                Close();
+                _disposed = true;
+            }
+        }
+
+        public void Dispose() {
+            _Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -51,6 +51,8 @@ namespace RazorDBTests {
 
             Console.WriteLine("Close block table {0} ms", timer.Elapsed.TotalMilliseconds / 10000);
 
+            // cleanup file managers
+            SortedBlockTable.CloseFileManager("TestData\\TestFileOpenSpeed");
         }
 
         [Test]
@@ -91,6 +93,8 @@ namespace RazorDBTests {
 
             sbt.Close();
 
+            // cleanup file managers
+            SortedBlockTable.CloseFileManager("TestData\\V1ReadKeys");
         }
 
         [Test]
@@ -138,6 +142,9 @@ namespace RazorDBTests {
 
             } finally {
                 sbt.Close();
+
+                // cleanup file managers
+                SortedBlockTable.CloseFileManager("TestData\\V1EnumerateFromKeys");
             }
 
         }
@@ -180,6 +187,8 @@ namespace RazorDBTests {
 
             sbt.Close();
 
+            // cleanup file managers
+            SortedBlockTable.CloseFileManager("TestData\\DefaultReadKeys");
         }
 
         [Test]
@@ -233,6 +242,9 @@ namespace RazorDBTests {
 
             } finally {
                 sbt.Close();
+
+                // cleanup file managers
+                SortedBlockTable.CloseFileManager("TestData\\DefaultCompressibleEnumerateFromKeys");
             }
 
         }
@@ -275,6 +287,9 @@ namespace RazorDBTests {
                     Assert.AreEqual(15000, sbt.EnumerateFromKey(new RazorCache(), new KeyEx(new byte[] { 0 }, 0)).Count());
                 } finally {
                     sbt.Close();
+
+                    // cleanup file managers
+                    SortedBlockTable.CloseFileManager("TestData\\DefaultCompressibleNoCacheEnumerateFromKeys");
                 }
                 timer.Stop();
                 double tp = (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0);
@@ -331,6 +346,9 @@ namespace RazorDBTests {
 
             } finally {
                 sbt.Close();
+
+                // cleanup file managers
+                SortedBlockTable.CloseFileManager("TestData\\DefaultCompressibleEnumerateFromKeys");
             }
 
         }
@@ -380,6 +398,9 @@ namespace RazorDBTests {
 
             } finally {
                 sbt.Close();
+
+                // cleanup file managers
+                SortedBlockTable.CloseFileManager("TestData\\DefaultEnumerateFromKeys");
             }
 
         }
@@ -427,6 +448,8 @@ namespace RazorDBTests {
 
             sbt.Close();
 
+            // cleanup file managers
+            SortedBlockTable.CloseFileManager("TestData\\DefaultRandomizedLookups");
         }
 
         [Test]
@@ -477,6 +500,9 @@ namespace RazorDBTests {
             Console.WriteLine("Randomized (threaded) read sbt table at a throughput of {0} MB/s (avg {1} ms per lookup)", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
 
             sbt.Close();
+
+            // cleanup file managers
+            SortedBlockTable.CloseFileManager("TestData\\DefaultRandomizedThreadedLookups");
         }
 
         [Test]
@@ -522,6 +548,8 @@ namespace RazorDBTests {
 
             sbt.Close();
 
+            // cleanup file managers
+            SortedBlockTable.CloseFileManager("TestData\\V1RandomizedLookups");
         }
 
         [Test]
@@ -572,6 +600,9 @@ namespace RazorDBTests {
             Console.WriteLine("Randomized (threaded) read sbt table at a throughput of {0} MB/s (avg {1} ms per lookup)", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)num_items);
 
             sbt.Close();
+
+            // cleanup file managers
+            SortedBlockTable.CloseFileManager("TestData\\V1RandomizedThreadedLookups");
         }
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -113,6 +113,8 @@ namespace RazorDBTests {
 
             sbts.ForEach(s => s.Close());
 
+            SortedBlockTable.CloseFileManager("TestData\\LevelMergeReadTest");
+
             Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
 
@@ -156,6 +158,7 @@ namespace RazorDBTests {
             timer.Stop();
 
             Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            SortedBlockTable.CloseFileManager("TestData\\LevelMergeReadTest2");
         }
 
         [Test]
@@ -194,6 +197,8 @@ namespace RazorDBTests {
             timer.Stop();
 
             Console.WriteLine("Wrote a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+            SortedBlockTable.CloseFileManager("TestData\\LevelMergeOutputTest");
         }
 
         [Test]
@@ -245,6 +250,9 @@ namespace RazorDBTests {
             }
 
             Console.WriteLine("Wrote a multilevel merge with duplicates at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+            SortedBlockTable.CloseFileManager("TestData\\LevelMergeDuplicateValuesTest");
         }
+
     }
 }

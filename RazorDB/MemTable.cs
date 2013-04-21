@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -44,19 +44,14 @@ namespace RazorDB {
         }
 
         public void WriteToSortedBlockTable(string baseFileName, int level, int version, SortedBlockTableFormat format = SortedBlockTableFormat.Default) {
-
+            var memTable = this;
             lock (_tableLock) {
-                SortedBlockTableWriter tableWriter = null;
-                try {
-                    tableWriter = new SortedBlockTableWriter(baseFileName, level, version, format);
-
-                    foreach ( var pair in this.Enumerate() ) {
-                        tableWriter.WritePair(pair.Key, pair.Value);
-                    }
-                } finally {
-                    if (tableWriter != null)
-                        tableWriter.Close();
-                }
+                SortedBlockTable.ExecuteWriter(baseFileName, level, version, format,
+                    (tableWriter) => {
+                        foreach (var pair in memTable.Enumerate()) {
+                            tableWriter.WritePair(pair.Key, pair.Value);
+                        }
+                    });
             }
         }
 

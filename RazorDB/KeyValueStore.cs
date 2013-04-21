@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,7 +7,7 @@ using System.IO;
 using System.Diagnostics;
 
 namespace RazorDB {
-    
+
     public class KeyValueStore : IDisposable {
 
         public KeyValueStore(string baseFileName) : this(baseFileName, null) {}
@@ -54,6 +54,7 @@ namespace RazorDB {
             foreach (var pair in _secondaryIndexes) {
                 pair.Value.Close();
             }
+            SortedBlockTable.CloseFileManager(Manifest.BaseFileName);
 
             string basePath = Path.GetFullPath(Manifest.BaseFileName);
             foreach (string file in Directory.GetFiles(basePath, "*.*", SearchOption.AllDirectories)) {
@@ -279,28 +280,6 @@ namespace RazorDB {
             }
         }
 
-        public IEnumerable<KeyValuePair<byte[], byte[]>> FindStartsWith(string indexName, byte[] lookupValue) {
-
-            KeyValueStore indexStore = GetSecondaryIndex(indexName);
-            // Loop over the values
-            foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
-                var key = pair.Key;
-                var value = pair.Value;
-                // construct our index key pattern (lookupvalue | key)
-                if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
-                    if (key.Length >= (value.Length + lookupValue.Length)){
-                        // Lookup the value of the actual object using the key that was found
-                        var primaryValue = Get(value);
-                        if (primaryValue != null)
-                            yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
-                    }
-                } else {
-                    // if the above condition was not met then we must have enumerated past the end of the indexed value
-                    yield break;
-                }
-            }
-        }
-
         public void Delete(byte[] key) {
             var k = new KeyEx(key, 0);
             InternalSet(k, Value.Deleted, null);
@@ -325,25 +304,24 @@ namespace RazorDB {
                 enumerators.Add(rotatedMemTable.EnumerateSnapshotFromKey(key));
             }
 
-            // Now check the files on disk
-            using (var manifestSnapshot = _manifest.GetLatestManifest()) {
-
-                List<SortedBlockTable> tables = new List<SortedBlockTable>();
-                try {
+            var tables = new List<SortedBlockTable>();
+            try {
+                // Now check the files on disk
+                using (var manifestSnapshot = _manifest.GetLatestManifest()) {
                     for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
                         var pages = manifestSnapshot.GetPagesAtLevel(i)
                             .OrderByDescending(page => page.Version)
                             .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version));
                         tables.AddRange(pages);
+                        enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
                     }
-                    enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
-
                     foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
                         yield return pair;
                     }
-                } finally {
-                    // make sure all the tables get closed
-                    tables.ForEach(table => table.Close());
+                }
+            } finally {
+                foreach (var table in tables) {
+                    table.Dispose();
                 }
             }
         }
@@ -421,6 +399,8 @@ namespace RazorDB {
                 }
             }
 
+            SortedBlockTable.CloseFileManager(_manifest.BaseFileName);
+
             // Don't finalize since we already closed it.
             GC.SuppressFinalize(this);
         }
@@ -491,6 +471,9 @@ namespace RazorDB {
                 Console.WriteLine("  KeyBytes: {0}, ValueBytes: {1}\n  Records: {2} Deleted: {3} Null: {4} Small: {5} LargeDesc: {6} LargeChunk: {7}",
                     totalKeyBytes, totalValueBytes, totalRecords, deletedRecords, nullRecords, smallRecords, largeDescRecords, largeChunkRecords);
             }
+
         }
+
     }
+
 }
