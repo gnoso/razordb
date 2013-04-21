@@ -129,7 +129,7 @@ namespace RazorDB.C5
     protected override void modifycheck(int stamp)
     {
       validitycheck();
-      if ((underlying != null ? underlying.stamp : this.stamp) != stamp)
+      if ((underlying != null ? underlying.stamp : stamp) != stamp)
         throw new CollectionModifiedException();
     }
     #endregion
@@ -621,12 +621,12 @@ namespace RazorDB.C5
       #endregion
 
       [Tested]
-      internal Node(T item) { this.item = item; }
+      internal Node(T item) { item = item; }
 
       [Tested]
       internal Node(T item, Node prev, Node next)
       {
-        this.item = item; this.prev = prev; this.next = next;
+        item = item; prev = prev; next = next;
       }
 
       public override string ToString()
@@ -947,9 +947,9 @@ namespace RazorDB.C5
 #endif
       }
 #if HASHINDEX
-      public Position(Node node, int foo) { this.Endpoint = node; View = null; Left = false; }
+      public Position(Node node, int foo) { Endpoint = node; View = null; Left = false; }
 #else
-      public Position(int index) { this.Index = index; View = null; Left = false; }
+      public Position(int index) { Index = index; View = null; Left = false; }
 #endif
     }
 
@@ -1170,8 +1170,8 @@ namespace RazorDB.C5
 
       internal Range(LinkedList<T> list, int start, int count, bool forwards)
       {
-        this.list = list; this.rangestamp = list.underlying != null ? list.underlying.stamp : list.stamp;
-        this.start = start; this.count = count; this.forwards = forwards;
+        list = list; rangestamp = list.underlying != null ? list.underlying.stamp : list.stamp;
+        start = start; count = count; forwards = forwards;
         if (count > 0)
         {
           startnode = list.get(start);
@@ -1600,7 +1600,7 @@ namespace RazorDB.C5
     {
       if (size == 0)
         return retval;
-      int stamp = this.stamp;
+      int stamp = stamp;
       Node cursor = startsentinel.next;
       LinkedList<V>.Node mcursor = retval.startsentinel;
 
@@ -1866,14 +1866,14 @@ namespace RazorDB.C5
         throw new NotAViewException("List not a view");
 
 #pragma warning disable 472
-      if (this.offset == null) //Note: only possible with HASHINDEX
+      if (offset == null) //Note: only possible with HASHINDEX
 #pragma warning restore 472
       {
 #pragma warning disable 162
         try
         {
           getPair(offset - 1, offset + size, out startsentinel, out endsentinel,
-              new int[] { -1, this.size }, new Node[] { startsentinel, endsentinel });
+              new int[] { -1, size }, new Node[] { startsentinel, endsentinel });
           //TODO: maybe-update offset field
         }
         catch (NullReferenceException)
@@ -1884,15 +1884,15 @@ namespace RazorDB.C5
       }
       else
       {
-        if (offset + this.offset < 0 || offset + this.offset + size > underlying.size)
+        if (offset + offset < 0 || offset + offset + size > underlying.size)
           return false;
-        int oldoffset = (int)(this.offset);
+        int oldoffset = (int)(offset);
         getPair(offset - 1, offset + size, out startsentinel, out endsentinel,
-            new int[] { -oldoffset - 1, -1, this.size, underlying.size - oldoffset },
+            new int[] { -oldoffset - 1, -1, size, underlying.size - oldoffset },
             new Node[] { underlying.startsentinel, startsentinel, endsentinel, underlying.endsentinel });
       }
-      this.size = size;
-      this.offset += offset;
+      size = size;
+      offset += offset;
       return true;
     }
 
@@ -1994,8 +1994,8 @@ namespace RazorDB.C5
       while (poslow <= poshigh && (pos = positions[poslow]).Index == aindex)
 #endif
       {
-        //TODO: Note: in the case og hashed linked list, if this.offset == null, but pos.View.offset!=null
-        //we may at this point compute this.offset and non-null values of aindex and bindex
+        //TODO: Note: in the case og hashed linked list, if offset == null, but pos.View.offset!=null
+        //we may at this point compute offset and non-null values of aindex and bindex
         if (pos.Left)
           pos.View.endsentinel = b.next;
         else
@@ -3132,7 +3132,7 @@ namespace RazorDB.C5
     public IList<T> FindAll(Fun<T, bool> filter)
     {
       validitycheck();
-      int stamp = this.stamp;
+      int stamp = stamp;
       LinkedList<T> retval = new LinkedList<T>();
       Node cursor = startsentinel.next;
       Node mcursor = retval.startsentinel;
@@ -3323,7 +3323,7 @@ namespace RazorDB.C5
     {
       validitycheck();
       Node cursor = startsentinel.next;
-      int enumeratorstamp = underlying != null ? underlying.stamp : this.stamp;
+      int enumeratorstamp = underlying != null ? underlying.stamp : stamp;
 
       while (cursor != endsentinel)
       {

@@ -40,7 +40,7 @@ namespace RazorView {
         }
 
         void MenuItem_Close(object sender, RoutedEventArgs e) {
-            this.Close();
+            Close();
         }
 
         protected override void OnClosed(EventArgs e) {

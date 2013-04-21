@@ -11,8 +11,8 @@ namespace RazorDB {
     public struct PairInt {
         public int lengthA, lengthB;
         public PairInt(int lengthA, int lengthB) {
-            this.lengthA = lengthA;
-            this.lengthB = lengthB;
+            lengthA = lengthA;
+            lengthB = lengthB;
         }
     }
 
@@ -224,8 +224,8 @@ namespace RazorDB {
             public int offset, length;
 
             public Hit(int offset, int length) {
-                this.offset = offset;
-                this.length = length;
+                offset = offset;
+                length = length;
             }
         }
 
@@ -394,7 +394,7 @@ namespace RazorDB {
 
         public Crc32(UInt32 polynomial, UInt32 seed) {
             table = InitializeTable(polynomial);
-            this.seed = seed;
+            seed = seed;
             Initialize();
         }
 
@@ -408,7 +408,7 @@ namespace RazorDB {
 
         protected override byte[] HashFinal() {
             byte[] hashBuffer = UInt32ToBigEndianBytes(~hash);
-            this.HashValue = hashBuffer;
+            HashValue = hashBuffer;
             return hashBuffer;
         }
 

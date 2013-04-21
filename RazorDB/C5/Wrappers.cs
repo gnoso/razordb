@@ -21,7 +21,7 @@ namespace RazorDB.C5
     /// </summary>
     /// <param name="enumerator">The enumerator to wrap</param>
     public GuardedEnumerator(SCG.IEnumerator<T> enumerator)
-    { this.enumerator = enumerator; }
+    { enumerator = enumerator; }
 
     #endregion
 
@@ -91,7 +91,7 @@ namespace RazorDB.C5
     /// </summary>
     /// <param name="enumerable">The enumerable to wrap</param>
     public GuardedEnumerable(SCG.IEnumerable<T> enumerable)
-    { this.enumerable = enumerable; }
+    { enumerable = enumerable; }
 
     #endregion
 
@@ -140,7 +140,7 @@ namespace RazorDB.C5
     /// <param name="directedenumerable">the collection to wrap</param>
     public GuardedDirectedEnumerable(IDirectedEnumerable<T> directedenumerable)
       : base(directedenumerable)
-    { this.directedenumerable = directedenumerable; }
+    { directedenumerable = directedenumerable; }
 
     #endregion
 
@@ -256,7 +256,7 @@ namespace RazorDB.C5
     /// <param name="collectionvalue">the collection to wrap</param>
     public GuardedCollectionValue(ICollectionValue<T> collectionvalue)
       : base(collectionvalue)
-    { this.collectionvalue = collectionvalue; }
+    { collectionvalue = collectionvalue; }
 
     #endregion
 
@@ -401,7 +401,7 @@ namespace RazorDB.C5
     public GuardedDirectedCollectionValue(IDirectedCollectionValue<T> directedcollection)
       :
       base(directedcollection)
-    { this.directedcollection = directedcollection; }
+    { directedcollection = directedcollection; }
 
     #endregion
 
@@ -465,7 +465,7 @@ namespace RazorDB.C5
     public GuardedCollection(ICollection<T> collection)
       : base(collection)
     {
-      this.collection = collection;
+      collection = collection;
     }
 
     #endregion
@@ -732,7 +732,7 @@ namespace RazorDB.C5
     /// Wrap a sequenced collection in a read-only wrapper
     /// </summary>
     /// <param name="sorted"></param>
-    public GuardedSequenced(ISequenced<T> sorted) : base(sorted) { this.sequenced = sorted; }
+    public GuardedSequenced(ISequenced<T> sorted) : base(sorted) { sequenced = sorted; }
 
     #endregion
 
@@ -871,7 +871,7 @@ namespace RazorDB.C5
     /// Wrap a sorted collection in a read-only wrapper
     /// </summary>
     /// <param name="sorted"></param>
-    public GuardedSorted(ISorted<T> sorted) : base(sorted) { this.sorted = sorted; }
+    public GuardedSorted(ISorted<T> sorted) : base(sorted) { sorted = sorted; }
 
     #endregion
 
@@ -1116,7 +1116,7 @@ namespace RazorDB.C5
     /// <param name="list">the indexed sorted collection</param>
     public GuardedIndexedSorted(IIndexedSorted<T> list)
       : base(list)
-    { this.indexedsorted = list; }
+    { indexedsorted = list; }
 
     #endregion
 
@@ -1304,7 +1304,7 @@ namespace RazorDB.C5
     public GuardedList(IList<T> list)
       : base(list)
     {
-      this.innerlist = list;
+      innerlist = list;
       // If wrapping a list view, make innerlist = the view, and make 
       // underlying = a guarded version of the view's underlying list
       if (list.Underlying != null)
@@ -1314,7 +1314,7 @@ namespace RazorDB.C5
     GuardedList(IList<T> list, GuardedList<T> underlying, bool slidableView)
       : base(list)
     {
-      this.innerlist = list; this.underlying = underlying; this.slidableView = slidableView;
+      innerlist = list; underlying = underlying; slidableView = slidableView;
     }
     #endregion
 
@@ -1875,7 +1875,7 @@ namespace RazorDB.C5
     /// Wrap a queue in a read-only wrapper
     /// </summary>
     /// <param name="queue">The queue</param>
-    public GuardedQueue(IQueue<T> queue) : base(queue) { this.queue = queue; }
+    public GuardedQueue(IQueue<T> queue) : base(queue) { queue = queue; }
 
     #endregion
 
@@ -1931,7 +1931,7 @@ namespace RazorDB.C5
     /// Wrap a dictionary in a read-only wrapper
     /// </summary>
     /// <param name="dict">the dictionary</param>
-    public GuardedDictionary(IDictionary<K, V> dict) : base(dict) { this.dict = dict; }
+    public GuardedDictionary(IDictionary<K, V> dict) : base(dict) { dict = dict; }
 
     #endregion
 
@@ -2149,7 +2149,7 @@ namespace RazorDB.C5
     /// <param name="sorteddict">the dictionary</param>
     public GuardedSortedDictionary(ISortedDictionary<K, V> sorteddict)
       : base(sorteddict)
-    { this.sorteddict = sorteddict; }
+    { sorteddict = sorteddict; }
 
     #endregion
 

@@ -252,8 +252,8 @@ namespace RazorDB.C5
         throw new NullReferenceException("Item comparer cannot be null");
       if (itemequalityComparer == null)
         throw new NullReferenceException("Item equality comparer cannot be null");
-      this.comparer = comparer;
-      this.itemequalityComparer = itemequalityComparer;
+      comparer = comparer;
+      itemequalityComparer = itemequalityComparer;
       int length = 1;
       while (length < capacity) length <<= 1;
       heap = new Interval[length];

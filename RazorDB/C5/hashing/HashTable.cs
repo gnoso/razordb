@@ -136,17 +136,17 @@ namespace RazorDB.C5
 #if LINEARPROBING
       internal Bucket(T item, int hashval)
       {
-        this.item = item;
-        this.hashval = hashval;
+        item = item;
+        hashval = hashval;
       }
 #else
       internal Bucket overflow;
 
       internal Bucket(T item, int hashval, Bucket overflow)
       {
-        this.item = item;
-        this.hashval = hashval;
-        this.overflow = overflow;
+        item = item;
+        hashval = hashval;
+        overflow = overflow;
       }
 #endif
     }
@@ -160,8 +160,8 @@ namespace RazorDB.C5
 #if LINEARPROBING
       internal Bucket(T item, int hashval)
       {
-        this.item = item;
-        this.hashval = hashval;
+        item = item;
+        hashval = hashval;
       }
 #else
 			internal OverflowBucket overflow;
@@ -169,9 +169,9 @@ namespace RazorDB.C5
 
 			internal Bucket(T item, int hashval)
 			{
-				this.item = item;
-				this.hashval = hashval;
-				this.overflow = default(OverflowBucket);
+				item = item;
+				hashval = hashval;
+				overflow = default(OverflowBucket);
 			}
 #endif
     }
@@ -189,9 +189,9 @@ namespace RazorDB.C5
 
 			internal OverflowBucket(T item, int hashval, OverflowBucket overflow)
 			{
-				this.item = item;
-				this.hashval = hashval;
-				this.overflow = overflow;
+				item = item;
+				hashval = hashval;
+				overflow = overflow;
 			}
 		}
 #endif
@@ -243,7 +243,7 @@ namespace RazorDB.C5
     void resize(int bits)
     {
       //Console.WriteLine(String.Format("Resize to {0} bits", bits));
-      this.bits = bits;
+      bits = bits;
       bitsc = 32 - bits;
       indexmask = (1 << bits) - 1;
 
@@ -817,7 +817,7 @@ namespace RazorDB.C5
         throw new ArgumentException("Fill outside valid range [0.1, 0.9]");
       if (capacity <= 0)
         throw new ArgumentException("Capacity must be non-negative");
-      //this.itemequalityComparer = itemequalityComparer;
+      //itemequalityComparer = itemequalityComparer;
       origbits = 4;
       while (capacity - 1 >> origbits > 0) origbits++;
       clear();

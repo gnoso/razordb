@@ -84,15 +84,15 @@ namespace RazorDB {
                 throw new ArgumentNullException();
             }
             QueueLimit = queueLimit;
-            this.work = work;
-            this.queue = new Queue<T>();
-            this.orderingQueue = new OrderingQueue<T>();
-            this.queueCapacity = new Semaphore(queueLimit, queueLimit);
+            work = work;
+            queue = new Queue<T>();
+            orderingQueue = new OrderingQueue<T>();
+            queueCapacity = new Semaphore(queueLimit, queueLimit);
 
-            this.workerThreads = new Thread[numThreads];
+            workerThreads = new Thread[numThreads];
             for (int i = 0; i < numThreads; i++) {
-                this.workerThreads[i] = new Thread(ThreadMain);
-                this.workerThreads[i].Start();
+                workerThreads[i] = new Thread(ThreadMain);
+                workerThreads[i].Start();
             }
         }
         ~Pipeline() {

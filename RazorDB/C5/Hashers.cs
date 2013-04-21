@@ -257,7 +257,7 @@ namespace RazorDB.C5
     {
       if (comparer == null)
         throw new NullReferenceException("Comparer cannot be null");
-      this.comparer = comparer;
+      comparer = comparer;
     }
     /// <summary>
     /// A trivial, inefficient hash fuction. Compatible with any equality relation.

@@ -55,7 +55,7 @@ namespace RazorDB {
         }
 
         public bool Equals(Key other) {
-            return this.CompareTo(other) == 0;
+            return CompareTo(other) == 0;
         }
 
         public static Key FromBytes(byte[] bytes) {
@@ -120,7 +120,7 @@ namespace RazorDB {
             int res = _bytes.CompareTo(other, offset, length-1);
             if (res == 0) {
                 // Compare the sequence number
-                int keyVal = this.SequenceNum;
+                int keyVal = SequenceNum;
                 int otherVal = other[offset + length - 1];
                 res = keyVal.CompareTo(otherVal);
             } 
@@ -139,7 +139,7 @@ namespace RazorDB {
         }
 
         public bool Equals(KeyEx other) {
-            return this.CompareTo(other) == 0;
+            return CompareTo(other) == 0;
         }
 
         public static KeyEx FromKey(Key k) {

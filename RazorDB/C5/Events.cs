@@ -179,7 +179,7 @@ namespace RazorDB.C5
     ICollectionValue<T> proxy, real;
 
     internal ProxyEventBlock(ICollectionValue<T> proxy, ICollectionValue<T> real)
-    { this.proxy = proxy; this.real = real; }
+    { proxy = proxy; real = real; }
 
     event CollectionChangedHandler<T> collectionChanged;
     CollectionChangedHandler<T> collectionChangedProxy;

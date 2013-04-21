@@ -42,7 +42,7 @@ namespace RazorDB.C5
     [Tested]
     public Rec(T1 x1, T2 x2)
     {
-      this.X1 = x1; this.X2 = x2;
+      X1 = x1; X2 = x2;
     }
 
     /// <summary>
@@ -192,7 +192,7 @@ namespace RazorDB.C5
     [Tested]
     public Rec(T1 x1, T2 x2, T3 x3)
     {
-      this.X1 = x1; this.X2 = x2; this.X3 = x3;
+      X1 = x1; X2 = x2; X3 = x3;
     }
     /// <summary>
     /// 
@@ -353,7 +353,7 @@ namespace RazorDB.C5
     [Tested]
     public Rec(T1 x1, T2 x2, T3 x3, T4 x4)
     {
-      this.X1 = x1; this.X2 = x2; this.X3 = x3; this.X4 = x4;
+      X1 = x1; X2 = x2; X3 = x3; X4 = x4;
     }
     /// <summary>
     /// 

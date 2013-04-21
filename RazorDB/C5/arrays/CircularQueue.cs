@@ -219,14 +219,14 @@ namespace RazorDB.C5
     /// <returns></returns>
     public override SCG.IEnumerator<T> GetEnumerator()
     {
-      int stamp = this.stamp;
+      int stamp = stamp;
       if (forwards)
       {
         int position = front;
         int end = front <= back ? back : array.Length;
         while (position < end)
         {
-          if (stamp != this.stamp)
+          if (stamp != stamp)
             throw new CollectionModifiedException();
           yield return array[position++];
         }
@@ -235,7 +235,7 @@ namespace RazorDB.C5
           position = 0;
           while (position < back)
           {
-            if (stamp != this.stamp)
+            if (stamp != stamp)
               throw new CollectionModifiedException();
             yield return array[position++];
           }
@@ -247,7 +247,7 @@ namespace RazorDB.C5
         int end = front <= back ? front : 0;
         while (position >= end)
         {
-          if (stamp != this.stamp)
+          if (stamp != stamp)
             throw new CollectionModifiedException();
           yield return array[position--];
         }
@@ -256,7 +256,7 @@ namespace RazorDB.C5
           position = array.Length - 1;
           while (position >= front)
           {
-            if (stamp != this.stamp)
+            if (stamp != stamp)
               throw new CollectionModifiedException();
             yield return array[position--];
           }

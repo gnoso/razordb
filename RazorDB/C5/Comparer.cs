@@ -147,7 +147,7 @@ namespace RazorDB.C5
     {
       if (comparison == null)
         throw new NullReferenceException("Comparison cannot be null");
-      this.cmp = comparison;
+      cmp = comparison;
     }
     /// <summary>
     /// 

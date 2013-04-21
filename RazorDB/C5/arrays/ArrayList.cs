@@ -276,7 +276,7 @@ namespace RazorDB.C5
     protected override void modifycheck(int stamp)
     {
       validitycheck();
-      if (this.stamp != stamp)
+      if (stamp != stamp)
         throw new CollectionModifiedException();
     }
 
@@ -531,10 +531,10 @@ namespace RazorDB.C5
       public readonly int index;
       public Position(ArrayList<T> view, bool left)
       {
-        this.view = view;
+        view = view;
         index = left ? view.offset : view.offset + view.size - 1;
       }
-      public Position(int index) { this.index = index; view = null; }
+      public Position(int index) { index = index; view = null; }
     }
 
     /// <summary>
@@ -969,7 +969,7 @@ namespace RazorDB.C5
     public virtual IList<T> FindAll(Fun<T, bool> filter)
     {
       validitycheck();
-      int stamp = this.stamp;
+      int stamp = stamp;
       ArrayList<T> res = new ArrayList<T>(itemequalityComparer);
       int j = 0, rescap = res.array.Length;
       for (int i = 0; i < size; i++)
@@ -1056,7 +1056,7 @@ namespace RazorDB.C5
 
     IList<V> map<V>(Fun<T, V> mapper, ArrayList<V> res)
     {
-      int stamp = this.stamp;
+      int stamp = stamp;
       if (size > 0)
         for (int i = 0; i < size; i++)
         {
@@ -1262,14 +1262,14 @@ namespace RazorDB.C5
       if (underlying == null)
         throw new NotAViewException("Not a view");
 
-      int newoffset = this.offset + offset;
+      int newoffset = offset + offset;
       int newsize = size;
 
       if (newoffset < 0 || newsize < 0 || newoffset + newsize > underlyingsize)
         return false;
 
-      this.offset = newoffset;
-      this.size = newsize;
+      offset = newoffset;
+      size = newsize;
       return true;
     }
 

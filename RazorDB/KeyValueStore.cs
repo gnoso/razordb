@@ -125,7 +125,7 @@ namespace RazorDB {
         public void CleanIndex(string indexName) {
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
 
-            var allValueStoreItems = new HashSet<ByteArray>( this.Enumerate().Select(item => new ByteArray(item.Key) ) );
+            var allValueStoreItems = new HashSet<ByteArray>( Enumerate().Select(item => new ByteArray(item.Key) ) );
             foreach (var indexItem in indexStore.Enumerate()) {
                 if (!allValueStoreItems.Contains(new ByteArray(indexItem.Value))) {
                     indexStore.Delete(indexItem.Key);

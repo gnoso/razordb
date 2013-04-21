@@ -316,7 +316,7 @@ namespace RazorDB.C5
     {
       if (comparer == null)
         throw new NullReferenceException("Item comparer cannot be null");
-      this.comparer = comparer;
+      comparer = comparer;
     }
 
     #endregion
@@ -351,7 +351,7 @@ namespace RazorDB.C5
       /// <param name="tree">The red-black tree to enumerate</param>
       public Enumerator(TreeBag<T> tree)
       {
-        this.tree = tree;
+        tree = tree;
         stamp = tree.stamp;
         path = new Node[2 * tree.blackdepth];
         cursor = new Node();
@@ -507,7 +507,7 @@ namespace RazorDB.C5
       /// <param name="tree">The snapshot</param>
       public SnapEnumerator(TreeBag<T> tree)
       {
-        this.tree = tree;
+        tree = tree;
         stamp = tree.stamp;
         path = new Node[2 * tree.blackdepth];
         cursor = new Node();
@@ -2122,7 +2122,7 @@ bool removeIterativePhase2(Node cursor, int level)
         throw new ViewDisposedException("Snapshot has been disposed");
       updatecheck();
 
-      //A much more efficient version is possible if items is sorted like this.
+      //A much more efficient version is possible if items is sorted like 
       //Well, it is unclear how efficient it would be.
       //We could use a marking method!?
       // TODO: how does this work together with persistence?
@@ -2408,7 +2408,7 @@ bool removeIterativePhase2(Node cursor, int level)
     {
       TreeBag<T> treebag;
       int origstamp;
-      internal Multiplicities(TreeBag<T> treebag) { this.treebag = treebag; this.origstamp = treebag.stamp; }
+      internal Multiplicities(TreeBag<T> treebag) { treebag = treebag; origstamp = treebag.stamp; }
       public override KeyValuePair<T, int> Choose() { return new KeyValuePair<T, int>(treebag.root.item, treebag.root.items); }
 
       public override SCG.IEnumerator<KeyValuePair<T, int>> GetEnumerator()
@@ -2761,7 +2761,7 @@ bool removeIterativePhase2(Node cursor, int level)
     {
       if (!isValid)
         throw new ViewDisposedException("Snapshot has been disposed");
-      if (start < 0 || count < 0 || start + count > this.size)
+      if (start < 0 || count < 0 || start + count > size)
         throw new ArgumentOutOfRangeException();
 
       updatecheck();
@@ -2816,8 +2816,8 @@ bool removeIterativePhase2(Node cursor, int level)
         if (tree.isSnapShot)
           throw new NotSupportedException("Indexing not supported for snapshots");
 #endif
-        this.start = start; this.length = count; this.forwards = forwards;
-        this.tree = tree; this.stamp = tree.stamp;
+        start = start; length = count; forwards = forwards;
+        tree = tree; stamp = tree.stamp;
       }
 
       public override bool IsEmpty { get { return length == 0; } }
@@ -3948,15 +3948,15 @@ bool removeIterativePhase2(Node cursor, int level)
       [Tested]
       public Range(TreeBag<T> basis, bool haslowend, T lowend, bool hashighend, T highend, EnumerationDirection direction)
       {
-        this.basis = basis;
+        basis = basis;
         stamp = basis.stamp;
 
         //lowind will be const; should we cache highind?
-        this.lowend = lowend; //Inclusive
-        this.highend = highend;//Exclusive
-        this.haslowend = haslowend;
-        this.hashighend = hashighend;
-        this.direction = direction;
+        lowend = lowend; //Inclusive
+        highend = highend;//Exclusive
+        haslowend = haslowend;
+        hashighend = hashighend;
+        direction = direction;
         if (!basis.isSnapShot)
           size = haslowend ?
               (hashighend ? basis.CountFromTo(lowend, highend) : basis.CountFrom(lowend)) :
@@ -3996,7 +3996,7 @@ bool removeIterativePhase2(Node cursor, int level)
         {
           comparer = range.basis.comparer;
           path = new Node[2 * range.basis.blackdepth];
-          this.range = range;
+          range = range;
           forwards = range.direction == EnumerationDirection.Forwards;
           cursor = new Node();
           if (forwards)

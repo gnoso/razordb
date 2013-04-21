@@ -158,7 +158,7 @@ namespace RazorDB.C5
     {
       if (comparer == null)
         throw new NullReferenceException("Comparer cannot be null");
-      this.comparer = comparer;
+      comparer = comparer;
     }
 
     #endregion

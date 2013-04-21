@@ -146,7 +146,7 @@ namespace RazorDB.C5
     {
       if (Q.Length != 16)
         throw new ArgumentException("Q must have length 16, was " + Q.Length);
-      Array.Copy(Q, this.Q, 16);
+      Array.Copy(Q, Q, 16);
     }
   }
 }

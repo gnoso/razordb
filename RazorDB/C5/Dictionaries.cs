@@ -149,7 +149,7 @@ namespace RazorDB.C5
     {
       if (comparer == null)
         throw new NullReferenceException();
-      this.comparer = comparer;
+      comparer = comparer;
     }
 
 
@@ -190,7 +190,7 @@ namespace RazorDB.C5
     {
       if (keyequalityComparer == null)
         throw new NullReferenceException("Key equality comparer cannot be null");
-      this.keyequalityComparer = keyequalityComparer;
+      keyequalityComparer = keyequalityComparer;
     }
 
 
@@ -302,7 +302,7 @@ namespace RazorDB.C5
     {
       if (keyequalityComparer == null)
         throw new NullReferenceException("Key equality comparer cannot be null");
-      this.keyequalityComparer = keyequalityComparer;
+      keyequalityComparer = keyequalityComparer;
     }
 
     #region IDictionary<K,V> Members
@@ -415,7 +415,7 @@ namespace RazorDB.C5
     class LiftedEnumerable<H> : SCG.IEnumerable<KeyValuePair<K, V>> where H : K
     {
       SCG.IEnumerable<H> keys;
-      public LiftedEnumerable(SCG.IEnumerable<H> keys) { this.keys = keys; }
+      public LiftedEnumerable(SCG.IEnumerable<H> keys) { keys = keys; }
       public SCG.IEnumerator<KeyValuePair<K, V>> GetEnumerator() { foreach (H key in keys) yield return new KeyValuePair<K, V>(key); }
 
       #region IEnumerable Members
@@ -572,7 +572,7 @@ namespace RazorDB.C5
 
 
       internal ValuesCollection(ICollection<KeyValuePair<K, V>> pairs)
-      { this.pairs = pairs; }
+      { pairs = pairs; }
 
 
       public override V Choose() { return pairs.Choose().Value; }
@@ -602,7 +602,7 @@ namespace RazorDB.C5
 
 
       internal KeysCollection(ICollection<KeyValuePair<K, V>> pairs)
-      { this.pairs = pairs; }
+      { pairs = pairs; }
 
       public override K Choose() { return pairs.Choose().Key; }
 
@@ -768,7 +768,7 @@ namespace RazorDB.C5
     /// </summary>
     /// <param name="keycomparer"></param>
     /// <param name="keyequalityComparer"></param>
-    protected SortedDictionaryBase(SCG.IComparer<K> keycomparer, SCG.IEqualityComparer<K> keyequalityComparer) : base(keyequalityComparer) { this.keycomparer = keycomparer; }
+    protected SortedDictionaryBase(SCG.IComparer<K> keycomparer, SCG.IEqualityComparer<K> keyequalityComparer) : base(keyequalityComparer) { keycomparer = keycomparer; }
 
     #endregion
 
@@ -1027,7 +1027,7 @@ namespace RazorDB.C5
     {
       IComparable<K> cutter;
 
-      internal KeyValuePairComparable(IComparable<K> cutter) { this.cutter = cutter; }
+      internal KeyValuePairComparable(IComparable<K> cutter) { cutter = cutter; }
 
       public int CompareTo(KeyValuePair<K, V> other) { return cutter.CompareTo(other.Key); }
 
@@ -1056,7 +1056,7 @@ namespace RazorDB.C5
     class SortedKeysCollection : SequencedBase<K>, ISorted<K>
     {
       ISortedDictionary<K, V> sorteddict;
-      //TODO: eliminate this. Only problem is the Find method because we lack method on dictionary that also 
+      //TODO: eliminate  Only problem is the Find method because we lack method on dictionary that also 
       //      returns the actual key.
       ISorted<KeyValuePair<K, V>> sortedpairs;
       SCG.IComparer<K> comparer;
@@ -1064,9 +1064,9 @@ namespace RazorDB.C5
       internal SortedKeysCollection(ISortedDictionary<K, V> sorteddict, ISorted<KeyValuePair<K, V>> sortedpairs, SCG.IComparer<K> comparer, SCG.IEqualityComparer<K> itemequalityComparer)
         : base(itemequalityComparer)
       {
-        this.sorteddict = sorteddict;
-        this.sortedpairs = sortedpairs;
-        this.comparer = comparer;
+        sorteddict = sorteddict;
+        sortedpairs = sortedpairs;
+        comparer = comparer;
       }
 
       public override K Choose() { return sorteddict.Choose().Key; }

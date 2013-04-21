@@ -368,7 +368,7 @@ namespace RazorDB.C5
       /// <param name="collection"></param>
       public RaiseForRemoveAllHandler(CollectionValueBase<T> collection)
       {
-        this.collection = collection;
+        collection = collection;
         mustFireRemoved = (collection.ActiveEvents & EventTypeEnum.Removed) != 0;
         MustFire = (collection.ActiveEvents & (EventTypeEnum.Removed | EventTypeEnum.Changed)) != 0;
       }
@@ -621,7 +621,7 @@ namespace RazorDB.C5
     /// <returns></returns>
     public abstract IDirectedCollectionValue<T> Backwards();
 
-    IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards() { return this.Backwards(); }
+    IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards() { return Backwards(); }
 
     /// <summary>
     /// Check if there exists an item  that satisfies a
@@ -684,7 +684,7 @@ namespace RazorDB.C5
     {
       if (itemequalityComparer == null)
         throw new NullReferenceException("Item EqualityComparer cannot be null.");
-      this.itemequalityComparer = itemequalityComparer;
+      itemequalityComparer = itemequalityComparer;
     }
 
     #region Util
@@ -877,7 +877,7 @@ namespace RazorDB.C5
     /// <param name="thestamp">The stamp identifying the target time</param>
     protected virtual void modifycheck(int thestamp)
     {
-      if (this.stamp != thestamp)
+      if (stamp != thestamp)
         throw new CollectionModifiedException();
     }
 
@@ -977,7 +977,7 @@ namespace RazorDB.C5
     /// <returns></returns>
     public abstract IDirectedCollectionValue<T> Backwards();
 
-    IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards() { return this.Backwards(); }
+    IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards() { return Backwards(); }
 
     /// <summary>
     /// Check if there exists an item  that satisfies a
@@ -1384,9 +1384,9 @@ namespace RazorDB.C5
 
       internal Range(ArrayBase<T> thebase, int start, int count, bool forwards)
       {
-        this.thebase = thebase; stamp = thebase.stamp;
+        thebase = thebase; stamp = thebase.stamp;
         delta = forwards ? 1 : -1;
-        this.start = start + thebase.offset; this.count = count;
+        start = start + thebase.offset; count = count;
       }
 
       /// <summary>
