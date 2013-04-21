@@ -34,9 +34,9 @@ namespace RazorDB {
             Dispose();
         }
 
-        private Manifest _manifest;
-        private RazorCache _cache;
-        private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string, KeyValueStore>(StringComparer.OrdinalIgnoreCase);
+        Manifest _manifest;
+        RazorCache _cache;
+        Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string, KeyValueStore>(StringComparer.OrdinalIgnoreCase);
 
         // For Table Manager 
         internal long ticksTillNextMerge = 0;
@@ -46,7 +46,7 @@ namespace RazorDB {
 
         internal RazorCache Cache { get { return _cache; } }
 
-        private volatile JournaledMemTable _currentJournaledMemTable;
+        volatile JournaledMemTable _currentJournaledMemTable;
 
         public void Truncate() {
             _currentJournaledMemTable.Close();
@@ -133,7 +133,7 @@ namespace RazorDB {
             }
         }
 
-        private void InternalSet(KeyEx k, Value v, IDictionary<string, byte[]> indexedValues) {
+        void InternalSet(KeyEx k, Value v, IDictionary<string, byte[]> indexedValues) {
             int adds = 10;
             while (!_currentJournaledMemTable.Add(k, v)) {
                 adds--;
@@ -166,7 +166,7 @@ namespace RazorDB {
             }
         }
 
-        private KeyValueStore GetSecondaryIndex(string IndexName) {
+        KeyValueStore GetSecondaryIndex(string IndexName) {
             KeyValueStore indexStore = null;
             lock (_secondaryIndexes) {
                 if (!_secondaryIndexes.TryGetValue(IndexName, out indexStore)) {
@@ -185,7 +185,7 @@ namespace RazorDB {
             return AssembleGetResult(lookupKey, InternalGet(lookupKey));
         }
 
-        private Value InternalGet(KeyEx lookupKey) {
+        Value InternalGet(KeyEx lookupKey) {
             Value output = Value.Empty;
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
@@ -221,7 +221,7 @@ namespace RazorDB {
             return Value.Empty;
         }
 
-        private byte[] AssembleGetResult(KeyEx lookupKey, Value result) {
+        byte[] AssembleGetResult(KeyEx lookupKey, Value result) {
             switch (result.Type) {
                 case ValueFlag.Null:
                 case ValueFlag.Deleted:
@@ -289,7 +289,7 @@ namespace RazorDB {
             return EnumerateFromKey(new byte[0]);
         }
 
-        private IEnumerable<KeyValuePair<KeyEx, Value>> InternalEnumerateFromKey(byte[] startingKey) {
+        IEnumerable<KeyValuePair<KeyEx, Value>> InternalEnumerateFromKey(byte[] startingKey) {
 
             var enumerators = new List<IEnumerable<KeyValuePair<KeyEx, Value>>>();
             KeyEx key = new KeyEx(startingKey, 0);
@@ -338,9 +338,9 @@ namespace RazorDB {
             }
         }
 
-        private object memTableRotationLock = new object();
-        private JournaledMemTable _rotatedJournaledMemTable;
-        private Semaphore _rotationSemaphore = new Semaphore(1, 1);
+        object memTableRotationLock = new object();
+        JournaledMemTable _rotatedJournaledMemTable;
+        Semaphore _rotationSemaphore = new Semaphore(1, 1);
 
 #pragma warning disable 420
         public void RotateMemTable() {
@@ -364,7 +364,7 @@ namespace RazorDB {
         }
 #pragma warning restore 420
 
-        private void CheckForIncompleteJournalRotation(string baseFileName, int currentMemTableVersion) {
+        void CheckForIncompleteJournalRotation(string baseFileName, int currentMemTableVersion) {
             int previousMemTableVersion = currentMemTableVersion - 1;
             // Is there a left-over journal from a previous rotation that was aborted while in rotation.
             if (File.Exists(Config.JournalFile(baseFileName, previousMemTableVersion))) {

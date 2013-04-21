@@ -69,7 +69,7 @@ namespace RazorDB.C5
     /// <value></value>
     public virtual EventTypeEnum ActiveEvents { get { return eventBlock == null ? 0 : eventBlock.events; } }
 
-    private void checkWillListen(EventTypeEnum eventType)
+    void checkWillListen(EventTypeEnum eventType)
     {
       if ((ListenableEvents & eventType) == 0)
         throw new UnlistenableEventException();

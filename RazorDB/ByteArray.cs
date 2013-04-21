@@ -13,7 +13,7 @@ namespace RazorDB {
                 throw new ArgumentNullException();
             _bytes = bytes;
         }
-        private byte[] _bytes;
+        byte[] _bytes;
 
         public byte[] InternalBytes { get { return _bytes; } }
 
@@ -45,9 +45,9 @@ namespace RazorDB {
         }
 
         [ThreadStatic]
-        private static Random rand;
-        private static object randLock = new object();
-        private static Random getRand() {
+        static Random rand;
+        static object randLock = new object();
+        static Random getRand() {
             if (rand == null)
                 lock (randLock) {
                     if (rand == null)
@@ -100,7 +100,7 @@ namespace RazorDB {
         }
 
         [DllImport("msvcrt.dll")]
-        private static extern unsafe int memcmp(byte* b1, byte* b2, int count);
+        static extern unsafe int memcmp(byte* b1, byte* b2, int count);
 
         public static ByteArray From(byte[] block, int offset, int size) {
             byte[] bytes = new byte[size];

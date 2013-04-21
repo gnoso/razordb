@@ -14,10 +14,10 @@ namespace RazorDB {
             _writer = new BinaryWriter(new FileStream(_fileName, fileMode, FileAccess.Write, FileShare.None, 1024, false));
         }
 
-        private BinaryWriter _writer;
-        private string _fileName;
+        BinaryWriter _writer;
+        string _fileName;
 
-        private object _writeLock = new object();
+        object _writeLock = new object();
 
         // Add an item to the journal. It's possible that a thread is still Adding while another thread is Closing the journal.
         // in that case, we return false and expect the caller to do the operation over again on another journal instance.
@@ -57,8 +57,8 @@ namespace RazorDB {
             _reader = new BinaryReader(new FileStream(_fileName, FileMode.Open, FileAccess.Read, FileShare.None, 1024, false));
         }
 
-        private BinaryReader _reader;
-        private string _fileName;
+        BinaryReader _reader;
+        string _fileName;
 
         public IEnumerable<KeyValuePair<KeyEx, Value>> Enumerate() {
             byte[] value = null;

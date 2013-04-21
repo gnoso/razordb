@@ -372,7 +372,7 @@ namespace RazorDB.C5
     }
 
 #if HASHINDEX
-    private bool dictremove(T item, out Node node)
+    bool dictremove(T item, out Node node)
     {
       if (underlying == null)
       {
@@ -873,7 +873,7 @@ namespace RazorDB.C5
     }
 
 
-    private void redistributetaggroups(TagGroup taggroup)
+    void redistributetaggroups(TagGroup taggroup)
     {
       TagGroup pred = taggroup, succ = taggroup, tmp;
       double limit = 1, bigt = Math.Pow(Taggroups, 1.0 / 30);//?????
@@ -1521,7 +1521,7 @@ namespace RazorDB.C5
 #endif
     }
 
-    private void raiseForInsertAll(Node node, int i, int added, bool insertion)
+    void raiseForInsertAll(Node node, int i, int added, bool insertion)
     {
       if (ActiveEvents != 0)
       {
@@ -1596,7 +1596,7 @@ namespace RazorDB.C5
       return map<V>(mapper, retval);
     }
 
-    private IList<V> map<V>(Fun<T, V> mapper, HashedLinkedList<V> retval)
+    IList<V> map<V>(Fun<T, V> mapper, HashedLinkedList<V> retval)
     {
       if (size == 0)
         return retval;
@@ -1980,7 +1980,7 @@ namespace RazorDB.C5
       (underlying ?? this).raiseCollectionChanged();
     }
 
-    private void mirrorViewSentinelsForReverse(Position[] positions, ref int poslow, ref int poshigh, Node a, Node b, int i)
+    void mirrorViewSentinelsForReverse(Position[] positions, ref int poslow, ref int poshigh, Node a, Node b, int i)
     {
 #if HASHINDEX
       int? aindex = offset + i, bindex = offset + size - 1 - i;
@@ -2176,7 +2176,7 @@ namespace RazorDB.C5
       (underlying ?? this).raiseCollectionChanged();
     }
 
-    private static Node mergeRuns(Node run1, Node run2, SCG.IComparer<T> c)
+    static Node mergeRuns(Node run1, Node run2, SCG.IComparer<T> c)
     {
       //assert run1 != null && run2 != null;
       Node prev;
@@ -3482,7 +3482,7 @@ namespace RazorDB.C5
 
     #region Diagnostic
 
-    private bool checkViews()
+    bool checkViews()
     {
       if (underlying != null)
         throw new InternalException(System.Reflection.MethodInfo.GetCurrentMethod() + " called on a view");

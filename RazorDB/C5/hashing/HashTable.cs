@@ -107,7 +107,7 @@ namespace RazorDB.C5
 #if DEBUG
     const uint randomhashfactor = 1529784659;
 #else
-    private static readonly Random random = new Random();
+    static readonly Random random = new Random();
     uint randomhashfactor = (2 * (uint)random.Next() + 1) * 1529784659;
 #endif
 #endif
@@ -309,7 +309,7 @@ namespace RazorDB.C5
 #if LINEARPROBING
 #else
 		//Only for resize!!!
-		private void insert(T item, int hashval, Bucket[] t)
+		void insert(T item, int hashval, Bucket[] t)
 		{
 			int i = hv2i(hashval);
 			Bucket b = t[i];
@@ -332,7 +332,7 @@ namespace RazorDB.C5
     /// <param name="update">If true, update table entry if item found.</param>
     /// <param name="raise">If true raise events</param>
     /// <returns>True if found</returns>
-    private bool searchoradd(ref T item, bool add, bool update, bool raise)
+    bool searchoradd(ref T item, bool add, bool update, bool raise)
     {
 
 #if LINEARPROBING
@@ -558,7 +558,7 @@ namespace RazorDB.C5
     }
 
 
-    private bool remove(ref T item)
+    bool remove(ref T item)
     {
 
       if (size == 0)
@@ -761,7 +761,7 @@ namespace RazorDB.C5
     }
 
 
-    private void clear()
+    void clear()
     {
       bits = origbits;
       bitsc = 32 - bits;

@@ -20,7 +20,7 @@ namespace RazorDB {
             }
         }
 
-        private ManifestImmutable Clone() {
+        ManifestImmutable Clone() {
             // Clone this copy of the manifest
             var clone = new ManifestImmutable(_manifest);
 
@@ -36,9 +36,9 @@ namespace RazorDB {
             return clone;
         }
 
-        private List<PageRecord>[] _pages;
+        List<PageRecord>[] _pages;
 
-        private int[] _versions = new int[MaxLevels];
+        int[] _versions = new int[MaxLevels];
         public int CurrentVersion(int level) {
             if (level >= MaxLevels)
                 throw new IndexOutOfRangeException();
@@ -54,7 +54,7 @@ namespace RazorDB {
             return _pages[level].Count;
         }
 
-        private KeyEx[] _mergeKeys;
+        KeyEx[] _mergeKeys;
         public PageRecord FindPageForKey(int level, KeyEx key) {
             if (level >= MaxLevels)
                 throw new IndexOutOfRangeException();
@@ -209,7 +209,7 @@ namespace RazorDB {
             }
         }
 
-        private Manifest _manifest;
+        Manifest _manifest;
 
         public void AddRef() {
             foreach (var level in _pages) {
@@ -232,7 +232,7 @@ namespace RazorDB {
 
     public class Manifest {
 
-        private Manifest() { }
+        Manifest() { }
         public Manifest(string baseFileName) {
             _baseFileName = baseFileName;
             Read();
@@ -240,15 +240,15 @@ namespace RazorDB {
         public static Manifest NewDummyManifest() {
             return new Manifest();
         }
-        private object manifestLock = new object();
-        private LinkedList<ManifestImmutable> _manifests = new LinkedList<ManifestImmutable>();
+        object manifestLock = new object();
+        LinkedList<ManifestImmutable> _manifests = new LinkedList<ManifestImmutable>();
 
-        private string _baseFileName;
+        string _baseFileName;
         public string BaseFileName {
             get { return _baseFileName; }
         }
 
-        private int _manifestVersion = 0;
+        int _manifestVersion = 0;
         public int ManifestVersion {
             get { return _manifestVersion; }
         }
@@ -259,7 +259,7 @@ namespace RazorDB {
             }
         }
 
-        private void CommitManifest(ManifestImmutable manifest) {
+        void CommitManifest(ManifestImmutable manifest) {
             lock (manifestLock) {
                 Write(manifest);
                 _manifests.AddLast(manifest);
@@ -274,13 +274,13 @@ namespace RazorDB {
             }
         }
 
-        private void ReleaseManifest(ManifestImmutable manifest) {
+        void ReleaseManifest(ManifestImmutable manifest) {
             lock (manifestLock) {
                 _manifests.Remove(manifest);
             }
         }
 
-        private ManifestImmutable LastManifest { get { return _manifests.Last.Value; } }
+        ManifestImmutable LastManifest { get { return _manifests.Last.Value; } }
 
         public void LogContents() {
             LastManifest.LogContents(this);
@@ -326,7 +326,7 @@ namespace RazorDB {
             SortedBlockTable.DeleteFile(BaseFileName, path);
         }
 
-        private void Write(ManifestImmutable m) {
+        void Write(ManifestImmutable m) {
 
             string manifestFile = Config.ManifestFile(BaseFileName);
             string tempManifestFile = manifestFile + "~";
@@ -358,7 +358,7 @@ namespace RazorDB {
             }
         }
 
-        private void Read() {
+        void Read() {
 
             string manifestFile = Config.ManifestFile(_baseFileName);
             if (!File.Exists(manifestFile)) {
@@ -408,7 +408,7 @@ namespace RazorDB {
             }
         }
 
-        private Action<string> _logger;
+        Action<string> _logger;
         public Action<string> Logger {
             get { return _logger; }
             set { _logger = value; } 
@@ -479,16 +479,16 @@ namespace RazorDB {
             _lastKey = lastKey;
             _snapshotReferenceCount = 0;
         }
-        private int _level;
+        int _level;
         public int Level { get { return _level; } }
-        private int _version;
+        int _version;
         public int Version { get { return _version; } }
-        private KeyEx _firstKey;
+        KeyEx _firstKey;
         public KeyEx FirstKey { get { return _firstKey; } }
-        private KeyEx _lastKey;
+        KeyEx _lastKey;
         public KeyEx LastKey { get { return _lastKey; } }
 
-        private int _snapshotReferenceCount;
+        int _snapshotReferenceCount;
         public int RefCount { get { return _snapshotReferenceCount; } }
 
         public void AddRef() {

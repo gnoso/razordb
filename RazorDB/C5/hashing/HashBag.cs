@@ -538,7 +538,7 @@ namespace RazorDB.C5
         Add(item);
     }
 
-    private void add(ref T item)
+    void add(ref T item)
     {
       KeyValuePair<T, int> p = new KeyValuePair<T, int>(item, 1);
       if (dict.Find(ref p))

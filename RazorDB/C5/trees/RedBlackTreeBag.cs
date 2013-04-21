@@ -63,9 +63,9 @@ namespace RazorDB.C5
 
     //We double these stacks for the iterative add and remove on demand
     //TODO: refactor dirs[] into bool fields on Node (?)
-    private int[] dirs = new int[2];
+    int[] dirs = new int[2];
 
-    private Node[] path = new Node[2];
+    Node[] path = new Node[2];
 #if NCP
     //TODO: refactor into separate class
     bool isSnapShot = false;
@@ -95,7 +95,7 @@ namespace RazorDB.C5
     /// </summary>
     /// <param name="n"></param>
     /// <returns></returns>
-    private Node left(Node n)
+    Node left(Node n)
     {
 #if NCP
       if (isSnapShot)
@@ -115,7 +115,7 @@ namespace RazorDB.C5
     }
 
 
-    private Node right(Node n)
+    Node right(Node n)
     {
 #if NCP
       if (isSnapShot)
@@ -137,7 +137,7 @@ namespace RazorDB.C5
 
     //This method should be called by methods that use the internal 
     //traversal stack, unless certain that there is room enough
-    private void stackcheck()
+    void stackcheck()
     {
       while (dirs.Length < 2 * blackdepth)
       {
@@ -330,7 +330,7 @@ namespace RazorDB.C5
     /// </summary>
     internal class Enumerator : SCG.IEnumerator<T>
     {
-      #region Private Fields
+      #region Fields
       TreeBag<T> tree;
 
       bool valid = false;
@@ -481,7 +481,7 @@ namespace RazorDB.C5
     /// </summary>
     internal class SnapEnumerator : SCG.IEnumerator<T>
     {
-      #region Private Fields
+      #region Fields
       TreeBag<T> tree;
 
       bool valid = false;
@@ -614,7 +614,7 @@ namespace RazorDB.C5
 
     #region IEnumerable<T> Members
 
-    private SCG.IEnumerator<T> getEnumerator(Node node, int origstamp)
+    SCG.IEnumerator<T> getEnumerator(Node node, int origstamp)
     {
       if (node == null)
         yield break;
@@ -1022,7 +1022,7 @@ namespace RazorDB.C5
         Add(item);
     }
 
-    private bool add(T item, ref T j)
+    bool add(T item, ref T j)
     {
       bool wasFound;
 
@@ -1581,7 +1581,7 @@ namespace RazorDB.C5
     /// <param name="all">If true, remove all copies</param>
     /// <param name="wasRemoved"></param>
     /// <returns></returns>
-    private bool removeIterative(ref T item, bool all, out int wasRemoved)
+    bool removeIterative(ref T item, bool all, out int wasRemoved)
     {
       wasRemoved = 0;
       //Stage 1: find item
@@ -1640,7 +1640,7 @@ namespace RazorDB.C5
     }
 
 
-private bool removeIterativePhase2(Node cursor, int level)
+bool removeIterativePhase2(Node cursor, int level)
     {
       if (size == 1)
       {
@@ -2069,7 +2069,7 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    private void clear()
+    void clear()
     {
       size = 0;
       root = null;
@@ -2416,7 +2416,7 @@ private bool removeIterativePhase2(Node cursor, int level)
         return getEnumerator(treebag.root, origstamp); //TODO: NBNBNB
       }
 
-      private SCG.IEnumerator<KeyValuePair<T, int>> getEnumerator(Node node, int origstamp)
+      SCG.IEnumerator<KeyValuePair<T, int>> getEnumerator(Node node, int origstamp)
       {
         if (node == null)
           yield break;
@@ -2507,7 +2507,7 @@ private bool removeIterativePhase2(Node cursor, int level)
 
     #region IIndexed<T> Members
 
-    private Node findNode(int i)
+    Node findNode(int i)
     {
 #if NCP
       if (isSnapShot)
@@ -2579,7 +2579,7 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    private int indexOf(T item, out int upper)
+    int indexOf(T item, out int upper)
     {
 #if NCP
       if (isSnapShot)
@@ -2730,7 +2730,7 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 #if BAG
-    private void resplicebag(int level, Node cursor)
+    void resplicebag(int level, Node cursor)
     {
 #if NCP
       Node.CopyNode(ref cursor, maxsnapid, generation);
@@ -3080,7 +3080,7 @@ private bool removeIterativePhase2(Node cursor, int level)
       return retval;
     }
 
-    private T deleteMin()
+    T deleteMin()
     {
       int level = 0;
       Node cursor = root;
@@ -3157,7 +3157,7 @@ private bool removeIterativePhase2(Node cursor, int level)
       return retval;
     }
 
-    private T deleteMax()
+    T deleteMax()
     {
       int level = 0;
       Node cursor = root;
@@ -3513,7 +3513,7 @@ private bool removeIterativePhase2(Node cursor, int level)
 
 
     //Utility for CountXxxx. Actually always called with strict = true.
-    private int countTo(T item, bool strict)
+    int countTo(T item, bool strict)
     {
 #if NCP
       if (isSnapShot)
@@ -3882,7 +3882,7 @@ private bool removeIterativePhase2(Node cursor, int level)
 #endif
     }
 
-    private void snapDispose()
+    void snapDispose()
     {
       root = null;
       dirs = null;
@@ -3934,13 +3934,13 @@ private bool removeIterativePhase2(Node cursor, int level)
     {
       //We actually need exclusive upper and lower bounds, and flags to 
       //indicate whether the bound is present (we canot rely on default(T))
-      private int stamp, size;
+      int stamp, size;
 
-      private TreeBag<T> basis;
+      TreeBag<T> basis;
 
-      private T lowend, highend;
+      T lowend, highend;
 
-      private bool haslowend, hashighend;
+      bool haslowend, hashighend;
 
       EnumerationDirection direction;
 
@@ -3970,25 +3970,25 @@ private bool removeIterativePhase2(Node cursor, int level)
 
       internal class Enumerator : SCG.IEnumerator<T>
       {
-        #region Private Fields
-        private bool valid = false, ready = true;
+        #region Fields
+        bool valid = false, ready = true;
 
-        private SCG.IComparer<T> comparer;
+        SCG.IComparer<T> comparer;
 
-        private T current;
+        T current;
 #if BAG
         int togo;
 #endif
 
-        private Node cursor;
+        Node cursor;
 
-        private Node[] path; // stack of nodes
+        Node[] path; // stack of nodes
 
-        private int level = 0;
+        int level = 0;
 
-        private Range range;
+        Range range;
 
-        private bool forwards;
+        bool forwards;
 
         #endregion
         [Tested]
@@ -4299,7 +4299,7 @@ private bool removeIterativePhase2(Node cursor, int level)
     /// </summary>
     /// <param name="n">Node to display</param>
     /// <param name="space">Indentation</param>
-    private void minidump(Node n, string space)
+    void minidump(Node n, string space)
     {
       if (n == null)
       {

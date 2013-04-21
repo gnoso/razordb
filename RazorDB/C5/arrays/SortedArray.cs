@@ -57,7 +57,7 @@ namespace RazorDB.C5
     /// <param name="item">The item to search for</param>
     /// <param name="mid">The least index, mid, for which array[mid] >= item</param>
     /// <returns>True if item found</returns>
-    private bool binarySearch(T item, out int mid)
+    bool binarySearch(T item, out int mid)
     {
       int bot = 0, top = size;
 
@@ -80,7 +80,7 @@ namespace RazorDB.C5
       return false;
     }
 
-    private int indexOf(T item)
+    int indexOf(T item)
     {
       int ind;
 
@@ -743,7 +743,7 @@ namespace RazorDB.C5
       raiseForRemoveRange(removed);
     }
 
-    private void raiseForRemoveRange(T[] removed)
+    void raiseForRemoveRange(T[] removed)
     {
        foreach(T item in removed)
          raiseItemsRemoved(item, 1);
@@ -1236,7 +1236,7 @@ namespace RazorDB.C5
       raiseForAddAll(addedItems, numAdded);
     }
 
-    private void raiseForAddAll(T[] addedItems, int numAdded)
+    void raiseForAddAll(T[] addedItems, int numAdded)
     {
       if ((ActiveEvents & EventTypeEnum.Added) != 0)
         for(int i = 0 ;i < numAdded; i += 1)
@@ -1410,7 +1410,7 @@ namespace RazorDB.C5
       raiseForRemoveInterval(start, count);
     }
 
-    private void raiseForRemoveInterval(int start, int count)
+    void raiseForRemoveInterval(int start, int count)
     {
       if (ActiveEvents != 0 && count > 0)
       {

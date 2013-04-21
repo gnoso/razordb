@@ -378,7 +378,7 @@ namespace RazorDB.C5
       return false;
     }
 
-    private bool add(Handle itemhandle, T item)
+    bool add(Handle itemhandle, T item)
     {
       if (size == 0)
       {
@@ -436,7 +436,7 @@ namespace RazorDB.C5
       return true;
     }
 
-    private void updateLast(int cell, T item, Handle handle)
+    void updateLast(int cell, T item, Handle handle)
     {
       heap[cell].last = item;
       if (handle != null)
@@ -444,7 +444,7 @@ namespace RazorDB.C5
       heap[cell].lasthandle = handle;
     }
 
-    private void updateFirst(int cell, T item, Handle handle)
+    void updateFirst(int cell, T item, Handle handle)
     {
       heap[cell].first = item;
       if (handle != null)
@@ -538,7 +538,7 @@ namespace RazorDB.C5
     #endregion
 
     #region Diagnostics
-    private bool check(int i, T min, T max)
+    bool check(int i, T min, T max)
     {
       bool retval = true;
       Interval interval = heap[i];
@@ -830,7 +830,7 @@ namespace RazorDB.C5
       return retval;
     }
 
-    private Handle checkHandle(IPriorityQueueHandle<T> handle, out int cell, out bool isfirst)
+    Handle checkHandle(IPriorityQueueHandle<T> handle, out int cell, out bool isfirst)
     {
       Handle myhandle = (Handle)handle;
       int toremove = myhandle.index;

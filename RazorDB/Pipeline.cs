@@ -14,9 +14,9 @@ namespace RazorDB {
             size = bufferSize;
             buffers = new LinkedList<byte[]>();
         }
-        private int size;
-        private LinkedList<byte[]> buffers;
-        private int numAllocations = 0;
+        int size;
+        LinkedList<byte[]> buffers;
+        int numAllocations = 0;
 
         public int NumAllocations {
             get { return numAllocations; }
@@ -47,8 +47,8 @@ namespace RazorDB {
 
     public class OrderingQueue <T> {
 
-        private SortedList<int, T> list = new SortedList<int, T>();
-        private int seqNum = 0;
+        SortedList<int, T> list = new SortedList<int, T>();
+        int seqNum = 0;
 
         public void Enqueue(int sequence, T item) {
             lock (list) {
@@ -104,16 +104,16 @@ namespace RazorDB {
                 t.Abort();
             }
         }
-        private volatile bool running = true;
+        volatile bool running = true;
 
-        private Action<T> work;
+        Action<T> work;
         public Action<Exception> OnError { get; set; }
-        private Queue<T> queue;
-        private Thread[] workerThreads;
-        public int MaxQueueSize { get; private set; }
-        public int QueueLimit { get; private set; }
-        private Semaphore queueCapacity;
-        private OrderingQueue<T> orderingQueue;
+        Queue<T> queue;
+        Thread[] workerThreads;
+        public int MaxQueueSize { get; set; }
+        public int QueueLimit { get; set; }
+        Semaphore queueCapacity;
+        OrderingQueue<T> orderingQueue;
 
         public void OrderedPush(int seqNum, T value) {
             lock (orderingQueue) {
@@ -150,9 +150,9 @@ namespace RazorDB {
             }
         }
 
-        private ManualResetEvent queuePopulatedEvent = new ManualResetEvent(true);
+        ManualResetEvent queuePopulatedEvent = new ManualResetEvent(true);
 
-        private void ThreadMain() {
+        void ThreadMain() {
             while (true) {
                 // If the queue ran empty, then wait on the event
                 if (running)

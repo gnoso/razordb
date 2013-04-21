@@ -16,7 +16,7 @@ namespace RazorDB {
             Array.Copy(bytes, 0, b, 1, bytes.Length);
             _bytes = new ByteArray(b);
         }
-        private ByteArray _bytes;
+        ByteArray _bytes;
 
         public ValueFlag Type {
             get { return (ValueFlag) _bytes.InternalBytes[0]; }

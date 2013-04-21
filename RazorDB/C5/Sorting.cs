@@ -98,7 +98,7 @@ namespace RazorDB.C5
       }
 
 
-      private void introSort(int f, int b, int depth_limit)
+      void introSort(int f, int b, int depth_limit)
       {
         const int size_threshold = 14;//24;
 
@@ -116,10 +116,10 @@ namespace RazorDB.C5
       }
 
 
-      private int compare(T i1, T i2) { return c.Compare(i1, i2); }
+      int compare(T i1, T i2) { return c.Compare(i1, i2); }
 
 
-      private int partition(int f, int b)
+      int partition(int f, int b)
       {
         int bot = f, mid = (b + f) / 2, top = b - 1;
         T abot = a[bot], amid = a[mid], atop = a[top];
@@ -190,7 +190,7 @@ namespace RazorDB.C5
       }
 
 
-      private void heapify(int f, int b, int i)
+      void heapify(int f, int b, int i)
       {
         T pv = a[i], lv, rv, max = pv;
         int j = i, maxpt = j;

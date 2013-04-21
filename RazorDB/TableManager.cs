@@ -9,8 +9,8 @@ using System.Diagnostics;
 namespace RazorDB {
     public class TableManager {
 
-        private static TableManager _tableManagerInstance;
-        private static object startupLock = new object();
+        static TableManager _tableManagerInstance;
+        static object startupLock = new object();
         static TableManager() {
             lock (startupLock) {
                 if (_tableManagerInstance == null)
@@ -22,9 +22,9 @@ namespace RazorDB {
             get { return _tableManagerInstance; }
         }
 
-        private TableManager() {}
+        TableManager() {}
 
-        private long pauseTime = Stopwatch.Frequency / 4;
+        long pauseTime = Stopwatch.Frequency / 4;
 
         public void MarkKeyValueStoreAsModified(KeyValueStore kvStore) {
             

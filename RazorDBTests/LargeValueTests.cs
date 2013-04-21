@@ -149,7 +149,7 @@ namespace RazorDBTests {
             return block;
         }
 
-        private void CheckBlock(byte[] bytes) {
+        void CheckBlock(byte[] bytes) {
             int num = bytes.Length - 20;
             SHA1Managed sha = new SHA1Managed();
             byte[] checksum = sha.ComputeHash(bytes, 0, num);

@@ -17,16 +17,16 @@ namespace RazorDB {
             _sizeLimit = sizeLimit;
             _sizer = sizer;
         }
-        private int _sizeLimit;
-        private int _currentSize;
+        int _sizeLimit;
+        int _currentSize;
         public int CurrentSize {
             get { return _currentSize; }
         }
-        private Func<T, int> _sizer;
+        Func<T, int> _sizer;
 
-        private Dictionary<string, CacheEntry<T>> _hash = new Dictionary<string, CacheEntry<T>>();
-        private LinkedList<CacheEntry<T>> _list = new LinkedList<CacheEntry<T>>();
-        private object _lock = new object();
+        Dictionary<string, CacheEntry<T>> _hash = new Dictionary<string, CacheEntry<T>>();
+        LinkedList<CacheEntry<T>> _list = new LinkedList<CacheEntry<T>>();
+        object _lock = new object();
 
         public bool TryGetValue(string key, out T value) {
             lock (_lock) {
@@ -60,7 +60,7 @@ namespace RazorDB {
             }
         }
 
-        private void CheckCacheSizeAndEvict() {
+        void CheckCacheSizeAndEvict() {
             while (_currentSize > _sizeLimit) {
 
                 var lastEntry = _list.Last;
@@ -83,8 +83,8 @@ namespace RazorDB {
             _blockDataCache = new Cache<byte[]>(Config.DataBlockCacheSize, block => block.Length);
         }
 
-        private Cache<KeyEx[]> _blockIndexCache;
-        private Cache<byte[]> _blockDataCache;
+        Cache<KeyEx[]> _blockIndexCache;
+        Cache<byte[]> _blockDataCache;
 
         public KeyEx[] GetBlockTableIndex(string baseName, int level, int version) {
 

@@ -38,7 +38,7 @@ namespace RazorView {
             }
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e) {
+        void Button_Click(object sender, RoutedEventArgs e) {
             Expanded = !Expanded;
         }
     }

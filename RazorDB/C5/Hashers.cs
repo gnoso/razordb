@@ -379,7 +379,7 @@ namespace RazorDB.C5.EqualityComparerBuilder
     }
 
 
-    private ByInvoke() { }
+    ByInvoke() { }
 
 /// <summary>
 /// 
@@ -423,9 +423,9 @@ namespace RazorDB.C5.EqualityComparerBuilder
   /// </summary>
   public class ByRTCG
   {
-    private static ModuleBuilder moduleBuilder;
+    static ModuleBuilder moduleBuilder;
 
-    private static AssemblyBuilder assemblyBuilder;
+    static AssemblyBuilder assemblyBuilder;
 
     /// <summary>
     /// 

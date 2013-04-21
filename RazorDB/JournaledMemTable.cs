@@ -32,10 +32,10 @@ namespace RazorDB {
 
         }
 
-        private JournalWriter _journal;
-        private MemTable _memTable;
-        private string _baseFileName;
-        private int _version;
+        JournalWriter _journal;
+        MemTable _memTable;
+        string _baseFileName;
+        int _version;
 
         public IEnumerable<KeyValuePair<KeyEx, Value>> EnumerateSnapshot() {
             // Grab sorted copy of the internal memtable contents

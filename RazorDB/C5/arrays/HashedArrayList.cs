@@ -200,7 +200,7 @@ namespace RazorDB.C5
     bool equals(T i1, T i2) { return itemequalityComparer.Equals(i1, i2); }
 
     /// <summary>
-    /// Increment or decrement the private size fields
+    /// Increment or decrement the size fields
     /// </summary>
     /// <param name="delta">Increment (with sign)</param>
     void addtosize(int delta)
@@ -350,7 +350,7 @@ namespace RazorDB.C5
 #endif
     }
 
-    private void baseinsert(int i, T item)
+    void baseinsert(int i, T item)
     {
       if (underlyingsize == array.Length)
         expand();
@@ -390,9 +390,9 @@ namespace RazorDB.C5
     #region Indexing
 
 #if HASHINDEX
-    private void reindex(int start) { reindex(start, underlyingsize); }
+    void reindex(int start) { reindex(start, underlyingsize); }
 
-    private void reindex(int start, int end)
+    void reindex(int start, int end)
     {
       for (int j = start; j < end; j++)
         itemIndex.UpdateOrAdd(new KeyValuePair<T, int>(array[j], j));
@@ -901,7 +901,7 @@ namespace RazorDB.C5
         }
       }
     }
-    private void raiseForInsertAll(int index, int added)
+    void raiseForInsertAll(int index, int added)
     {
       if (ActiveEvents != 0)
       {
@@ -1054,7 +1054,7 @@ namespace RazorDB.C5
       return map<V>(mapper, res);
     }
 
-    private IList<V> map<V>(Fun<T, V> mapper, HashedArrayList<V> res)
+    IList<V> map<V>(Fun<T, V> mapper, HashedArrayList<V> res)
     {
       int stamp = this.stamp;
       if (size > 0)
@@ -2347,7 +2347,7 @@ namespace RazorDB.C5
         }
       }
     }
-    private void raiseForAddAll(int start, int added)
+    void raiseForAddAll(int start, int added)
     {
       if ((ActiveEvents & EventTypeEnum.Added) != 0)
         for (int i = start, end = start + added; i < end; i++)

@@ -6,10 +6,10 @@ namespace RazorDB {
 
     public class MemTable {
 
-        private RazorDB.C5.TreeDictionary<KeyEx, Value> _internalTable = new RazorDB.C5.TreeDictionary<KeyEx, Value>();
-        private int _totalKeySize = 0;
-        private int _totalValueSize = 0;
-        private object _tableLock = new object();
+        RazorDB.C5.TreeDictionary<KeyEx, Value> _internalTable = new RazorDB.C5.TreeDictionary<KeyEx, Value>();
+        int _totalKeySize = 0;
+        int _totalValueSize = 0;
+        object _tableLock = new object();
 
         public void Add(KeyEx key, Value value) {
             lock (_tableLock) {

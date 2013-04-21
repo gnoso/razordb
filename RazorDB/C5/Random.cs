@@ -11,12 +11,12 @@ namespace RazorDB.C5
   /// </summary>
   public class C5Random : Random
   {
-    private uint[] Q = new uint[16];
+    uint[] Q = new uint[16];
 
-    private uint c = 362436, i = 15;
+    uint c = 362436, i = 15;
 
 
-    private uint Cmwc()
+    uint Cmwc()
     {
       ulong t, a = 487198574UL;
       uint x, r = 0xfffffffe;

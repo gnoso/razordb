@@ -17,7 +17,7 @@ namespace RazorDB {
             internalBytes[bytes.Length] = seqNum;
             _bytes = new ByteArray(internalBytes);
         }
-        private ByteArray _bytes;
+        ByteArray _bytes;
 
         public byte[] KeyBytes {
             get { 
@@ -90,7 +90,7 @@ namespace RazorDB {
             internalBytes[bytes.Length + 1] = (byte)(seqNum & 0xFF);
             _bytes = new ByteArray(internalBytes);
         }
-        private ByteArray _bytes;
+        ByteArray _bytes;
 
         public byte[] KeyBytes {
             get {

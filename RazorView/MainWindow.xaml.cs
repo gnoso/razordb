@@ -39,7 +39,7 @@ namespace RazorView {
             LoadVisualizers();
         }
 
-        private void MenuItem_Close(object sender, RoutedEventArgs e) {
+        void MenuItem_Close(object sender, RoutedEventArgs e) {
             this.Close();
         }
 
@@ -48,7 +48,7 @@ namespace RazorView {
             Environment.Exit(0);
         }
 
-        private void MenuItem_OpenDB(object sender, RoutedEventArgs e) {
+        void MenuItem_OpenDB(object sender, RoutedEventArgs e) {
             var dlg = new OpenFileDialog();
             dlg.CheckFileExists = false;
             dlg.CheckPathExists = false;
@@ -57,7 +57,7 @@ namespace RazorView {
             }
         }
 
-        private void OpenDatabase(string journalFile) {
+        void OpenDatabase(string journalFile) {
             try {
                 var db = new DBController(journalFile, _factories);
 
@@ -84,10 +84,10 @@ namespace RazorView {
             }
         }
 
-        private List<Assembly> _vizAssemblies = new List<Assembly>();
-        private List<IDataVizFactory> _factories = new List<IDataVizFactory>();
+        List<Assembly> _vizAssemblies = new List<Assembly>();
+        List<IDataVizFactory> _factories = new List<IDataVizFactory>();
 
-        private void MenuItem_AddViz(object sender, RoutedEventArgs e) {
+        void MenuItem_AddViz(object sender, RoutedEventArgs e) {
             var dlg = new OpenFileDialog();
             dlg.DefaultExt = "*.dll";
             if ((bool) dlg.ShowDialog(this)) {
@@ -98,7 +98,7 @@ namespace RazorView {
             }
         }
 
-        private void MenuItem_Clear(object sender, RoutedEventArgs e) {
+        void MenuItem_Clear(object sender, RoutedEventArgs e) {
             _vizAssemblies.Clear();
             _factories.Clear();
             Settings.Default.VisualizerAssemblies = "";
@@ -106,7 +106,7 @@ namespace RazorView {
             LoadVisualizers();
         }
 
-        private void InternalAddVisualizer(string assemblyFile) {
+        void InternalAddVisualizer(string assemblyFile) {
             try {
                 var a = Assembly.LoadFrom(assemblyFile);
                 _vizAssemblies.Add(a);
@@ -121,7 +121,7 @@ namespace RazorView {
             }
         }
 
-        private void LoadVisualizers() {
+        void LoadVisualizers() {
 
             menuVizList.Items.Clear();
             foreach (var assem in Settings.Default.VisualizerAssembliesList) {

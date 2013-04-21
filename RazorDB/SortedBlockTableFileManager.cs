@@ -42,12 +42,12 @@ namespace RazorDB {
         /// </summary>
         public const int DefaultWriterLockTimeout = 8000;
 
-        private class OpenFile {
+        class OpenFile {
             public string Path;
             public FileStream Stream;
         }
         
-        private class SBTFile {
+        class SBTFile {
             public ReaderWriterLockSlim Lock;
             public Stack<FileStream> Readers;
 
@@ -60,15 +60,15 @@ namespace RazorDB {
             }
         }
 
-        private IList<OpenFile> _openFiles;
-        private IDictionary<string, SBTFile> _files;
+        IList<OpenFile> _openFiles;
+        IDictionary<string, SBTFile> _files;
 
         public SortedBlockTableFileManager() {
             _openFiles = new List<OpenFile>();
             _files = new Dictionary<string, SBTFile>();
         }
 
-        private SBTFile _EnsureSBTFile(string path) {
+        SBTFile _EnsureSBTFile(string path) {
             SBTFile returnValue = null;
             lock(_files) {
                 if (!_files.ContainsKey(path)) {
@@ -209,7 +209,7 @@ namespace RazorDB {
             }
         }
 
-        private bool _disposed;
+        bool _disposed;
 
         public void Dispose() {
             _Dispose(true);
@@ -220,7 +220,7 @@ namespace RazorDB {
         /// Closes all opened reader streams and disposes read/write locks.
         /// </summary>
         /// <param name="disposing"></param>
-        private void _Dispose(bool disposing) {
+        void _Dispose(bool disposing) {
             if (!_disposed) {
                 lock (_openFiles) {
                     try {

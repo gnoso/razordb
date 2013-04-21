@@ -27,26 +27,26 @@ namespace RazorDB {
             InitializeWritePipeline();
         }
 
-        private FileStream _fileStream;
-        private string _path;
-        private BufferPool _bufferPool;
-        private byte[] _buffer;      // current buffer that is being loaded
+        FileStream _fileStream;
+        string _path;
+        BufferPool _bufferPool;
+        byte[] _buffer;      // current buffer that is being loaded
 
-        private int _bufferPos;
-        private List<KeyEx> _pageIndex;
-        private int dataBlocks = 0;
-        private int indexBlocks = 0;
-        private int totalBlocks = 0;
-        private SortedBlockTableFormat _fileFormat;
-        private List<int> onDiskBlockSizes = new List<int>();
+        int _bufferPos;
+        List<KeyEx> _pageIndex;
+        int dataBlocks = 0;
+        int indexBlocks = 0;
+        int totalBlocks = 0;
+        SortedBlockTableFormat _fileFormat;
+        List<int> onDiskBlockSizes = new List<int>();
 
-        public int Version { get; private set; }
-        public int WrittenSize { get; private set; }
+        public int Version { get; set; }
+        public int WrittenSize { get; set; }
         
         internal string Path { get { return _path; } }
         internal FileStream FileStream { get { return _fileStream; } }
 
-        private List<ushort> _keyOffsets = new List<ushort>();
+        List<ushort> _keyOffsets = new List<ushort>();
 
         public struct Block {
             public byte[] Buffer;
@@ -58,11 +58,11 @@ namespace RazorDB {
             public Block Input;
             public Block Output;
         }
-        private Pipeline<Block> plCompression;
-        private Pipeline<TransformedBlock> plVerify;
-        private Pipeline<Block> plBlockWriter;
+        Pipeline<Block> plCompression;
+        Pipeline<TransformedBlock> plVerify;
+        Pipeline<Block> plBlockWriter;
 
-        private void InitializeWritePipeline() {
+        void InitializeWritePipeline() {
 
             // Final stage in the pipeline == Write data blocks to disk
             plBlockWriter = new Pipeline<Block>( (block) => {
@@ -133,7 +133,7 @@ namespace RazorDB {
 
         }
 
-        private void FlushPipeline() {
+        void FlushPipeline() {
             plCompression.WaitForDrain();
             plVerify.WaitForDrain();
             plBlockWriter.WaitForDrain();
@@ -183,7 +183,7 @@ namespace RazorDB {
             WrittenSize += bytesNeeded;
         }
 
-        private ushort BuildBlockTree(byte[] block, int startIndex, int endIndex, List<ushort> keyOffsets) {
+        ushort BuildBlockTree(byte[] block, int startIndex, int endIndex, List<ushort> keyOffsets) {
             int middleIndex = (startIndex + endIndex) >> 1;
             ushort nodeOffset = keyOffsets[middleIndex];
             
@@ -202,7 +202,7 @@ namespace RazorDB {
             return nodeOffset;
         }
 
-        private void WriteDataBlock() {
+        void WriteDataBlock() {
 
             // Write the end of buffer flag if we have room
             if (_bufferPos < Config.SortedBlockSize) {
@@ -218,7 +218,7 @@ namespace RazorDB {
             WriteBlock();
         }
 
-        private void WriteBlock() {
+        void WriteBlock() {
 
             var block = new Block {
                 Buffer = _buffer,
@@ -242,7 +242,7 @@ namespace RazorDB {
             totalBlocks++;
         }
 
-        private void WriteIndexKey(KeyEx key) {
+        void WriteIndexKey(KeyEx key) {
             byte[] keySize = new byte[8];
             int keySizeLen = Helper.Encode7BitInt(keySize, key.Length);
 
@@ -262,13 +262,13 @@ namespace RazorDB {
             _bufferPos += key.Length;
         }
 
-        private void WriteIndex() {
+        void WriteIndex() {
             foreach (var key in _pageIndex) {
                 WriteIndexKey(key);
             }
         }
 
-        private void WriteMetadata() {
+        void WriteMetadata() {
             MemoryStream ms = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(ms);
             byte[] metadata;
@@ -337,7 +337,7 @@ namespace RazorDB {
     public class SortedBlockTable : IDisposable {
         // Stores all open SortedBlockTable file managers.
         // The key is the base directory of key/value store using the SBT.
-        private static Dictionary<string, SortedBlockTableFileManager> _fileManagers;
+        static Dictionary<string, SortedBlockTableFileManager> _fileManagers;
 
         static SortedBlockTable() {
             _fileManagers = new Dictionary<string, SortedBlockTableFileManager>(StringComparer.OrdinalIgnoreCase);
@@ -459,12 +459,12 @@ namespace RazorDB {
             _path = Config.SortedBlockTableFile(baseFileName, level, version);
             ReadMetadata();
         }
-        private string _path;
-        private SortedBlockTableFileManager _fileManager;
+        string _path;
+        SortedBlockTableFileManager _fileManager;
 
         // Lazy open the filestream
-        private FileStream _fileStream;
-        private FileStream FileStream {
+        FileStream _fileStream;
+        FileStream FileStream {
             get {
                 if (_fileStream == null) {
                     _fileStream = _fileManager.BeginRead(_path);
@@ -473,20 +473,20 @@ namespace RazorDB {
             }
         }
 
-        private string _baseFileName;
-        private int _level;
-        private int _version;
-        private int _dataBlocks;
-        private int _indexBlocks;
-        private int _totalBlocks;
-        private SortedBlockTableFormat _fileFormat;
-        private RazorCache _cache;
-        private List<int> onDiskBlockSizes = new List<int>();
-        private List<int> onDiskCumulativeBlockSizes = new List<int>();
+        string _baseFileName;
+        int _level;
+        int _version;
+        int _dataBlocks;
+        int _indexBlocks;
+        int _totalBlocks;
+        SortedBlockTableFormat _fileFormat;
+        RazorCache _cache;
+        List<int> onDiskBlockSizes = new List<int>();
+        List<int> onDiskCumulativeBlockSizes = new List<int>();
 
-        private static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
+        static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
 
-        private void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
+        void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
             current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
             Array.Clear(current, 0, current.Length);
         }
@@ -504,7 +504,7 @@ namespace RazorDB {
             public bool IsCompleted { get { return true; } }
         }
 
-        private IAsyncResult BeginReadBlock(byte[] block, byte[] compBlock, int blockNum) {
+        IAsyncResult BeginReadBlock(byte[] block, byte[] compBlock, int blockNum) {
             if (_cache != null) {
                 byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
                 if (cachedBlock != null) {
@@ -535,7 +535,7 @@ namespace RazorDB {
             }
         }
 
-        private byte[] EndReadBlock(IAsyncResult async) {
+        byte[] EndReadBlock(IAsyncResult async) {
             AsyncBlock ablock = async as AsyncBlock;
             if (ablock != null) {
                 // This represents a block read from cache, nothing to do but return it...
@@ -564,7 +564,7 @@ namespace RazorDB {
             }
         }
 
-        private byte[] ReadBlock(byte[] block, byte[] compBlock, int blockNum) {
+        byte[] ReadBlock(byte[] block, byte[] compBlock, int blockNum) {
             if (_cache != null) {
                 byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
                 if (cachedBlock != null) {
@@ -601,9 +601,9 @@ namespace RazorDB {
         }
 
         [ThreadStatic]
-        private static byte[] threadAllocBlock = null;
+        static byte[] threadAllocBlock = null;
 
-        private static byte[] LocalThreadAllocatedBlock() {
+        static byte[] LocalThreadAllocatedBlock() {
             if (threadAllocBlock == null) {
                 threadAllocBlock = new byte[Config.SortedBlockSize];
             } else {
@@ -613,9 +613,9 @@ namespace RazorDB {
         }
 
         [ThreadStatic]
-        private static byte[] threadAllocCompBlock = null;
+        static byte[] threadAllocCompBlock = null;
 
-        private static byte[] LocalThreadAllocatedCompBlock() {
+        static byte[] LocalThreadAllocatedCompBlock() {
             if (threadAllocCompBlock == null) {
                 threadAllocCompBlock = new byte[Config.SortedBlockSize * 6 / 5];
             } else {
@@ -624,7 +624,7 @@ namespace RazorDB {
             return threadAllocCompBlock;
         }
         
-        private void ReadMetadata() {
+        void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
             int lastBlockSize = Math.Min(Config.SortedBlockSize, (int)FileStream.Length); // should the block of size SortedBlockSize unless the file is smaller than that, in which case we read the entire file
@@ -705,7 +705,7 @@ namespace RazorDB {
             return returnValue;
         }
 
-        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, KeyEx key) {
+        static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, KeyEx key) {
             KeyEx[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
             int dataBlockNum = Array.BinarySearch(index, key);
             if (dataBlockNum < 0) {
@@ -781,7 +781,7 @@ namespace RazorDB {
 
         }
 
-        private IEnumerable<KeyEx> EnumerateIndex() {
+        IEnumerable<KeyEx> EnumerateIndex() {
 
             byte[] allocBlockA = new byte[Config.SortedBlockSize];
             byte[] allocBlockB = new byte[Config.SortedBlockSize];
@@ -822,7 +822,7 @@ namespace RazorDB {
             return EnumerateIndex().ToArray();
         }
 
-        private static KeyEx ReadKey(byte[] block, ref int offset) {
+        static KeyEx ReadKey(byte[] block, ref int offset) {
             bool v2Key = false;
             if (block[offset] == 0xF0) {
                 v2Key = true;
@@ -843,7 +843,7 @@ namespace RazorDB {
             }
         }
 
-        private static bool ScanBlockForKey(byte[] block, KeyEx key, out Value value) {
+        static bool ScanBlockForKey(byte[] block, KeyEx key, out Value value) {
             int offset = 2; // skip over the tree root pointer
             value = Value.Empty;
 
@@ -878,7 +878,7 @@ namespace RazorDB {
             return false;
         }
 
-        private static bool SearchBlockForKey(byte[] block, KeyEx key, out Value value) {
+        static bool SearchBlockForKey(byte[] block, KeyEx key, out Value value) {
             int offset = BitConverter.ToUInt16(block, 0); // grab the tree root
             value = Value.Empty;
 
@@ -913,7 +913,7 @@ namespace RazorDB {
             return false;
         }
 
-        private static KeyValuePair<KeyEx, Value> ReadPair(byte[] block, ref int offset) {
+        static KeyValuePair<KeyEx, Value> ReadPair(byte[] block, ref int offset) {
             
             SortedBlockTableFormat fmt;
             switch ((RecordHeaderFlag)block[offset]) {
@@ -1000,7 +1000,7 @@ namespace RazorDB {
             return outputTables;
         }
 
-        private string BytesToString(byte[] block, int start, int length) {
+        string BytesToString(byte[] block, int start, int length) {
             return string.Concat(block.Skip(start).Take(length).Select((b) => b.ToString("X2")).ToArray());
         }
 
@@ -1103,9 +1103,9 @@ namespace RazorDB {
             }
         }
 
-        private bool _disposed;
+        bool _disposed;
 
-        private void _Dispose(bool disposing) {
+        void _Dispose(bool disposing) {
             if (!_disposed) {
                 Close();
                 _disposed = true;
