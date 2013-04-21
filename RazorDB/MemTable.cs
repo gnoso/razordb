@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -6,12 +6,12 @@ namespace RazorDB {
 
     public class MemTable {
 
-        private RazorDB.C5.TreeDictionary<Key, Value> _internalTable = new RazorDB.C5.TreeDictionary<Key, Value>();
+        private RazorDB.C5.TreeDictionary<KeyEx, Value> _internalTable = new RazorDB.C5.TreeDictionary<KeyEx, Value>();
         private int _totalKeySize = 0;
         private int _totalValueSize = 0;
         private object _tableLock = new object();
 
-        public void Add(Key key, Value value) {
+        public void Add(KeyEx key, Value value) {
             lock (_tableLock) {
                 _totalKeySize += key.Length;
                 _totalValueSize += value.Length;
@@ -21,7 +21,7 @@ namespace RazorDB {
             }
         }
 
-        public bool Lookup(Key key, out Value value) {
+        public bool Lookup(KeyEx key, out Value value) {
             lock (_tableLock) {
                 return _internalTable.Find(key, out value);
             }
@@ -35,20 +35,20 @@ namespace RazorDB {
             get { return Size > Config.MaxMemTableSize; }
         }
 
-        public Key FirstKey {
+        public KeyEx FirstKey {
             get { lock (_tableLock) { return _internalTable.FindMin().Key; } }
         }
 
-        public Key LastKey {
+        public KeyEx LastKey {
             get { lock (_tableLock) { return _internalTable.FindMax().Key; } }
         }
 
-        public void WriteToSortedBlockTable(string baseFileName, int level, int version) {
+        public void WriteToSortedBlockTable(string baseFileName, int level, int version, SortedBlockTableFormat format = SortedBlockTableFormat.Default) {
 
             lock (_tableLock) {
                 SortedBlockTableWriter tableWriter = null;
                 try {
-                    tableWriter = new SortedBlockTableWriter(baseFileName, level, version);
+                    tableWriter = new SortedBlockTableWriter(baseFileName, level, version, format);
 
                     foreach ( var pair in this.Enumerate() ) {
                         tableWriter.WritePair(pair.Key, pair.Value);
@@ -60,14 +60,14 @@ namespace RazorDB {
             }
         }
 
-        public IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
+        public IEnumerable<KeyValuePair<KeyEx, Value>> Enumerate() {
             return _internalTable
-                .Select(pair => new KeyValuePair<Key, Value>(pair.Key, pair.Value));
+                .Select(pair => new KeyValuePair<KeyEx, Value>(pair.Key, pair.Value));
         }
 
-        public IEnumerable<KeyValuePair<Key, Value>> GetEnumerableSnapshot() {
+        public IEnumerable<KeyValuePair<KeyEx, Value>> GetEnumerableSnapshot() {
             lock (_tableLock) {
-                return _internalTable.Snapshot().Select(pair => new KeyValuePair<Key, Value>(pair.Key, pair.Value));
+                return _internalTable.Snapshot().Select(pair => new KeyValuePair<KeyEx, Value>(pair.Key, pair.Value));
             }
         }
 

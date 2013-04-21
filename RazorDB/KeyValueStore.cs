@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -41,20 +41,10 @@ namespace RazorDB {
         // For Table Manager 
         internal long ticksTillNextMerge = 0;
         internal object mergeLock = new object();
-        internal int mergeCount = 0;
 
         public Manifest Manifest { get { return _manifest; } }
 
-        public Action<int, IEnumerable<PageRecord>, IEnumerable<PageRecord>> MergeCallback { get; set; }
-
         internal RazorCache Cache { get { return _cache; } }
-
-        public int DataCacheSize {
-            get { return Cache.DataCacheSize; }
-        }
-        public int IndexCacheSize {
-            get { return Cache.IndexCacheSize; }
-        }
 
         private volatile JournaledMemTable _currentJournaledMemTable;
 
@@ -62,7 +52,7 @@ namespace RazorDB {
             _currentJournaledMemTable.Close();
             TableManager.Default.Close(this);
             foreach (var pair in _secondaryIndexes) {
-                pair.Value.Close(FastClose);
+                pair.Value.Close();
             }
 
             string basePath = Path.GetFullPath(Manifest.BaseFileName);
@@ -91,7 +81,7 @@ namespace RazorDB {
 
             int valueSize = value.Length;
             if (valueSize <= Config.MaxSmallValueSize) {
-                var k = new Key(key, 0);
+                var k = new KeyEx(key, 0);
                 var v = new Value(value, ValueFlag.SmallValue);
                 InternalSet(k, v, indexedValues);
             } else {
@@ -100,16 +90,16 @@ namespace RazorDB {
                         throw new InvalidDataException(string.Format("Value is larger than the maximum size. ({0} bytes)", Config.MaxLargeValueSize));
 
                     int offset = 0;
-                    byte seqNum = 1;
+                    int seqNum = 1;
                     while (offset < valueSize) {
-                        var k = new Key(key, seqNum);
+                        var k = new KeyEx(key, seqNum);
                         int length = Math.Min(valueSize - offset, Config.MaxSmallValueSize);
                         var v = new Value(ByteArray.From(value, offset, length).InternalBytes, ValueFlag.LargeValueChunk);
                         InternalSet(k, v, null);
                         offset += length;
                         seqNum++;
                     }
-                    var dk = new Key(key, 0);
+                    var dk = new KeyEx(key, 0);
                     var dv = new Value(BitConverter.GetBytes(valueSize), ValueFlag.LargeValueDescriptor);
                     InternalSet(dk, dv, indexedValues);
                 }
@@ -142,7 +132,7 @@ namespace RazorDB {
             }
         }
 
-        private void InternalSet(Key k, Value v, IDictionary<string, byte[]> indexedValues) {
+        private void InternalSet(KeyEx k, Value v, IDictionary<string, byte[]> indexedValues) {
             int adds = 10;
             while (!_currentJournaledMemTable.Add(k, v)) {
                 adds--;
@@ -190,11 +180,11 @@ namespace RazorDB {
         }
 
         public byte[] Get(byte[] key) {
-            Key lookupKey = new Key(key, 0);
+            KeyEx lookupKey = new KeyEx(key, 0);
             return AssembleGetResult(lookupKey, InternalGet(lookupKey));
         }
 
-        private Value InternalGet(Key lookupKey) {
+        private Value InternalGet(KeyEx lookupKey) {
             Value output = Value.Empty;
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
@@ -230,7 +220,7 @@ namespace RazorDB {
             return Value.Empty;
         }
 
-        private byte[] AssembleGetResult(Key lookupKey, Value result) {
+        private byte[] AssembleGetResult(KeyEx lookupKey, Value result) {
             switch (result.Type) {
                 case ValueFlag.Null:
                 case ValueFlag.Deleted:
@@ -247,7 +237,7 @@ namespace RazorDB {
                             int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
                             byte[] bytes = new byte[valueSize];
                             int offset = 0;
-                            byte seqNum = 1;
+                            int seqNum = 1;
                             while (offset < valueSize) {
                                 var blockKey = lookupKey.WithSequence(seqNum);
                                 var block = InternalGet(blockKey);
@@ -312,7 +302,7 @@ namespace RazorDB {
         }
 
         public void Delete(byte[] key) {
-            var k = new Key(key, 0);
+            var k = new KeyEx(key, 0);
             InternalSet(k, Value.Deleted, null);
         }
 
@@ -320,14 +310,10 @@ namespace RazorDB {
             return EnumerateFromKey(new byte[0]);
         }
 
-        private IEnumerable<KeyValuePair<Key, Value>> InternalEnumerateFromKey(byte[] startingKey) {
+        private IEnumerable<KeyValuePair<KeyEx, Value>> InternalEnumerateFromKey(byte[] startingKey) {
 
-            if (startingKey == null) {
-                yield break;
-            }
-
-            var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
-            Key key = new Key(startingKey, 0);
+            var enumerators = new List<IEnumerable<KeyValuePair<KeyEx, Value>>>();
+            KeyEx key = new KeyEx(startingKey, 0);
 
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
@@ -411,23 +397,17 @@ namespace RazorDB {
         }
 
         public void Dispose() {
-            Close(FastClose);
+            Close();
         }
 
-        private bool _fastClose = false;
-        public bool FastClose {
-            get { return _fastClose; }
-            set { _fastClose = value; }
-        }
-
-        public void Close(bool fast = false) {
+        public void Close() {
             // Make sure any inflight rotations have occurred before shutting down.
             if (!_rotationSemaphore.WaitOne(30000))
                 throw new TimeoutException("Timed out waiting for table rotation to complete.");
             // Release again in case another thread tries to close it again.
             _rotationSemaphore.Release();
 
-            if (!finalizing && !fast) {
+            if (!finalizing) {
                 TableManager.Default.Close(this);
             }
             if (_currentJournaledMemTable != null) {
@@ -437,7 +417,7 @@ namespace RazorDB {
 
             if (_secondaryIndexes != null) {
                 foreach (var idx in _secondaryIndexes) {
-                    idx.Value.Close(fast);
+                    idx.Value.Close();
                 }
             }
 
@@ -458,7 +438,7 @@ namespace RazorDB {
             try {
                 foreach (var pair in InternalEnumerateFromKey(new byte[0])) {
                     try {
-                        Key k = pair.Key;
+                        KeyEx k = pair.Key;
                         Value v = pair.Value;
 
                         totalKeyBytes += k.KeyBytes.Length;
@@ -511,62 +491,6 @@ namespace RazorDB {
                 Console.WriteLine("  KeyBytes: {0}, ValueBytes: {1}\n  Records: {2} Deleted: {3} Null: {4} Small: {5} LargeDesc: {6} LargeChunk: {7}",
                     totalKeyBytes, totalValueBytes, totalRecords, deletedRecords, nullRecords, smallRecords, largeDescRecords, largeChunkRecords);
             }
-
         }
-
-        // List all the pages in the directory and delete those that are not in the manifest.
-        public void RemoveOrphanedPages() {
-            
-            using (var manifestInst = this.Manifest.GetLatestManifest()) {
-
-                // find all the sbt files in the data directory
-                var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary( f => Path.GetFileNameWithoutExtension(f.ToLower()) );
-                for (int level = 0; level < manifestInst.NumLevels - 1; level++) {
-
-                    foreach (var page in manifestInst.GetPagesAtLevel(level)) {
-
-                        // Yes this is kind of backwards to add the file path and then strip it off, but I want to make sure we are using the exact same logic
-                        // as that which creates the file names.
-                        string fileForPage = Path.GetFileNameWithoutExtension( Config.SortedBlockTableFile(this.Manifest.BaseFileName, page.Level, page.Version) );
-                        // Remove the page from the file list because it's in the manifest and we've accounted for it.
-                        files.Remove(fileForPage);
-                    }
-                }
-
-                // Loop over the leftover files and handle them
-                foreach (var file in files.Keys) {
-                    try {
-                        var parts = file.Split('-');
-                        int level = int.Parse(parts[0]);
-                        int version = int.Parse(parts[1]);
-                        
-                        // First let's check the version number, we don't want to remove any new files that are being created while this is happening
-                        if (level < manifestInst.NumLevels && version < manifestInst.CurrentVersion(level)) {
-
-                            string orphanedFile = Config.SortedBlockTableFile(Manifest.BaseFileName, level, version);
-
-                            // Delete the file.
-                            File.Delete(orphanedFile);
-
-                            Manifest.LogMessage("Removing Orphaned Pages '{0}'", orphanedFile);
-                        }
-                    } catch {
-                        // Best effort, here. If we fail, continue.
-                    }
-                }
-
-            }
-
-            // Now process the indexes as well
-            Manifest.LogMessage("Removing Orphaned Index Pages");
-
-            lock (_secondaryIndexes) {
-                foreach (var idx in _secondaryIndexes) {
-                    idx.Value.RemoveOrphanedPages();
-                }
-            }
-        }
-
     }
-
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,13 +21,12 @@ namespace RazorDB {
 
         // Add an item to the journal. It's possible that a thread is still Adding while another thread is Closing the journal.
         // in that case, we return false and expect the caller to do the operation over again on another journal instance.
-        public bool Add(Key key, Value value) {
+        public bool Add(KeyEx key, Value value) {
             lock (_writeLock) {
                 if (_writer == null)
                     return false;
                 else {
-                    _writer.Write7BitEncodedInt(key.Length);
-                    _writer.Write(key.InternalBytes);
+                    key.Write(_writer);
                     _writer.Write7BitEncodedInt(value.Length);
                     _writer.Write(value.InternalBytes);
                     _writer.Flush();
@@ -61,16 +60,13 @@ namespace RazorDB {
         private BinaryReader _reader;
         private string _fileName;
 
-        public IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
-            byte[] key = null;
+        public IEnumerable<KeyValuePair<KeyEx, Value>> Enumerate() {
             byte[] value = null;
             bool data = true;
+            KeyEx keyEx = KeyEx.Empty;
             while (data) {
                 try {
-                    int keyLen = _reader.Read7BitEncodedInt();
-                    key = _reader.ReadBytes(keyLen);
-                    if (key.Length != keyLen)
-                        throw new InvalidOperationException();
+                    keyEx = KeyEx.FromReader(_reader);
                     int valueLen = _reader.Read7BitEncodedInt();
                     value = _reader.ReadBytes(valueLen);
                     if (valueLen <= 0 || valueLen != value.Length)
@@ -80,17 +76,16 @@ namespace RazorDB {
                 } catch (InvalidOperationException) {
                     data = false;
                 }
-                if (data)
-                    yield return new KeyValuePair<Key, Value>(Key.FromBytes(key), Value.FromBytes(value));
+                if (data) {
+                    yield return new KeyValuePair<KeyEx, Value>(keyEx, Value.FromBytes(value));
+                }
             }
         }
-
+                
         public void Close() {
             if (_reader != null)
                 _reader.Close();
             _reader = null;
         }
-
     }
-
 }

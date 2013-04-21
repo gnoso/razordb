@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,46 +7,136 @@ using System.Threading;
 
 namespace RazorDB {
 
-    public enum RecordHeaderFlag { Record = 0xE0, EndOfBlock = 0xFF };
+    public enum RecordHeaderFlag { Record = 0xE0, RecordV2 = 0xE1, EndOfBlock = 0xFF };
+
+    public enum SortedBlockTableFormat { Razor01 = 1, Razor02 = 2, Default = Razor02 };
 
     // With this implementation, the maximum sized data that can be stored is ... block size >= keylen + valuelen + (sizecounter - no more than 8 bytes)
     public class SortedBlockTableWriter {
 
-        public SortedBlockTableWriter(string baseFileName, int level, int version) {
+        public SortedBlockTableWriter(string baseFileName, int level, int version, SortedBlockTableFormat format = SortedBlockTableFormat.Default) {
             string fileName = Config.SortedBlockTableFile(baseFileName, level, version);
             _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
-            _bufferA = new byte[Config.SortedBlockSize];
-            _bufferB = new byte[Config.SortedBlockSize];
-            _buffer = _bufferA;
+            _bufferPool = new BufferPool(Config.SortedBlockSize * 3 / 2);
+            _buffer = _bufferPool.GetBuffer();
             _bufferPos = 0;
-            _pageIndex = new List<Key>();
+            _pageIndex = new List<KeyEx>();
+            _fileFormat = format;
             Version = version;
             WrittenSize = 0;
+            InitializeWritePipeline();
         }
 
         private FileStream _fileStream;
-        private byte[] _bufferA;     // pre-allocated bufferB
-        private byte[] _bufferB;     // pre-allocated bufferA
+        private BufferPool _bufferPool;
         private byte[] _buffer;      // current buffer that is being loaded
+
         private int _bufferPos;
-        private IAsyncResult _async;
-        private List<Key> _pageIndex;
+        private List<KeyEx> _pageIndex;
         private int dataBlocks = 0;
         private int indexBlocks = 0;
         private int totalBlocks = 0;
+        private SortedBlockTableFormat _fileFormat;
+        private List<int> onDiskBlockSizes = new List<int>();
 
         public int Version { get; private set; }
         public int WrittenSize { get; private set; }
 
-        private void SwapBuffers() {
-            _buffer = Object.ReferenceEquals(_buffer, _bufferA) ? _bufferB : _bufferA;
-            Array.Clear(_buffer, 0, _buffer.Length);
-        }
-
         private List<ushort> _keyOffsets = new List<ushort>();
 
+        public struct Block {
+            public byte[] Buffer;
+            public int Offset;
+            public int Length;
+            public int SequenceNum;
+        }
+        public struct TransformedBlock {
+            public Block Input;
+            public Block Output;
+        }
+        private Pipeline<Block> plCompression;
+        private Pipeline<TransformedBlock> plVerify;
+        private Pipeline<Block> plBlockWriter;
+
+        private void InitializeWritePipeline() {
+
+            // Final stage in the pipeline == Write data blocks to disk
+            plBlockWriter = new Pipeline<Block>( (block) => {
+                // Account for the block 
+                onDiskBlockSizes.Add(block.Length);
+
+                // Synchronously Write the block to disk
+                _fileStream.Write(block.Buffer, block.Offset, block.Length);
+
+                // Return buffer to pool for re-use since we no longer need it
+                _bufferPool.ReturnBuffer(block.Buffer);
+            },4,1);
+
+            // Second to last stage - Verify the compression stage as a failsafe
+            plVerify = new Pipeline<TransformedBlock>((transform) => {
+
+                var verifyBuffer = _bufferPool.GetBuffer();
+                
+                // Decompress the block and verify the contents to be sure it matches (fail-safe)
+                bool errorThrown = false;
+                int decompSize = 0;
+                try {
+                    decompSize = Compression.Decompress(transform.Output.Buffer, 2, transform.Output.Length - 2, verifyBuffer, 0);
+                } catch (Exception e) {
+                    System.Diagnostics.Trace.WriteLine(string.Format("Decompression Error Detected: {0}", e.Message));
+                    errorThrown = true;
+                }
+
+                // Only proceed with compression if no anomalies were detected in the compression process
+                if (!errorThrown &&                             // No exceptions thrown
+                    Config.SortedBlockSize == decompSize &&     // decompressed size is the same as the source data size
+                    Crc32.Compute(transform.Input.Buffer, 0, transform.Input.Length) == Crc32.Compute(verifyBuffer, 0, decompSize)) // CRC32 of the source data is same as the CRC32 of the decompressed data
+                {
+                    transform.Output.Buffer[0] = 0xFF; // Signal compressed buffer (first two bytes FFEE)
+                    transform.Output.Buffer[1] = 0xEE; // These two bytes cannot occur naturally as the first two bytes of a block
+                    // (index block starts with F0 and data block is the tree root pointer which won't be that large)
+
+                    // Go ahead and push the compressed output to disk stage
+                    plBlockWriter.OrderedPush(transform.Output.SequenceNum, transform.Output);
+                    _bufferPool.ReturnBuffer(transform.Input.Buffer);
+                } else {
+                    plBlockWriter.OrderedPush(transform.Input.SequenceNum, transform.Input);
+                    _bufferPool.ReturnBuffer(transform.Output.Buffer);
+                }
+
+                _bufferPool.ReturnBuffer(verifyBuffer);
+            },4,1);
+
+            // First stage - Compress the block
+            plCompression = new Pipeline<Block>((input) => {
+
+                var compressionBuffer = _bufferPool.GetBuffer();
+                int compressedSize = Compression.Compress(input.Buffer, input.Length, compressionBuffer, 2);
+
+                // Make sure compressed block is actually smaller
+                if (compressedSize < Config.SortedBlockSize) {
+                    plVerify.Push(new TransformedBlock {
+                        Input = input, 
+                        Output = new Block {
+                            Buffer = compressionBuffer, 
+                            Offset = 0, 
+                            Length = compressedSize,
+                            SequenceNum = input.SequenceNum,
+                        } 
+                    });
+                }
+            },4,2);
+
+        }
+
+        private void FlushPipeline() {
+            plCompression.WaitForDrain();
+            plVerify.WaitForDrain();
+            plBlockWriter.WaitForDrain();
+        }
+
         // Write a new key value pair to the output file. This method assumes that the data is being fed in key-sorted order.
-        public void WritePair(Key key, Value value) {
+        public void WritePair(KeyEx key, Value value) {
 
             byte[] keySize = new byte[8];
             int keySizeLen = Helper.Encode7BitInt(keySize, key.Length);
@@ -71,7 +161,7 @@ namespace RazorDB {
             _keyOffsets.Add((ushort)_bufferPos);
 
             // This is a record header
-            _buffer[_bufferPos++] = (byte)RecordHeaderFlag.Record;
+            _buffer[_bufferPos++] = (byte)RecordHeaderFlag.RecordV2;
 
             // Add space for left and right node pointers
             _bufferPos += 4;
@@ -126,18 +216,29 @@ namespace RazorDB {
 
         private void WriteBlock() {
 
-            // make sure any outstanding writes are completed
-            if (_async != null) {
-                _fileStream.EndWrite(_async);
+            var block = new Block {
+                Buffer = _buffer,
+                Offset = 0,
+                Length = Config.SortedBlockSize,
+                SequenceNum = totalBlocks,
+            };
+            if (_fileFormat == SortedBlockTableFormat.Razor02) {
+                // If we are doing the Razor 2 format, then push data into the compression pipeline
+                plCompression.Push(block);
+            } else {
+                // Old version, so push data directly into the write pipeline
+                plBlockWriter.Push(block);
             }
-            _async = _fileStream.BeginWrite(_buffer, 0, Config.SortedBlockSize, null, null);
-            SwapBuffers();
+
+            // Request a new buffer so we can continue preparing data for disk.
+            _buffer = _bufferPool.GetBuffer();
+
+            // Reset counters
             _bufferPos = 0;
             totalBlocks++;
         }
 
-
-        private void WriteIndexKey(Key key) {
+        private void WriteIndexKey(KeyEx key) {
             byte[] keySize = new byte[8];
             int keySizeLen = Helper.Encode7BitInt(keySize, key.Length);
 
@@ -149,6 +250,8 @@ namespace RazorDB {
             }
 
             // write the data out to the buffer
+            _buffer[_bufferPos] = 0xF0;
+            _bufferPos++;
             Array.Copy(keySize, 0, _buffer, _bufferPos, keySizeLen);
             _bufferPos += keySizeLen;
             Array.Copy(key.InternalBytes, 0, _buffer, _bufferPos, key.Length);
@@ -164,18 +267,51 @@ namespace RazorDB {
         private void WriteMetadata() {
             MemoryStream ms = new MemoryStream();
             BinaryWriter writer = new BinaryWriter(ms);
+            byte[] metadata;
 
-            writer.Write(Encoding.ASCII.GetBytes("@RAZORDB"));
-            writer.Write7BitEncodedInt(totalBlocks + 1);
-            writer.Write7BitEncodedInt(dataBlocks);
-            writer.Write7BitEncodedInt(indexBlocks);
+            switch (_fileFormat) {
+                case SortedBlockTableFormat.Razor01:
+                    writer.Write(Encoding.ASCII.GetBytes("@RAZORDB"));
+                    writer.Write7BitEncodedInt(totalBlocks + 1);
+                    writer.Write7BitEncodedInt(dataBlocks);
+                    writer.Write7BitEncodedInt(indexBlocks);
 
-            byte[] metadata = ms.ToArray();
-            Array.Copy(metadata, _buffer, metadata.Length);
+                    metadata = ms.ToArray();
+                    Array.Copy(metadata, _buffer, metadata.Length);
 
-            // Commit the block to disk and wait for the operation to complete
-            WriteBlock();
-            _fileStream.EndWrite(_async);
+                    // Commit the block to disk and wait for the operation to complete
+                    WriteBlock();
+
+                    // Flush remaining blocks through the pipeline
+                    FlushPipeline();
+                    break;
+                case SortedBlockTableFormat.Razor02:
+                    // Flush out any blocks before writing directly to the filestream
+                    // or reading metadata values (which could change while data is going through the pipeline)
+                    FlushPipeline();
+
+                    writer.Write(Encoding.ASCII.GetBytes("@RAZOR02"));
+                    writer.Write7BitEncodedInt(totalBlocks + 1);
+                    writer.Write7BitEncodedInt(dataBlocks);
+                    writer.Write7BitEncodedInt(indexBlocks);
+
+                    writer.Write7BitEncodedInt(onDiskBlockSizes.Count);
+                    foreach (var blockSize in onDiskBlockSizes) {
+                        writer.Write7BitEncodedInt(blockSize);
+                    }
+                    // Write the length of the metadata + length of the counter
+                    writer.Write( (int)ms.Length + 4);
+
+                    metadata = ms.ToArray();
+                    
+                    // Now write the metadata
+                    _fileStream.Write(metadata, 0, metadata.Length);
+                    _fileStream.Flush();
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+
         }
 
         public void Close() {
@@ -224,7 +360,10 @@ namespace RazorDB {
         private int _dataBlocks;
         private int _indexBlocks;
         private int _totalBlocks;
+        private SortedBlockTableFormat _fileFormat;
         private RazorCache _cache;
+        private List<int> onDiskBlockSizes = new List<int>();
+        private List<int> onDiskCumulativeBlockSizes = new List<int>();
 
         private static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
 
@@ -232,10 +371,13 @@ namespace RazorDB {
             current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
             Array.Clear(current, 0, current.Length);
         }
-
+ 
         internal class AsyncBlock : IAsyncResult {
             internal byte[] Buffer;
+            internal int BuffCountBytes;
+            internal byte[] CompBuffer;
             internal int BlockNum;
+            internal ManualResetEvent Done;
 
             public object AsyncState { get { return this; } }
             public WaitHandle AsyncWaitHandle { get { throw new NotImplementedException(); } }
@@ -243,46 +385,100 @@ namespace RazorDB {
             public bool IsCompleted { get { return true; } }
         }
 
-        private IAsyncResult BeginReadBlock(byte[] block, int blockNum) {
+        private IAsyncResult BeginReadBlock(byte[] block, byte[] compBlock, int blockNum) {
             if (_cache != null) {
                 byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
                 if (cachedBlock != null) {
                     return new AsyncBlock { Buffer = cachedBlock, BlockNum = blockNum };
                 }
             }
-            internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            return internalFileStream.BeginRead(block, 0, Config.SortedBlockSize, null, new AsyncBlock { Buffer = block, BlockNum = blockNum });
+            switch (_fileFormat) {
+                case SortedBlockTableFormat.Razor01:
+                    internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+                    return internalFileStream.BeginRead(block, 0, Config.SortedBlockSize, null, new AsyncBlock { Buffer = block, BlockNum = blockNum });
+                case SortedBlockTableFormat.Razor02:
+                    var offset = onDiskCumulativeBlockSizes[blockNum];
+                    var length = onDiskBlockSizes[blockNum];
+                    internalFileStream.Seek(offset, SeekOrigin.Begin);
+                    var asyncBlock = new AsyncBlock { Buffer = block, BuffCountBytes = length, CompBuffer = compBlock, BlockNum = blockNum, Done = new ManualResetEvent(false) };
+                    return internalFileStream.BeginRead(block, 0, length, (ar) => {
+
+                        if (asyncBlock.Buffer[0] == 0xFF && asyncBlock.Buffer[1] == 0xEE) { // Check for the signal preamble to determine whether we decompress this block or not
+                            Compression.Decompress(asyncBlock.Buffer, 2, asyncBlock.BuffCountBytes - 2, asyncBlock.CompBuffer, 0);
+                        } else {
+                            asyncBlock.CompBuffer = asyncBlock.Buffer;
+                        }
+                        asyncBlock.Done.Set(); 
+
+                    }, asyncBlock);
+                default:
+                    throw new NotSupportedException();
+            }
         }
 
         private byte[] EndReadBlock(IAsyncResult async) {
             AsyncBlock ablock = async as AsyncBlock;
             if (ablock != null) {
+                // This represents a block read from cache, nothing to do but return it...
                 return ablock.Buffer;
             } else {
-                internalFileStream.EndRead(async);
+                var bytesRead = internalFileStream.EndRead(async);
                 ablock = (AsyncBlock)async.AsyncState;
+                byte[] returnVal = null;
+                switch (_fileFormat) {
+                    case SortedBlockTableFormat.Razor01:
+                        returnVal = ablock.Buffer;
+                        break;
+                    case SortedBlockTableFormat.Razor02:
+                        // Decompress the data
+                        ablock.Done.WaitOne();
+                        returnVal = ablock.CompBuffer;
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                }
                 if (_cache != null) {
-                    var blockCopy = (byte[])ablock.Buffer.Clone();
+                    var blockCopy = (byte[])returnVal.Clone();
                     _cache.SetBlock(_baseFileName, _level, _version, ablock.BlockNum, blockCopy);
                 }
-                return ablock.Buffer;
+                return returnVal;
             }
         }
 
-        private byte[] ReadBlock(byte[] block, int blockNum) {
+        private byte[] ReadBlock(byte[] block, byte[] compBlock, int blockNum) {
             if (_cache != null) {
                 byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
                 if (cachedBlock != null) {
                     return cachedBlock;
                 }
             }
-            internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
-            internalFileStream.Read(block, 0, Config.SortedBlockSize);
+            byte[] returnval;
+            switch (_fileFormat) {
+                case SortedBlockTableFormat.Razor01:
+                    internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
+                    internalFileStream.Read(block, 0, Config.SortedBlockSize);
+                    returnval = block;
+                    break;
+                case SortedBlockTableFormat.Razor02:
+                    var offset = onDiskCumulativeBlockSizes[blockNum];
+                    var length = onDiskBlockSizes[blockNum];
+                    internalFileStream.Seek(offset, SeekOrigin.Begin);
+                    internalFileStream.Read(block, 0, length);
+                    if (block[0] == 0xFF && block[1] == 0xEE) { // Check for the signal preamble to determine whether we decompress this block or not
+                        Compression.Decompress(block, 2, length - 2, compBlock, 0);
+                        returnval = compBlock;
+                    } else {
+                        returnval = block;
+                    }
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
             if (_cache != null) {
-                var blockCopy = (byte[])block.Clone();
+                var blockCopy = (byte[])returnval.Clone();
                 _cache.SetBlock(_baseFileName, _level, _version, blockNum, blockCopy);
             }
-            return block;
+            return returnval;
         }
 
         [ThreadStatic]
@@ -297,27 +493,62 @@ namespace RazorDB {
             return threadAllocBlock;
         }
 
+        [ThreadStatic]
+        private static byte[] threadAllocCompBlock = null;
+
+        private static byte[] LocalThreadAllocatedCompBlock() {
+            if (threadAllocCompBlock == null) {
+                threadAllocCompBlock = new byte[Config.SortedBlockSize * 6 / 5];
+            } else {
+                Array.Clear(threadAllocCompBlock, 0, threadAllocCompBlock.Length);
+            }
+            return threadAllocCompBlock;
+        }
+        
         private void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
-            if (_cache != null) {
+            int lastBlockSize = Math.Min(Config.SortedBlockSize, (int)internalFileStream.Length); // should the block of size SortedBlockSize unless the file is smaller than that, in which case we read the entire file
+            int offset = Config.SortedBlockSize - lastBlockSize; // Make sure the block ends at the end of the buffer, even if it's shorter than the full buffer.
+
+             if (_cache != null) {
                 mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
                 if (mdBlock == null) {
-                    numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                    mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                    // Start by reading the last block-sized chunk of data from the file
+                    mdBlock = LocalThreadAllocatedBlock();
+                    internalFileStream.Seek(-lastBlockSize, SeekOrigin.End);
+                    internalFileStream.Read(mdBlock, offset, lastBlockSize);
                     byte[] blockCopy = (byte[])mdBlock.Clone();
                     _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
                 }
             } else {
+                mdBlock = LocalThreadAllocatedBlock();
+                internalFileStream.Seek(-lastBlockSize, SeekOrigin.End);
+                internalFileStream.Read(mdBlock, offset, lastBlockSize);
+            }
+
+            MemoryStream ms;
+            string checkString = Encoding.ASCII.GetString(mdBlock,0,8);
+            if (checkString == "@RAZORDB") {
+                _fileFormat = SortedBlockTableFormat.Razor01;
                 numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                ms = new MemoryStream(mdBlock, 8, Config.SortedBlockSize - 8); // Create the memory stream skipping the initial 8 character marker.
+            } else {
+                int mdSize = BitConverter.ToInt32(mdBlock, mdBlock.Length - 4);
+                int v2Offset = mdBlock.Length - mdSize;
+                if (v2Offset < 0 || v2Offset > mdBlock.Length - 8) {
+                    throw new InvalidDataException("The metadata size marker is not valid.");
+                }
+                checkString = Encoding.ASCII.GetString(mdBlock, v2Offset, 8);
+                if (checkString == "@RAZOR02") {
+                    _fileFormat = SortedBlockTableFormat.Razor02;
+                    ms = new MemoryStream(mdBlock, mdBlock.Length - mdSize + 8, mdSize - 8); // Create a memory stream from the rest of the metadata block (skip the 8 character marker string)
+                } else {
+                    throw new NotSupportedException();
+                }
             }
-            MemoryStream ms = new MemoryStream(mdBlock);
             BinaryReader reader = new BinaryReader(ms);
-            string checkString = Encoding.ASCII.GetString(reader.ReadBytes(8));
-            if (checkString != "@RAZORDB") {
-                throw new InvalidDataException("This does not appear to be a valid table file.");
-            }
+            
             _totalBlocks = reader.Read7BitEncodedInt();
             _dataBlocks = reader.Read7BitEncodedInt();
             _indexBlocks = reader.Read7BitEncodedInt();
@@ -327,15 +558,26 @@ namespace RazorDB {
             if (_totalBlocks != (_dataBlocks + _indexBlocks + 1)) {
                 throw new InvalidDataException("Corrupted metadata.");
             }
+
+            if (_fileFormat == SortedBlockTableFormat.Razor02) {
+                int numBlockSizes = reader.Read7BitEncodedInt();
+                int cumSize = 0;
+                for (int i = 0; i < numBlockSizes; i++) {
+                    int size = reader.Read7BitEncodedInt();
+                    onDiskBlockSizes.Add(size);
+                    onDiskCumulativeBlockSizes.Add(cumSize);
+                    cumSize += size;
+                }
+            }
         }
 
-        public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out Value value) {
+        public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, KeyEx key, out Value value) {
             SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
             try {
                 int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
 
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
-                    byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
+                    byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), LocalThreadAllocatedCompBlock(), dataBlockNum);
                     return SearchBlockForKey(block, key, out value);
                 } 
             } finally {
@@ -345,8 +587,8 @@ namespace RazorDB {
             return false;
         }
 
-        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, Key key) {
-            Key[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
+        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, KeyEx key) {
+            KeyEx[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
             int dataBlockNum = Array.BinarySearch(index, key);
             if (dataBlockNum < 0) {
                 dataBlockNum = ~dataBlockNum - 1;
@@ -354,11 +596,11 @@ namespace RazorDB {
             return dataBlockNum;
         }
 
-        public IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
-            return EnumerateFromKey(_cache, Key.Empty);
+        public IEnumerable<KeyValuePair<KeyEx, Value>> Enumerate() {
+            return EnumerateFromKey(_cache, KeyEx.Empty);
         }
 
-        public IEnumerable<KeyValuePair<Key, Value>> EnumerateFromKey(RazorCache indexCache, Key key) {
+        public IEnumerable<KeyValuePair<KeyEx, Value>> EnumerateFromKey(RazorCache indexCache, KeyEx key) {
 
             int startingBlock;
             if (key.Length == 0) {
@@ -373,8 +615,11 @@ namespace RazorDB {
                 byte[] allocBlockA = new byte[Config.SortedBlockSize];
                 byte[] allocBlockB = new byte[Config.SortedBlockSize];
                 byte[] currentBlock = allocBlockA;
+                byte[] compressionBlockA = new byte[Config.SortedBlockSize * 6 / 5];
+                byte[] compressionBlockB = new byte[Config.SortedBlockSize * 6 / 5];
+                byte[] compressionBlock = compressionBlockA;
 
-                var asyncResult = BeginReadBlock(currentBlock, startingBlock);
+                var asyncResult = BeginReadBlock(currentBlock, compressionBlock, startingBlock);
 
                 try {
 
@@ -385,9 +630,10 @@ namespace RazorDB {
                         asyncResult = null;
 
                         // Go ahead and kick off the next block read asynchronously while we parse the last one
-                        if (i < _dataBlocks) {
+                        if (i < _dataBlocks - 1) {
                             SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
-                            asyncResult = BeginReadBlock(currentBlock, i + 1);
+                            SwapBlocks(compressionBlockA, compressionBlockB, ref compressionBlock); // swap the blocks so we can issue another disk i/o
+                            asyncResult = BeginReadBlock(currentBlock, compressionBlock, i + 1);
                         }
 
                         int offset = 2; // reset offset, start after tree root pointer
@@ -417,14 +663,17 @@ namespace RazorDB {
 
         }
 
-        private IEnumerable<Key> EnumerateIndex() {
+        private IEnumerable<KeyEx> EnumerateIndex() {
 
             byte[] allocBlockA = new byte[Config.SortedBlockSize];
             byte[] allocBlockB = new byte[Config.SortedBlockSize];
             byte[] currentBlock = allocBlockA;
+            byte[] compressionBlockA = new byte[Config.SortedBlockSize];
+            byte[] compressionBlockB = new byte[Config.SortedBlockSize];
+            byte[] compressionBlock = compressionBlockA;
 
             var endIndexBlocks = (_dataBlocks + _indexBlocks);
-            var asyncResult = BeginReadBlock(currentBlock, _dataBlocks);
+            var asyncResult = BeginReadBlock(currentBlock, compressionBlock, _dataBlocks);
 
             try {
                 for (int i = _dataBlocks; i < endIndexBlocks; i++) {
@@ -434,9 +683,10 @@ namespace RazorDB {
                     asyncResult = null;
 
                     // Go ahead and kick off the next block read asynchronously while we parse the last one
-                    if (i < endIndexBlocks) {
+                    if (i < endIndexBlocks - 1) {
                         SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
-                        asyncResult = BeginReadBlock(currentBlock, i + 1);
+                        SwapBlocks(compressionBlockA, compressionBlockB, ref compressionBlock); // swap the blocks so we can issue another disk i/o
+                        asyncResult = BeginReadBlock(currentBlock, compressionBlock, i + 1);
                     }
 
                     int offset = 0;
@@ -450,11 +700,16 @@ namespace RazorDB {
             }
         }
 
-        public Key[] GetIndex() {
+        public KeyEx[] GetIndex() {
             return EnumerateIndex().ToArray();
         }
 
-        private static Key ReadKey(byte[] block, ref int offset) {
+        private static KeyEx ReadKey(byte[] block, ref int offset) {
+            bool v2Key = false;
+            if (block[offset] == 0xF0) {
+                v2Key = true;
+                offset++;
+            }
             int keySize = Helper.Decode7BitInt(block, ref offset);
             var key = ByteArray.From(block, offset, keySize);
             offset += keySize;
@@ -463,19 +718,32 @@ namespace RazorDB {
             if (block[offset] == 0)
                 offset = -1;
 
-            return new Key(key);
+            if (v2Key) {
+                return new KeyEx(key);
+            } else {
+                return KeyEx.FromKey(new Key(key));
+            }
         }
 
-        private static bool ScanBlockForKey(byte[] block, Key key, out Value value) {
+        private static bool ScanBlockForKey(byte[] block, KeyEx key, out Value value) {
             int offset = 2; // skip over the tree root pointer
             value = Value.Empty;
 
-            while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte)RecordHeaderFlag.Record) {
+            while (offset >= 2 && offset < Config.SortedBlockSize &&
+                (block[offset] == (byte)RecordHeaderFlag.Record || block[offset] == (byte)RecordHeaderFlag.RecordV2)) {
                 int startingOffset = offset;
+                RecordHeaderFlag headerFlag = (RecordHeaderFlag)block[startingOffset];
                 offset++; // skip past the header flag
                 offset += 4; // skip past the tree pointers
                 int keySize = Helper.Decode7BitInt(block, ref offset);
-                int cmp = key.CompareTo(block, offset, keySize);
+
+                int cmp = 0;
+                if (headerFlag == RecordHeaderFlag.Record) {
+                    cmp = key.CompareToV1(block, offset, keySize);
+                } else if (headerFlag == RecordHeaderFlag.RecordV2) {
+                    cmp = key.CompareTo(block, offset, keySize);
+                } else { throw new NotSupportedException(); }
+
                 if (cmp == 0) {
                     // Found it
                     var pair = ReadPair(block, ref startingOffset);
@@ -492,16 +760,25 @@ namespace RazorDB {
             return false;
         }
 
-        private static bool SearchBlockForKey(byte[] block, Key key, out Value value) {
+        private static bool SearchBlockForKey(byte[] block, KeyEx key, out Value value) {
             int offset = BitConverter.ToUInt16(block, 0); // grab the tree root
             value = Value.Empty;
 
-            while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte) RecordHeaderFlag.Record) {
+            while (offset >= 2 && offset < Config.SortedBlockSize &&
+                (block[offset] == (byte)RecordHeaderFlag.Record || block[offset] == (byte)RecordHeaderFlag.RecordV2)) {
                 int startingOffset = offset;
+                RecordHeaderFlag headerFlag = (RecordHeaderFlag) block[startingOffset];
                 offset += 1; // skip header
                 offset += 4; // skip tree pointers
                 int keySize = Helper.Decode7BitInt(block, ref offset);
-                int cmp = key.CompareTo(block, offset, keySize);
+                
+                int cmp = 0;
+                if (headerFlag == RecordHeaderFlag.Record) {
+                    cmp = key.CompareToV1(block, offset, keySize);
+                } else if (headerFlag == RecordHeaderFlag.RecordV2) {
+                    cmp = key.CompareTo(block, offset, keySize);
+                } else { throw new NotSupportedException(); }
+
                 if (cmp == 0) {
                     // Found it
                     var pair = ReadPair(block, ref startingOffset);
@@ -518,12 +795,34 @@ namespace RazorDB {
             return false;
         }
 
-        private static KeyValuePair<Key, Value> ReadPair(byte[] block, ref int offset) {
+        private static KeyValuePair<KeyEx, Value> ReadPair(byte[] block, ref int offset) {
+            
+            SortedBlockTableFormat fmt;
+            switch ((RecordHeaderFlag)block[offset]) {
+                case RecordHeaderFlag.Record:
+                    fmt = SortedBlockTableFormat.Razor01;
+                    break;
+                case RecordHeaderFlag.RecordV2:
+                    fmt = SortedBlockTableFormat.Razor02;
+                    break;
+                default:
+                    throw new InvalidDataException("Unknown Record Header Flag.");
+            }
             offset += 1; // skip over header flag
+
             offset += 4; // skip over the tree pointers
+
+            // Read the key (choose Key or KeyEx depending on record header flag)
             int keySize = Helper.Decode7BitInt(block, ref offset);
-            var key = new Key(ByteArray.From(block, offset, keySize));
+            var keyBytes = ByteArray.From(block, offset, keySize);
+            KeyEx key = KeyEx.Empty;
+            if (fmt == SortedBlockTableFormat.Razor01) {
+                key = KeyEx.FromKey(new Key(keyBytes));
+            } else {
+                key = new KeyEx(keyBytes);
+            }
             offset += keySize;
+            
             int valueSize = Helper.Decode7BitInt(block, ref offset);
             var val = Value.From(block, offset, valueSize);
             offset += valueSize;
@@ -532,17 +831,17 @@ namespace RazorDB {
             if (offset >= Config.SortedBlockSize || block[offset] == (byte)RecordHeaderFlag.EndOfBlock )
                 offset = -1;
 
-            return new KeyValuePair<Key, Value>(key, val);
+            return new KeyValuePair<KeyEx, Value>(key, val);
         }
 
-        public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
+        public static IEnumerable<KeyValuePair<KeyEx, Value>> EnumerateMergedTables(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
              var tables = tableSpecs
                .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
                .ToList();
              try {
-                foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate().ToList().AsEnumerable()), t => t.Key)) {
-                    yield return pair;
-                }
+                 foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), t => t.Key)) {
+                     yield return pair;
+                 }
              } finally {
                  tables.ForEach(t => t.Close());
              }
@@ -554,38 +853,25 @@ namespace RazorDB {
             var outputTables = new List<PageRecord>();
             SortedBlockTableWriter writer = null;
 
-            Key firstKey = new Key();
-            Key lastKey = new Key();
-            Key maxKey = new Key(); // Maximum key we can span with this table to avoid covering more than 10 pages in the destination
+            KeyEx firstKey = new KeyEx();
+            KeyEx lastKey = new KeyEx();
 
-            Action<KeyValuePair<Key, Value>> OpenPage = (pair) => {
-                writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
-                firstKey = pair.Key;
-                using (var m = mf.GetLatestManifest()) {
-                    maxKey = m.FindSpanningLimit(destinationLevel + 1, firstKey);
-                }
-            };
-            Action ClosePage = () => {
-                writer.Close();
-                outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
-                writer = null;
-            };
-
-            foreach (var pair in EnumerateMergedTablesPreCached(cache, mf.BaseFileName, orderedTableSpecs)) {
+            foreach (var pair in EnumerateMergedTables(cache, mf.BaseFileName, orderedTableSpecs)) {
                 if (writer == null) {
-                    OpenPage(pair);
-                }
-                if (writer.WrittenSize >= Config.MaxSortedBlockTableSize || (!maxKey.IsEmpty && pair.Key.CompareTo(maxKey) >= 0)) {
-                    ClosePage();
-                }
-                if (writer == null) {
-                    OpenPage(pair);
+                    writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
+                    firstKey = pair.Key;
                 }
                 writer.WritePair(pair.Key, pair.Value);
                 lastKey = pair.Key;
+                if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {
+                    writer.Close();
+                    outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
+                    writer = null;
+                }
             }
             if (writer != null) {
-                ClosePage();
+                writer.Close();
+                outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
             }
 
             return outputTables;
@@ -602,7 +888,7 @@ namespace RazorDB {
             msg("");
             for (int i = 0; i < _dataBlocks; i++) {
                 msg(string.Format("\n*** Data Block {0} ***",i));
-                byte[] block = ReadBlock( new byte[Config.SortedBlockSize], i);
+                byte[] block = ReadBlock( new byte[Config.SortedBlockSize], new byte[Config.SortedBlockSize * 6 / 5], i);
 
                 int treePtr = BitConverter.ToUInt16(block, 0);
                 msg(string.Format("{0:X4} \"{1}\" Tree Offset: {2:X4}", 0, BytesToString(block,0,2), treePtr));
@@ -649,7 +935,7 @@ namespace RazorDB {
             try {
                 foreach (var pair in Enumerate()) {
                     try {
-                        Key k = pair.Key;
+                        KeyEx k = pair.Key;
                         Value v = pair.Value;
 
                         totalKeyBytes += k.KeyBytes.Length;
