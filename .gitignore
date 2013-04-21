@@ -1,16 +1,26 @@
-
+# Directories
+.nuget/*
 Debug/*
 External/*
-*/obj/*
-*.suo
-*.pidb
+NDependOut/*
+packages/*
+Release/*
+RazorView/bin/*
 */test-results/*
 test-results/*
-NDependOut/*
-RazorDB.ndproj
-Release/*
+
+# Files
+*.suo
+*.pidb
 *.typemock
-RazorView/bin/*
-packages/*
+RazorDB.ndproj
+RazorDB/.DS_Store
+RazorDB/C5/.DS_Store
+RazorDBTests/.DS_Store
+RazorTest/.DS_Store
+RazorUtil/.DS_Store
+RazorView/.DS_Store
 RazorUtil/RazorUtil.csproj.user
-.nuget/*
+
+# Misc
+*/obj/*
