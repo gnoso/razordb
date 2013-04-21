@@ -10,8 +10,8 @@ RazorView/bin/*
 test-results/*
 
 # Files
-*.suo
 *.pidb
+*.suo
 *.typemock
 RazorDB.ndproj
 RazorDB/.DS_Store
