@@ -311,12 +311,12 @@ namespace RazorDB.C5
     //
     // <param name="comparer">The external comparer</param>
     // <param name="equalityComparer">The external item equalityComparer</param>
-    public TreeSet(SCG.IComparer<T> comparer, SCG.IEqualityComparer<T> equalityComparer)
+    public TreeSet(SCG.IComparer<T> c, SCG.IEqualityComparer<T> equalityComparer)
       : base(equalityComparer)
     {
       if (comparer == null)
         throw new NullReferenceException("Item comparer cannot be null");
-      comparer = comparer;
+      comparer = c;
     }
 
     #endregion
@@ -349,9 +349,9 @@ namespace RazorDB.C5
       // Create a tree enumerator
       //
       // <param name="tree">The red-black tree to enumerate</param>
-      public Enumerator(TreeSet<T> tree)
+      public Enumerator(TreeSet<T> t)
       {
-        tree = tree;
+        tree = t;
         stamp = tree.stamp;
         path = new Node[2 * tree.blackdepth];
         cursor = new Node();
@@ -505,9 +505,9 @@ namespace RazorDB.C5
       // collection
       //
       // <param name="tree">The snapshot</param>
-      public SnapEnumerator(TreeSet<T> tree)
+      public SnapEnumerator(TreeSet<T> t)
       {
-        tree = tree;
+        tree = t;
         stamp = tree.stamp;
         path = new Node[2 * tree.blackdepth];
         cursor = new Node();
@@ -2810,14 +2810,14 @@ bool removeIterativePhase2(Node cursor, int level)
       readonly TreeSet<T> tree;
 
 
-      internal Interval(TreeSet<T> tree, int start, int count, bool forwards)
+      internal Interval(TreeSet<T> t, int s, int c, bool b)
       {
 #if NCP
         if (tree.isSnapShot)
           throw new NotSupportedException("Indexing not supported for snapshots");
 #endif
-        start = start; length = count; forwards = forwards;
-        tree = tree; stamp = tree.stamp;
+        start = s; length = c; forwards = b;
+        tree = t; stamp = tree.stamp;
       }
 
       public override bool IsEmpty { get { return length == 0; } }
@@ -3946,17 +3946,17 @@ bool removeIterativePhase2(Node cursor, int level)
 
 
       [Tested]
-      public Range(TreeSet<T> basis, bool haslowend, T lowend, bool hashighend, T highend, EnumerationDirection direction)
+      public Range(TreeSet<T> b, bool hl, T l, bool hh, T h, EnumerationDirection d)
       {
-        basis = basis;
+        basis = b;
         stamp = basis.stamp;
 
         //lowind will be const; should we cache highind?
-        lowend = lowend; //Inclusive
-        highend = highend;//Exclusive
-        haslowend = haslowend;
-        hashighend = hashighend;
-        direction = direction;
+        lowend = l; //Inclusive
+        highend = h;//Exclusive
+        haslowend = hl;
+        hashighend = hh;
+        direction = d;
         if (!basis.isSnapShot)
           size = haslowend ?
               (hashighend ? basis.CountFromTo(lowend, highend) : basis.CountFrom(lowend)) :
@@ -3992,11 +3992,11 @@ bool removeIterativePhase2(Node cursor, int level)
 
         #endregion
         [Tested]
-        public Enumerator(Range range)
+        public Enumerator(Range r)
         {
           comparer = range.basis.comparer;
           path = new Node[2 * range.basis.blackdepth];
-          range = range;
+          range = r;
           forwards = range.direction == EnumerationDirection.Forwards;
           cursor = new Node();
           if (forwards)
@@ -4569,4 +4569,3 @@ bool removeIterativePhase2(Node cursor, int level)
 
   }
 }
-

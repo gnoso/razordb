@@ -142,11 +142,11 @@ namespace RazorDB.C5
 #else
       internal Bucket overflow;
 
-      internal Bucket(T item, int hashval, Bucket overflow)
+      internal Bucket(T t, int h, Bucket o)
       {
-        item = item;
-        hashval = hashval;
-        overflow = overflow;
+        item = t;
+        hashval = h;
+        overflow = o;
       }
 #endif
     }
@@ -243,7 +243,6 @@ namespace RazorDB.C5
     void resize(int bits)
     {
       //Console.WriteLine(String.Format("Resize to {0} bits", bits));
-      bits = bits;
       bitsc = 32 - bits;
       indexmask = (1 << bits) - 1;
 

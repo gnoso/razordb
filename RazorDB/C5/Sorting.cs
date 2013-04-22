@@ -70,7 +70,7 @@ namespace RazorDB.C5
       SCG.IComparer<T> c;
 
 
-      internal Sorter(T[] a, SCG.IComparer<T> c) { a = a; c = c; }
+      internal Sorter(T[] t, SCG.IComparer<T> ct) { a = t; c = ct; }
 
 
       internal void IntroSort(int f, int b)

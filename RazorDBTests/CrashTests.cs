@@ -42,7 +42,6 @@ namespace RazorDBTests {
                 int ct = 0;
                 foreach (var pair in db.Enumerate()) {
                     ByteArray k = new ByteArray(pair.Key);
-                    ByteArray v = new ByteArray(pair.Value);
                     Assert.True(lastKey.CompareTo(k) < 0);
                     lastKey = k;
                     ct++;
@@ -81,7 +80,6 @@ namespace RazorDBTests {
                 int ct = 0;
                 foreach (var pair in db.Enumerate()) {
                     ByteArray k = new ByteArray(pair.Key);
-                    ByteArray v = new ByteArray(pair.Value);
                     Assert.True(lastKey.CompareTo(k) < 0);
                     lastKey = k;
                     ct++;

@@ -20,8 +20,8 @@ namespace RazorDB.C5
     // Create a wrapper around a generic enumerator
     //
     // <param name="enumerator">The enumerator to wrap</param>
-    public GuardedEnumerator(SCG.IEnumerator<T> enumerator)
-    { enumerator = enumerator; }
+    public GuardedEnumerator(SCG.IEnumerator<T> e)
+    { enumerator = e; }
 
     #endregion
 
@@ -90,8 +90,8 @@ namespace RazorDB.C5
     // Wrap an enumerable in a read-only wrapper
     //
     // <param name="enumerable">The enumerable to wrap</param>
-    public GuardedEnumerable(SCG.IEnumerable<T> enumerable)
-    { enumerable = enumerable; }
+    public GuardedEnumerable(SCG.IEnumerable<T> e)
+    { enumerable = e; }
 
     #endregion
 
@@ -138,9 +138,9 @@ namespace RazorDB.C5
     // Wrap a directed enumerable in a read-only wrapper
     //
     // <param name="directedenumerable">the collection to wrap</param>
-    public GuardedDirectedEnumerable(IDirectedEnumerable<T> directedenumerable)
-      : base(directedenumerable)
-    { directedenumerable = directedenumerable; }
+    public GuardedDirectedEnumerable(IDirectedEnumerable<T> d)
+      : base(d)
+    { directedenumerable = d; }
 
     #endregion
 
@@ -254,9 +254,9 @@ namespace RazorDB.C5
     // Wrap a ICollectionValue&lt;T&gt; in a read-only wrapper
     //
     // <param name="collectionvalue">the collection to wrap</param>
-    public GuardedCollectionValue(ICollectionValue<T> collectionvalue)
-      : base(collectionvalue)
-    { collectionvalue = collectionvalue; }
+    public GuardedCollectionValue(ICollectionValue<T> c)
+      : base(c)
+    { collectionvalue = c; }
 
     #endregion
 
@@ -398,10 +398,10 @@ namespace RazorDB.C5
     // Wrap a directed collection in a read-only wrapper
     //
     // <param name="directedcollection">the collection to wrap</param>
-    public GuardedDirectedCollectionValue(IDirectedCollectionValue<T> directedcollection)
+    public GuardedDirectedCollectionValue(IDirectedCollectionValue<T> d)
       :
-      base(directedcollection)
-    { directedcollection = directedcollection; }
+      base(d)
+    { directedcollection = d; }
 
     #endregion
 
@@ -462,10 +462,10 @@ namespace RazorDB.C5
     // Wrap an ICollection&lt;T&gt; in a read-only wrapper
     //
     // <param name="collection">the collection to wrap</param>
-    public GuardedCollection(ICollection<T> collection)
-      : base(collection)
+    public GuardedCollection(ICollection<T> c)
+      : base(c)
     {
-      collection = collection;
+      collection = c;
     }
 
     #endregion
@@ -871,7 +871,7 @@ namespace RazorDB.C5
     // Wrap a sorted collection in a read-only wrapper
     //
     // <param name="sorted"></param>
-    public GuardedSorted(ISorted<T> sorted) : base(sorted) { sorted = sorted; }
+    public GuardedSorted(ISorted<T> s) : base(s) { sorted = s; }
 
     #endregion
 
@@ -1311,10 +1311,10 @@ namespace RazorDB.C5
         underlying = new GuardedList<T>(list.Underlying, null, false);
     }
 
-    GuardedList(IList<T> list, GuardedList<T> underlying, bool slidableView)
-      : base(list)
+    GuardedList(IList<T> l, GuardedList<T> u, bool s)
+      : base(l)
     {
-      innerlist = list; underlying = underlying; slidableView = slidableView;
+      innerlist = l; underlying = u; slidableView = s;
     }
     #endregion
 
@@ -1875,7 +1875,7 @@ namespace RazorDB.C5
     // Wrap a queue in a read-only wrapper
     //
     // <param name="queue">The queue</param>
-    public GuardedQueue(IQueue<T> queue) : base(queue) { queue = queue; }
+    public GuardedQueue(IQueue<T> q) : base(q) { queue = q; }
 
     #endregion
 
@@ -1931,7 +1931,7 @@ namespace RazorDB.C5
     // Wrap a dictionary in a read-only wrapper
     //
     // <param name="dict">the dictionary</param>
-    public GuardedDictionary(IDictionary<K, V> dict) : base(dict) { dict = dict; }
+    public GuardedDictionary(IDictionary<K, V> d) : base(d) { dict = d; }
 
     #endregion
 
@@ -2147,9 +2147,9 @@ namespace RazorDB.C5
     // Wrap a sorted dictionary in a read-only wrapper
     //
     // <param name="sorteddict">the dictionary</param>
-    public GuardedSortedDictionary(ISortedDictionary<K, V> sorteddict)
-      : base(sorteddict)
-    { sorteddict = sorteddict; }
+    public GuardedSortedDictionary(ISortedDictionary<K, V> s)
+      : base(s)
+    { sorteddict = s; }
 
     #endregion
 

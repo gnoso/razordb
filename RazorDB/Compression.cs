@@ -223,9 +223,9 @@ namespace RazorDB {
         class Hit {
             public int offset, length;
 
-            public Hit(int offset, int length) {
-                offset = offset;
-                length = length;
+            public Hit(int o, int l) {
+                offset = o;
+                length = l;
             }
         }
 
@@ -392,9 +392,9 @@ namespace RazorDB {
             Initialize();
         }
 
-        public Crc32(UInt32 polynomial, UInt32 seed) {
+        public Crc32(UInt32 polynomial, UInt32 s) {
             table = InitializeTable(polynomial);
-            seed = seed;
+            seed = s;
             Initialize();
         }
 

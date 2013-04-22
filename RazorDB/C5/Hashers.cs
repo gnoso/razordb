@@ -204,11 +204,11 @@ namespace RazorDB.C5
     // Create a trivial <see cref="T:C5.IEqualityComparer`1"/> compatible with the 
     // <see cref="T:C5.IComparer`1"/> <code>comparer</code>
     // <param name="comparer"></param>
-    public ComparerZeroHashCodeEqualityComparer(SCG.IComparer<T> comparer)
+    public ComparerZeroHashCodeEqualityComparer(SCG.IComparer<T> c)
     {
       if (comparer == null)
         throw new NullReferenceException("Comparer cannot be null");
-      comparer = comparer;
+      comparer = c;
     }
     // A trivial, inefficient hash fuction. Compatible with any equality relation.
     // <param name="item"></param>

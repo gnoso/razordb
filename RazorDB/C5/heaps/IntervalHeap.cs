@@ -246,14 +246,14 @@ namespace RazorDB.C5
     // <param name="capacity">The initial capacity</param>
     public IntervalHeap(int capacity, SCG.IComparer<T> comparer) : this(capacity, comparer, new ComparerZeroHashCodeEqualityComparer<T>(comparer)) { }
 
-    IntervalHeap(int capacity, SCG.IComparer<T> comparer, SCG.IEqualityComparer<T> itemequalityComparer)
+    IntervalHeap(int capacity, SCG.IComparer<T> c, SCG.IEqualityComparer<T> i)
     {
       if (comparer == null)
         throw new NullReferenceException("Item comparer cannot be null");
       if (itemequalityComparer == null)
         throw new NullReferenceException("Item equality comparer cannot be null");
-      comparer = comparer;
-      itemequalityComparer = itemequalityComparer;
+      comparer = c;
+      itemequalityComparer = i;
       int length = 1;
       while (length < capacity) length <<= 1;
       heap = new Interval[length];

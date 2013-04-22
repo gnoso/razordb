@@ -14,7 +14,7 @@ namespace RazorDB.C5
   {
     class InnerList : ArrayList<T>
     {
-      internal InnerList(T[] array) { array = array; size = array.Length; }
+      internal InnerList(T[] a) { array = a; size = array.Length; }
     }
     ArrayList<T> innerlist;
     //TODO: remember a ref to the wrapped array in WrappedArray to save a little on indexing?
@@ -27,7 +27,7 @@ namespace RazorDB.C5
     public WrappedArray(T[] wrappedarray) { innerlist = new InnerList(wrappedarray); }
 
     //for views
-    WrappedArray(ArrayList<T> arraylist, WrappedArray<T> underlying) { innerlist = arraylist; underlying = underlying; }
+    WrappedArray(ArrayList<T> arraylist, WrappedArray<T> u) { innerlist = arraylist; underlying = u; }
 
     #region IList<T> Members
 

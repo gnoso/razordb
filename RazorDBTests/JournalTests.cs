@@ -59,7 +59,6 @@ namespace RazorDBTests {
             var fileName = Config.JournalFile(path, 324);
             var writer = new BinaryWriter(new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.None, 1024, false));
             KeyEx key = KeyEx.Random(20);
-            Value value = Value.Random(100);
             writer.Write7BitEncodedInt(key.Length);
             writer.Write(key.InternalBytes);
             writer.Write7BitEncodedInt(0);

@@ -79,12 +79,12 @@ namespace RazorDB {
 
     public class Pipeline<T> : IDisposable {
 
-        public Pipeline(Action<T> work, int queueLimit = 10, int numThreads = 1) {
+        public Pipeline(Action<T> w, int queueLimit = 10, int numThreads = 1) {
             if (work == null) {
                 throw new ArgumentNullException();
             }
             QueueLimit = queueLimit;
-            work = work;
+            work = w;
             queue = new Queue<T>();
             orderingQueue = new OrderingQueue<T>();
             queueCapacity = new Semaphore(queueLimit, queueLimit);

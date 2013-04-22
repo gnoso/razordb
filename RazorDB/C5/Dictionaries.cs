@@ -415,7 +415,7 @@ namespace RazorDB.C5
     class LiftedEnumerable<H> : SCG.IEnumerable<KeyValuePair<K, V>> where H : K
     {
       SCG.IEnumerable<H> keys;
-      public LiftedEnumerable(SCG.IEnumerable<H> keys) { keys = keys; }
+      public LiftedEnumerable(SCG.IEnumerable<H> k) { keys = k; }
       public SCG.IEnumerator<KeyValuePair<K, V>> GetEnumerator() { foreach (H key in keys) yield return new KeyValuePair<K, V>(key); }
 
       #region IEnumerable Members
@@ -571,8 +571,8 @@ namespace RazorDB.C5
       ICollection<KeyValuePair<K, V>> pairs;
 
 
-      internal ValuesCollection(ICollection<KeyValuePair<K, V>> pairs)
-      { pairs = pairs; }
+      internal ValuesCollection(ICollection<KeyValuePair<K, V>> p)
+      { pairs = p; }
 
 
       public override V Choose() { return pairs.Choose().Value; }
@@ -601,8 +601,8 @@ namespace RazorDB.C5
       ICollection<KeyValuePair<K, V>> pairs;
 
 
-      internal KeysCollection(ICollection<KeyValuePair<K, V>> pairs)
-      { pairs = pairs; }
+      internal KeysCollection(ICollection<KeyValuePair<K, V>> p)
+      { pairs = p; }
 
       public override K Choose() { return pairs.Choose().Key; }
 
@@ -768,7 +768,7 @@ namespace RazorDB.C5
     //
     // <param name="keycomparer"></param>
     // <param name="keyequalityComparer"></param>
-    protected SortedDictionaryBase(SCG.IComparer<K> keycomparer, SCG.IEqualityComparer<K> keyequalityComparer) : base(keyequalityComparer) { keycomparer = keycomparer; }
+    protected SortedDictionaryBase(SCG.IComparer<K> k, SCG.IEqualityComparer<K> keyequalityComparer) : base(keyequalityComparer) { keycomparer = k; }
 
     #endregion
 
@@ -1027,7 +1027,7 @@ namespace RazorDB.C5
     {
       IComparable<K> cutter;
 
-      internal KeyValuePairComparable(IComparable<K> cutter) { cutter = cutter; }
+      internal KeyValuePairComparable(IComparable<K> c) { cutter = c; }
 
       public int CompareTo(KeyValuePair<K, V> other) { return cutter.CompareTo(other.Key); }
 
@@ -1061,12 +1061,12 @@ namespace RazorDB.C5
       ISorted<KeyValuePair<K, V>> sortedpairs;
       SCG.IComparer<K> comparer;
 
-      internal SortedKeysCollection(ISortedDictionary<K, V> sorteddict, ISorted<KeyValuePair<K, V>> sortedpairs, SCG.IComparer<K> comparer, SCG.IEqualityComparer<K> itemequalityComparer)
+      internal SortedKeysCollection(ISortedDictionary<K, V> d, ISorted<KeyValuePair<K, V>> p, SCG.IComparer<K> c, SCG.IEqualityComparer<K> itemequalityComparer)
         : base(itemequalityComparer)
       {
-        sorteddict = sorteddict;
-        sortedpairs = sortedpairs;
-        comparer = comparer;
+        sorteddict = d;
+        sortedpairs = p;
+        comparer = c;
       }
 
       public override K Choose() { return sorteddict.Choose().Key; }

@@ -621,12 +621,12 @@ namespace RazorDB.C5
       #endregion
 
       [Tested]
-      internal Node(T item) { item = item; }
+      internal Node(T t) { item = t; }
 
       [Tested]
-      internal Node(T item, Node prev, Node next)
+      internal Node(T t, Node p, Node n)
       {
-        item = item; prev = prev; next = next;
+        item = t; prev = p; next = n;
       }
 
       public override string ToString()
@@ -1087,9 +1087,9 @@ namespace RazorDB.C5
       // <param name="realindex"></param>
       internal void skipEndpoints(int removed, int realindex)
       {
+				Position endpoint;
         if (viewCount > 0)
         {
-          Position endpoint;
           while (leftEndIndex < viewCount && (endpoint = leftEnds[leftEndIndex]).Index <= realindex)
           {
             LinkedList<T> view = endpoint.View;
@@ -1103,14 +1103,10 @@ namespace RazorDB.C5
             view.size -= removed;
             rightEndIndex++;
           }
-        }
-        if (viewCount > 0)
-        {
-          Position endpoint;
-          while (leftEndIndex2 < viewCount && (endpoint = leftEnds[leftEndIndex2]).Index <= realindex)
-            leftEndIndex2++;
-          while (rightEndIndex2 < viewCount && (endpoint = rightEnds[rightEndIndex2]).Index < realindex - 1)
-            rightEndIndex2++;
+					while (leftEndIndex2 < viewCount && (endpoint = leftEnds[leftEndIndex2]).Index <= realindex)
+						leftEndIndex2++;
+					while (rightEndIndex2 < viewCount && (endpoint = rightEnds[rightEndIndex2]).Index < realindex - 1)
+						rightEndIndex2++;
         }
       }
       internal void updateViewSizesAndCounts(int removed, int realindex)
@@ -1168,10 +1164,10 @@ namespace RazorDB.C5
       bool forwards;
 
 
-      internal Range(LinkedList<T> list, int start, int count, bool forwards)
+      internal Range(LinkedList<T> l, int s, int c, bool b)
       {
-        list = list; rangestamp = list.underlying != null ? list.underlying.stamp : list.stamp;
-        start = start; count = count; forwards = forwards;
+        list = l; rangestamp = list.underlying != null ? list.underlying.stamp : list.stamp;
+        start = s; count = c; forwards = b;
         if (count > 0)
         {
           startnode = list.get(start);

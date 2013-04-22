@@ -249,8 +249,6 @@ namespace RazorDBTests {
                 db.Truncate();
 
                 int num_items = 30000;
-                int multiple = 3;
-                int read_items = num_items * multiple;
 
                 byte[] split = BitConverter.GetBytes(num_items >> 2);
                 int number_we_should_scan = 0;
@@ -530,7 +528,6 @@ namespace RazorDBTests {
                 foreach (var pair in db.Enumerate()) {
                     try {
                         ByteArray k = new ByteArray(pair.Key);
-                        ByteArray v = new ByteArray(pair.Value);
                         Assert.True(lastKey.CompareTo(k) < 0);
                         lastKey = k;
                         ct++;
@@ -584,7 +581,6 @@ namespace RazorDBTests {
                 foreach (var pair in db.Enumerate()) {
                     try {
                         ByteArray k = new ByteArray(pair.Key);
-                        ByteArray v = new ByteArray(pair.Value);
                         Assert.True(lastKey.CompareTo(k) < 0);
                         lastKey = k;
                         ct++;
@@ -825,9 +821,6 @@ namespace RazorDBTests {
                 foreach (var pair in db.EnumerateFromKey( searchKey )) {
                     try {
                         int num = BitConverter.ToInt32(pair.Key.Reverse().ToArray(),0);
-                        ByteArray k = new ByteArray(pair.Key);
-                        ByteArray v = new ByteArray(pair.Value);
-
                         Assert.GreaterOrEqual(num, 50000);
                         sum += num;
                         Assert.Less(lastKeyNum, num);

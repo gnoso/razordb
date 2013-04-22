@@ -144,8 +144,8 @@ namespace RazorDB.C5
   {
     ICollectionValue<T> proxy, real;
 
-    internal ProxyEventBlock(ICollectionValue<T> proxy, ICollectionValue<T> real)
-    { proxy = proxy; real = real; }
+    internal ProxyEventBlock(ICollectionValue<T> p, ICollectionValue<T> r)
+    { proxy = p; real = r; }
 
     event CollectionChangedHandler<T> collectionChanged;
     CollectionChangedHandler<T> collectionChangedProxy;

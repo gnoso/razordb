@@ -484,8 +484,6 @@ namespace RazorDB {
         List<int> onDiskBlockSizes = new List<int>();
         List<int> onDiskCumulativeBlockSizes = new List<int>();
 
-        static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
-
         void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
             current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
             Array.Clear(current, 0, current.Length);

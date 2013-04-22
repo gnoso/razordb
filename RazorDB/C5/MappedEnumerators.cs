@@ -10,9 +10,9 @@ namespace RazorDB.C5
 
     abstract public V Map(T item);
 
-    public MappedDirectedCollectionValue(IDirectedCollectionValue<T> directedcollectionvalue)
+    public MappedDirectedCollectionValue(IDirectedCollectionValue<T> d)
     {
-      directedcollectionvalue = directedcollectionvalue;
+      directedcollectionvalue = d;
     }
 
     public override V Choose() { return Map(directedcollectionvalue.Choose()); }
@@ -58,9 +58,9 @@ namespace RazorDB.C5
 
     abstract public V Map(T item);
 
-    public MappedCollectionValue(ICollectionValue<T> collectionvalue)
+    public MappedCollectionValue(ICollectionValue<T> c)
     {
-      collectionvalue = collectionvalue;
+      collectionvalue = c;
     }
 
     public override V Choose() { return Map(collectionvalue.Choose()); }
@@ -96,9 +96,9 @@ namespace RazorDB.C5
 
     abstract public V Map(T item);
 
-    public MappedDirectedEnumerable(IDirectedEnumerable<T> directedenumerable)
+    public MappedDirectedEnumerable(IDirectedEnumerable<T> d)
     {
-      directedenumerable = directedenumerable;
+      directedenumerable = d;
     }
 
     public IDirectedEnumerable<V> Backwards()
