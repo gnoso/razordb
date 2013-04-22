@@ -10,9 +10,9 @@ namespace RazorDB {
 
     public struct PairInt {
         public int lengthA, lengthB;
-        public PairInt(int lengthA, int lengthB) {
-            lengthA = lengthA;
-            lengthB = lengthB;
+        public PairInt(int lA, int lB) {
+            lengthA = lA;
+            lengthB = lB;
         }
     }
 

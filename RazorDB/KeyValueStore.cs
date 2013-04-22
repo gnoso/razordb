@@ -41,8 +41,11 @@ namespace RazorDB {
         // For Table Manager 
         internal long ticksTillNextMerge = 0;
         internal object mergeLock = new object();
+		internal int mergeCount = 0;
 
         public Manifest Manifest { get { return _manifest; } }
+
+		public Action<int, IEnumerable<PageRecord>, IEnumerable<PageRecord>> MergeCallback { get; set; }
 
         internal RazorCache Cache { get { return _cache; } }
 
@@ -71,6 +74,28 @@ namespace RazorDB {
 
             Manifest.LogMessage("Database Truncated.");
         }
+
+		public IEnumerable<KeyValuePair<byte[], byte[]>> FindStartsWith(string indexName, byte[] lookupValue) {
+			
+			KeyValueStore indexStore = GetSecondaryIndex(indexName);
+			// Loop over the values
+			foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
+				var key = pair.Key;
+				var value = pair.Value;
+				// construct our index key pattern (lookupvalue | key)
+				if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+					if (key.Length >= (value.Length + lookupValue.Length)){
+						// Lookup the value of the actual object using the key that was found
+						var primaryValue = Get(value);
+						if (primaryValue != null)
+							yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
+					}
+				} else {
+					// if the above condition was not met then we must have enumerated past the end of the indexed value
+					yield break;
+				}
+			}
+		}
 
         public void Set(byte[] key, byte[] value) {
             Set(key, value, null);
@@ -121,6 +146,59 @@ namespace RazorDB {
                 indexStore.Delete(indexKey);
             }
         }
+
+		// List all the pages in the directory and delete those that are not in the manifest.
+		public void RemoveOrphanedPages() {
+			
+			using (var manifestInst = this.Manifest.GetLatestManifest()) {
+				
+				// find all the sbt files in the data directory
+				var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary( f => Path.GetFileNameWithoutExtension(f.ToLower()) );
+				for (int level = 0; level < manifestInst.NumLevels - 1; level++) {
+					
+					foreach (var page in manifestInst.GetPagesAtLevel(level)) {
+						
+						// Yes this is kind of backwards to add the file path and then strip it off, but I want to make sure we are using the exact same logic
+						// as that which creates the file names.
+						string fileForPage = Path.GetFileNameWithoutExtension( Config.SortedBlockTableFile(this.Manifest.BaseFileName, page.Level, page.Version) );
+						// Remove the page from the file list because it's in the manifest and we've accounted for it.
+						files.Remove(fileForPage);
+					}
+				}
+				
+				// Loop over the leftover files and handle them
+				foreach (var file in files.Keys) {
+					try {
+						var parts = file.Split('-');
+						int level = int.Parse(parts[0]);
+						int version = int.Parse(parts[1]);
+						
+						// First let's check the version number, we don't want to remove any new files that are being created while this is happening
+						if (level < manifestInst.NumLevels && version < manifestInst.CurrentVersion(level)) {
+							
+							string orphanedFile = Config.SortedBlockTableFile(Manifest.BaseFileName, level, version);
+							
+							// Delete the file.
+							File.Delete(orphanedFile);
+							
+							Manifest.LogMessage("Removing Orphaned Pages '{0}'", orphanedFile);
+						}
+					} catch {
+						// Best effort, here. If we fail, continue.
+					}
+				}
+				
+			}
+			
+			// Now process the indexes as well
+			Manifest.LogMessage("Removing Orphaned Index Pages");
+			
+			lock (_secondaryIndexes) {
+				foreach (var idx in _secondaryIndexes) {
+					idx.Value.RemoveOrphanedPages();
+				}
+			}
+		}
 
         public void CleanIndex(string indexName) {
             KeyValueStore indexStore = GetSecondaryIndex(indexName);

@@ -274,10 +274,10 @@ namespace RazorDB.C5
     // <exception cref="ViewDisposedException"> If check fails by this list being a disposed view.</exception>
     // <exception cref="CollectionModifiedException">If the list *has* beeen updated since that  time..</exception>
     // <param name="stamp">The stamp indicating the time.</param>
-    protected override void modifycheck(int stamp)
+    protected override void modifycheck(int s)
     {
       validitycheck();
-      if (stamp != stamp)
+      if (stamp != s)
         throw new CollectionModifiedException();
     }
 
@@ -530,12 +530,11 @@ namespace RazorDB.C5
     {
       public readonly HashedArrayList<T> view;
       public readonly int index;
-      public Position(HashedArrayList<T> view, bool left)
-      {
-        view = view;
+      public Position(HashedArrayList<T> v, bool left) {
+        view = v;
         index = left ? view.offset : view.offset + view.size - 1;
       }
-      public Position(int index) { index = index; view = null; }
+      public Position(int i) { index = i; view = null; }
     }
 
     //
@@ -970,7 +969,6 @@ namespace RazorDB.C5
     public virtual IList<T> FindAll(Fun<T, bool> filter)
     {
       validitycheck();
-      int stamp = stamp;
       HashedArrayList<T> res = new HashedArrayList<T>(itemequalityComparer);
       int j = 0, rescap = res.array.Length;
       for (int i = 0; i < size; i++)
@@ -1057,7 +1055,6 @@ namespace RazorDB.C5
 
     IList<V> map<V>(Fun<T, V> mapper, HashedArrayList<V> res)
     {
-      int stamp = stamp;
       if (size > 0)
         for (int i = 0; i < size; i++)
         {

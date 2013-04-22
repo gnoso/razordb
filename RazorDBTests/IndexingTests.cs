@@ -38,7 +38,6 @@ namespace RazorDBTests {
         public void AddObjectsAndLookup() {
 
             string path = Path.GetFullPath("TestData\\AddObjectsAndLookup");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -89,7 +88,6 @@ namespace RazorDBTests {
         public void FindStartsWith() {
 
             string path = Path.GetFullPath("TestData\\FindStartsWith");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();

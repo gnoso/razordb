@@ -1600,7 +1600,6 @@ namespace RazorDB.C5
     {
       if (size == 0)
         return retval;
-      int stamp = stamp;
       Node cursor = startsentinel.next;
       HashedLinkedList<V>.Node mcursor = retval.startsentinel;
 
@@ -3132,7 +3131,6 @@ namespace RazorDB.C5
     public IList<T> FindAll(Fun<T, bool> filter)
     {
       validitycheck();
-      int stamp = stamp;
       HashedLinkedList<T> retval = new HashedLinkedList<T>();
       Node cursor = startsentinel.next;
       Node mcursor = retval.startsentinel;

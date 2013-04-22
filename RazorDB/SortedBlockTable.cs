@@ -541,7 +541,6 @@ namespace RazorDB {
                 // This represents a block read from cache, nothing to do but return it...
                 return ablock.Buffer;
             } else {
-                var bytesRead = FileStream.EndRead(async);
                 ablock = (AsyncBlock)async.AsyncState;
                 byte[] returnVal = null;
                 switch (_fileFormat) {

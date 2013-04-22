@@ -154,12 +154,12 @@ namespace RazorDB.C5
     // <param name="capacity">The capacity</param>
     // <param name="comparer">The item comparer</param>
     // <param name="equalityComparer">The item equalityComparer (assumed compatible)</param>
-    public SortedArray(int capacity, SCG.IComparer<T> comparer, SCG.IEqualityComparer<T> equalityComparer)
+    public SortedArray(int capacity, SCG.IComparer<T> ic, SCG.IEqualityComparer<T> equalityComparer)
       : base(capacity, equalityComparer)
     {
       if (comparer == null)
         throw new NullReferenceException("Comparer cannot be null");
-      comparer = comparer;
+      comparer = ic;
     }
 
     #endregion

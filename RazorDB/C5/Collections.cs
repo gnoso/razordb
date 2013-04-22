@@ -366,9 +366,9 @@ namespace RazorDB.C5
       // 
       //
       // <param name="collection"></param>
-      public RaiseForRemoveAllHandler(CollectionValueBase<T> collection)
+      public RaiseForRemoveAllHandler(CollectionValueBase<T> c)
       {
-        collection = collection;
+        collection = c;
         mustFireRemoved = (collection.ActiveEvents & EventTypeEnum.Removed) != 0;
         MustFire = (collection.ActiveEvents & (EventTypeEnum.Removed | EventTypeEnum.Changed)) != 0;
       }
@@ -680,11 +680,11 @@ namespace RazorDB.C5
     // 
     //
     // <param name="itemequalityComparer"></param>
-    protected CollectionBase(SCG.IEqualityComparer<T> itemequalityComparer)
+    protected CollectionBase(SCG.IEqualityComparer<T> i)
     {
       if (itemequalityComparer == null)
         throw new NullReferenceException("Item EqualityComparer cannot be null.");
-      itemequalityComparer = itemequalityComparer;
+      itemequalityComparer = i;
     }
 
     #region Util
@@ -753,8 +753,6 @@ namespace RazorDB.C5
 			return (items.Count << 16) + h;
 #endif
     }
-
-    static Type isortedtype = typeof(ISorted<T>);
 
     //
     // Examine if collection1 and collection2 are equal as unsequenced collections
@@ -1381,12 +1379,11 @@ namespace RazorDB.C5
 
       ArrayBase<T> thebase;
 
-
-      internal Range(ArrayBase<T> thebase, int start, int count, bool forwards)
+      internal Range(ArrayBase<T> a, int s, int c, bool forwards)
       {
-        thebase = thebase; stamp = thebase.stamp;
+        thebase = a; stamp = thebase.stamp;
         delta = forwards ? 1 : -1;
-        start = start + thebase.offset; count = count;
+        start = s + thebase.offset; count = c;
       }
 
       //

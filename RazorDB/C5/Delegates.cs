@@ -4,7 +4,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Diagnostics;
 
-#pragma warning disable 1711
 namespace RazorDB.C5
 {
   //

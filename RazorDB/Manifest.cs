@@ -148,7 +148,7 @@ namespace RazorDB {
 
 
         // Read/Write manifest data
-        internal void WriteManifestContents(BinaryWriter writer) {
+        public void WriteManifestContents(BinaryWriter writer) {
             long startPos = writer.BaseStream.Position;
 
             writer.Write7BitEncodedInt(_versions.Length);
@@ -399,9 +399,7 @@ namespace RazorDB {
                 do {
                     var m = new ManifestImmutable(null);
                     m.ReadManifestContents(reader);
-                    yield return m;                    
-                    
-                    int size = reader.ReadInt32();
+                    yield return m;
                 } while (true);
             } finally {
                 reader.Close();

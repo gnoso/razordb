@@ -145,11 +145,11 @@ namespace RazorDB.C5
     // Create an entry comparer for a item comparer of the keys
     //
     // <param name="comparer">Comparer of keys</param>
-    public KeyValuePairComparer(SCG.IComparer<K> comparer)
+    public KeyValuePairComparer(SCG.IComparer<K> c)
     {
       if (comparer == null)
         throw new NullReferenceException();
-      comparer = comparer;
+      comparer = c;
     }
 
 
@@ -186,11 +186,11 @@ namespace RazorDB.C5
     // Create an entry equalityComparer from a specified item equalityComparer for the keys
     //
     // <param name="keyequalityComparer">The key equalityComparer</param>
-    public KeyValuePairEqualityComparer(SCG.IEqualityComparer<K> keyequalityComparer)
+    public KeyValuePairEqualityComparer(SCG.IEqualityComparer<K> k)
     {
       if (keyequalityComparer == null)
         throw new NullReferenceException("Key equality comparer cannot be null");
-      keyequalityComparer = keyequalityComparer;
+      keyequalityComparer = k;
     }
 
 
@@ -298,11 +298,11 @@ namespace RazorDB.C5
     // 
     //
     // <param name="keyequalityComparer"></param>
-    protected DictionaryBase(SCG.IEqualityComparer<K> keyequalityComparer)
+    protected DictionaryBase(SCG.IEqualityComparer<K> k)
     {
       if (keyequalityComparer == null)
         throw new NullReferenceException("Key equality comparer cannot be null");
-      keyequalityComparer = keyequalityComparer;
+      keyequalityComparer = k;
     }
 
     #region IDictionary<K,V> Members
