@@ -1848,23 +1848,16 @@ namespace RazorDB.C5
     // <returns></returns>
     public virtual bool TrySlide(int offset) { return TrySlide(offset, size); }
 
-    //
-    // 
-    //
-    // <param name="offset"></param>
-    // <param name="size"></param>
-    // <returns></returns>
-    public virtual bool TrySlide(int offset, int size)
+#pragma warning disable 472
+#pragma warning disable 162
+    public virtual bool TrySlide(int offset, int s)
     {
       updatecheck();
-      if (underlying == null)
-        throw new NotAViewException("List not a view");
-
-#pragma warning disable 472
-      if (offset == null) //Note: only possible with HASHINDEX
+      if (underlying == null) throw new NotAViewException("List not a view");
+			size = s;
+			offset += offset;
+      if (offset == null) {
 #pragma warning restore 472
-      {
-#pragma warning disable 162
         try
         {
           getPair(offset - 1, offset + size, out startsentinel, out endsentinel,
@@ -1886,8 +1879,6 @@ namespace RazorDB.C5
             new int[] { -oldoffset - 1, -1, size, underlying.size - oldoffset },
             new Node[] { underlying.startsentinel, startsentinel, endsentinel, underlying.endsentinel });
       }
-      size = size;
-      offset += offset;
       return true;
     }
 
