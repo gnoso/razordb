@@ -2,25 +2,13 @@
 .nuget/*
 Debug/*
 External/*
-NDependOut/*
 packages/*
 Release/*
-RazorView/bin/*
+*/obj/*
 */test-results/*
-test-results/*
 
 # Files
-*.pidb
+.DS_Store
+*.pdb
 *.suo
-*.typemock
-RazorDB.ndproj
-RazorDB/.DS_Store
-RazorDB/C5/.DS_Store
-RazorDBTests/.DS_Store
-RazorTest/.DS_Store
-RazorUtil/.DS_Store
-RazorView/.DS_Store
-RazorUtil/RazorUtil.csproj.user
-
-# Misc
-*/obj/*
+*.csproj.user
