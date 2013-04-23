@@ -1,18 +1,3 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,16 +17,16 @@ namespace RazorDB {
             _sizeLimit = sizeLimit;
             _sizer = sizer;
         }
-        private int _sizeLimit;
-        private int _currentSize;
+        int _sizeLimit;
+        int _currentSize;
         public int CurrentSize {
             get { return _currentSize; }
         }
-        private Func<T, int> _sizer;
+        Func<T, int> _sizer;
 
-        private Dictionary<string, CacheEntry<T>> _hash = new Dictionary<string, CacheEntry<T>>();
-        private LinkedList<CacheEntry<T>> _list = new LinkedList<CacheEntry<T>>();
-        private object _lock = new object();
+        Dictionary<string, CacheEntry<T>> _hash = new Dictionary<string, CacheEntry<T>>();
+        LinkedList<CacheEntry<T>> _list = new LinkedList<CacheEntry<T>>();
+        object _lock = new object();
 
         public bool TryGetValue(string key, out T value) {
             lock (_lock) {
@@ -75,7 +60,7 @@ namespace RazorDB {
             }
         }
 
-        private void CheckCacheSizeAndEvict() {
+        void CheckCacheSizeAndEvict() {
             while (_currentSize > _sizeLimit) {
 
                 var lastEntry = _list.Last;
@@ -94,20 +79,17 @@ namespace RazorDB {
     public class RazorCache {
 
         public RazorCache() {
-            _blockIndexCache = new Cache<Key[]>(Config.IndexCacheSize, index => index.Sum(ba => ba.Length));
+            _blockIndexCache = new Cache<KeyEx[]>(Config.IndexCacheSize, index => index.Sum(ba => ba.Length));
             _blockDataCache = new Cache<byte[]>(Config.DataBlockCacheSize, block => block.Length);
         }
 
-        private Cache<Key[]> _blockIndexCache;
-        private Cache<byte[]> _blockDataCache;
+        Cache<KeyEx[]> _blockIndexCache;
+        Cache<byte[]> _blockDataCache;
 
-        public int IndexCacheSize { get { return _blockIndexCache.CurrentSize; } }
-        public int DataCacheSize { get { return _blockDataCache.CurrentSize; } }
-
-        public Key[] GetBlockTableIndex(string baseName, int level, int version) {
+        public KeyEx[] GetBlockTableIndex(string baseName, int level, int version) {
 
             string fileName = Config.SortedBlockTableFile(baseName, level, version);
-            Key[] index;
+            KeyEx[] index;
 
             if (_blockIndexCache.TryGetValue(fileName, out index)) {
                 return index;

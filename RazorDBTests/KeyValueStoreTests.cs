@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using NUnit.Framework;
 using System.Text;
 using RazorDB;
@@ -264,8 +249,6 @@ namespace RazorDBTests {
                 db.Truncate();
 
                 int num_items = 30000;
-                int multiple = 3;
-                int read_items = num_items * multiple;
 
                 byte[] split = BitConverter.GetBytes(num_items >> 2);
                 int number_we_should_scan = 0;
@@ -545,7 +528,6 @@ namespace RazorDBTests {
                 foreach (var pair in db.Enumerate()) {
                     try {
                         ByteArray k = new ByteArray(pair.Key);
-                        ByteArray v = new ByteArray(pair.Value);
                         Assert.True(lastKey.CompareTo(k) < 0);
                         lastKey = k;
                         ct++;
@@ -599,7 +581,6 @@ namespace RazorDBTests {
                 foreach (var pair in db.Enumerate()) {
                     try {
                         ByteArray k = new ByteArray(pair.Key);
-                        ByteArray v = new ByteArray(pair.Value);
                         Assert.True(lastKey.CompareTo(k) < 0);
                         lastKey = k;
                         ct++;
@@ -840,9 +821,6 @@ namespace RazorDBTests {
                 foreach (var pair in db.EnumerateFromKey( searchKey )) {
                     try {
                         int num = BitConverter.ToInt32(pair.Key.Reverse().ToArray(),0);
-                        ByteArray k = new ByteArray(pair.Key);
-                        ByteArray v = new ByteArray(pair.Value);
-
                         Assert.GreaterOrEqual(num, 50000);
                         sum += num;
                         Assert.Less(lastKeyNum, num);

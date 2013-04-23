@@ -1,18 +1,3 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,20 +14,19 @@ namespace RazorDB {
             _writer = new BinaryWriter(new FileStream(_fileName, fileMode, FileAccess.Write, FileShare.None, 1024, false));
         }
 
-        private BinaryWriter _writer;
-        private string _fileName;
+        BinaryWriter _writer;
+        string _fileName;
 
-        private object _writeLock = new object();
+        object _writeLock = new object();
 
         // Add an item to the journal. It's possible that a thread is still Adding while another thread is Closing the journal.
         // in that case, we return false and expect the caller to do the operation over again on another journal instance.
-        public bool Add(Key key, Value value) {
+        public bool Add(KeyEx key, Value value) {
             lock (_writeLock) {
                 if (_writer == null)
                     return false;
                 else {
-                    _writer.Write7BitEncodedInt(key.Length);
-                    _writer.Write(key.InternalBytes);
+                    key.Write(_writer);
                     _writer.Write7BitEncodedInt(value.Length);
                     _writer.Write(value.InternalBytes);
                     _writer.Flush();
@@ -73,19 +57,16 @@ namespace RazorDB {
             _reader = new BinaryReader(new FileStream(_fileName, FileMode.Open, FileAccess.Read, FileShare.None, 1024, false));
         }
 
-        private BinaryReader _reader;
-        private string _fileName;
+        BinaryReader _reader;
+        string _fileName;
 
-        public IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
-            byte[] key = null;
+        public IEnumerable<KeyValuePair<KeyEx, Value>> Enumerate() {
             byte[] value = null;
             bool data = true;
+            KeyEx keyEx = KeyEx.Empty;
             while (data) {
                 try {
-                    int keyLen = _reader.Read7BitEncodedInt();
-                    key = _reader.ReadBytes(keyLen);
-                    if (key.Length != keyLen)
-                        throw new InvalidOperationException();
+                    keyEx = KeyEx.FromReader(_reader);
                     int valueLen = _reader.Read7BitEncodedInt();
                     value = _reader.ReadBytes(valueLen);
                     if (valueLen <= 0 || valueLen != value.Length)
@@ -95,17 +76,16 @@ namespace RazorDB {
                 } catch (InvalidOperationException) {
                     data = false;
                 }
-                if (data)
-                    yield return new KeyValuePair<Key, Value>(Key.FromBytes(key), Value.FromBytes(value));
+                if (data) {
+                    yield return new KeyValuePair<KeyEx, Value>(keyEx, Value.FromBytes(value));
+                }
             }
         }
-
+                
         public void Close() {
             if (_reader != null)
                 _reader.Close();
             _reader = null;
         }
-
     }
-
 }

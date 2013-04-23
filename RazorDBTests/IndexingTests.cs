@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -53,7 +38,6 @@ namespace RazorDBTests {
         public void AddObjectsAndLookup() {
 
             string path = Path.GetFullPath("TestData\\AddObjectsAndLookup");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -104,7 +88,6 @@ namespace RazorDBTests {
         public void FindStartsWith() {
 
             string path = Path.GetFullPath("TestData\\FindStartsWith");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
@@ -371,13 +354,10 @@ namespace RazorDBTests {
         public void LookupOldDataFromIndex() {
 
             string path = Path.GetFullPath("TestData\\LookupOldDataFromIndex");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
                 db.Manifest.Logger = msg => Console.WriteLine(msg);
-
-                var indexed = new SortedDictionary<string, byte[]> {  };
                 db.Set(Encoding.UTF8.GetBytes("KeyA"), Encoding.UTF8.GetBytes("ValueA:1"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("1") } });
                 db.Set(Encoding.UTF8.GetBytes("KeyB"), Encoding.UTF8.GetBytes("ValueB:2"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("2") } });
                 db.Set(Encoding.UTF8.GetBytes("KeyC"), Encoding.UTF8.GetBytes("ValueC:3"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("3") } });
@@ -406,13 +386,10 @@ namespace RazorDBTests {
         public void IndexClean() {
 
             string path = Path.GetFullPath("TestData\\IndexClean");
-            var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
                 db.Manifest.Logger = msg => Console.WriteLine(msg);
-
-                var indexed = new SortedDictionary<string, byte[]> { };
                 db.Set(Encoding.UTF8.GetBytes("KeyA"), Encoding.UTF8.GetBytes("ValueA:1"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("1") } });
                 db.Set(Encoding.UTF8.GetBytes("KeyB"), Encoding.UTF8.GetBytes("ValueB:2"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("2") } });
                 db.Set(Encoding.UTF8.GetBytes("KeyC"), Encoding.UTF8.GetBytes("ValueC:3"), new Dictionary<string, byte[]> { { "Idx", Encoding.UTF8.GetBytes("3") } });

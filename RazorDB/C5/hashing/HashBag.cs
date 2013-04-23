@@ -1,33 +1,12 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
 
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// A bag collection based on a hash table of (item,count) pairs. 
-  /// </summary>
+  //
+  // A bag collection based on a hash table of (item,count) pairs. 
+  //
   [Serializable]
   public class HashBag<T> : CollectionBase<T>, ICollection<T>
   {
@@ -36,36 +15,31 @@ namespace RazorDB.C5
     #endregion
 
     #region Events
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
     public override EventTypeEnum ListenableEvents { get { return EventTypeEnum.Basic; } }
 
     #endregion
 
     #region Constructors
-    /// <summary>
-    /// Create a hash bag with the deafult item equalityComparer.
-    /// </summary>
+    //
+    // Create a hash bag with the deafult item equalityComparer.
+    //
     public HashBag() : this(EqualityComparer<T>.Default) { }
 
-    /// <summary>
-    /// Create a hash bag with an external item equalityComparer.
-    /// </summary>
-    /// <param name="itemequalityComparer">The external item equalityComparer.</param>
+    //
+    // Create a hash bag with an external item equalityComparer.
+    //
+    // <param name="itemequalityComparer">The external item equalityComparer.</param>
     public HashBag(SCG.IEqualityComparer<T> itemequalityComparer)
       : base(itemequalityComparer)
     {
       dict = new HashSet<KeyValuePair<T, int>>(new KeyValuePairEqualityComparer<T, int>(itemequalityComparer));
     }
 
-    /// <summary>
-    /// Create a hash bag with external item equalityComparer, prescribed initial table size and default fill threshold (66%)
-    /// </summary>
-    /// <param name="capacity">Initial table size (rounded to power of 2, at least 16)</param>
-    /// <param name="itemequalityComparer">The external item equalityComparer</param>
+    //
+    // Create a hash bag with external item equalityComparer, prescribed initial table size and default fill threshold (66%)
+    //
+    // <param name="capacity">Initial table size (rounded to power of 2, at least 16)</param>
+    // <param name="itemequalityComparer">The external item equalityComparer</param>
     public HashBag(int capacity, SCG.IEqualityComparer<T> itemequalityComparer)
       : base(itemequalityComparer)
     {
@@ -73,12 +47,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Create a hash bag with external item equalityComparer, prescribed initial table size and fill threshold.
-    /// </summary>
-    /// <param name="capacity">Initial table size (rounded to power of 2, at least 16)</param>
-    /// <param name="fill">Fill threshold (valid range 10% to 90%)</param>
-    /// <param name="itemequalityComparer">The external item equalityComparer</param>
+    //
+    // Create a hash bag with external item equalityComparer, prescribed initial table size and fill threshold.
+    //
+    // <param name="capacity">Initial table size (rounded to power of 2, at least 16)</param>
+    // <param name="fill">Fill threshold (valid range 10% to 90%)</param>
+    // <param name="itemequalityComparer">The external item equalityComparer</param>
     public HashBag(int capacity, double fill, SCG.IEqualityComparer<T> itemequalityComparer)
       : base(itemequalityComparer)
     {
@@ -89,30 +63,30 @@ namespace RazorDB.C5
 
     #region IEditableCollection<T> Members
 
-    /// <summary>
-    /// The complexity of the Contains operation
-    /// </summary>
-    /// <value>Always returns Speed.Constant</value>
+    //
+    // The complexity of the Contains operation
+    //
+    // <value>Always returns Speed.Constant</value>
     [Tested]
     public virtual Speed ContainsSpeed { [Tested]get { return Speed.Constant; } }
 
-    /// <summary>
-    /// Check if an item is in the bag 
-    /// </summary>
-    /// <param name="item">The item to look for</param>
-    /// <returns>True if bag contains item</returns>
+    //
+    // Check if an item is in the bag 
+    //
+    // <param name="item">The item to look for</param>
+    // <returns>True if bag contains item</returns>
     [Tested]
     public virtual bool Contains(T item)
     { return dict.Contains(new KeyValuePair<T, int>(item, 0)); }
 
 
-    /// <summary>
-    /// Check if an item (collection equal to a given one) is in the bag and
-    /// if so report the actual item object found.
-    /// </summary>
-    /// <param name="item">On entry, the item to look for.
-    /// On exit the item found, if any</param>
-    /// <returns>True if bag contains item</returns>
+    //
+    // Check if an item (collection equal to a given one) is in the bag and
+    // if so report the actual item object found.
+    //
+    // <param name="item">On entry, the item to look for.
+    // On exit the item found, if any</param>
+    // <returns>True if bag contains item</returns>
     [Tested]
     public virtual bool Find(ref T item)
     {
@@ -128,23 +102,19 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if an item (collection equal to a given one) is in the bag and
-    /// if so replace the item object in the bag with the supplied one.
-    /// </summary>
-    /// <param name="item">The item object to update with</param>
-    /// <returns>True if item was found (and updated)</returns>
+    //
+    // Check if an item (collection equal to a given one) is in the bag and
+    // if so replace the item object in the bag with the supplied one.
+    //
+    // <param name="item">The item object to update with</param>
+    // <returns>True if item was found (and updated)</returns>
     [Tested]
     public virtual bool Update(T item)
     { T olditem = default(T); return Update(item, out olditem); }
 
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="olditem"></param>
-    /// <returns></returns>
+    // <param name="item"></param>
+    // <param name="olditem"></param>
+    // <returns></returns>
     public virtual bool Update(T item, out T olditem)
     {
       KeyValuePair<T, int> p = new KeyValuePair<T, int>(item, 0);
@@ -170,14 +140,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if an item (collection equal to a given one) is in the bag.
-    /// If found, report the actual item object in the bag,
-    /// else add the supplied one.
-    /// </summary>
-    /// <param name="item">On entry, the item to look for or add.
-    /// On exit the actual object found, if any.</param>
-    /// <returns>True if item was found</returns>
+    //
+    // Check if an item (collection equal to a given one) is in the bag.
+    // If found, report the actual item object in the bag,
+    // else add the supplied one.
+    //
+    // <param name="item">On entry, the item to look for or add.
+    // On exit the actual object found, if any.</param>
+    // <returns>True if item was found</returns>
     [Tested]
     public virtual bool FindOrAdd(ref T item)
     {
@@ -190,13 +160,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if an item (collection equal to a supplied one) is in the bag and
-    /// if so replace the item object in the set with the supplied one; else
-    /// add the supplied one.
-    /// </summary>
-    /// <param name="item">The item to look for and update or add</param>
-    /// <returns>True if item was updated</returns>
+    //
+    // Check if an item (collection equal to a supplied one) is in the bag and
+    // if so replace the item object in the set with the supplied one; else
+    // add the supplied one.
+    //
+    // <param name="item">The item to look for and update or add</param>
+    // <returns>True if item was updated</returns>
     [Tested]
     public virtual bool UpdateOrAdd(T item)
     {
@@ -208,12 +178,9 @@ namespace RazorDB.C5
       return false;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="olditem"></param>
-    /// <returns></returns>
+    // <param name="item"></param>
+    // <param name="olditem"></param>
+    // <returns></returns>
     public virtual bool UpdateOrAdd(T item, out T olditem)
     {
       updatecheck();
@@ -224,11 +191,11 @@ namespace RazorDB.C5
       return false;
     }
 
-    /// <summary>
-    /// Remove one copy af an item from the bag
-    /// </summary>
-    /// <param name="item">The item to remove</param>
-    /// <returns>True if item was (found and) removed </returns>
+    //
+    // Remove one copy af an item from the bag
+    //
+    // <param name="item">The item to remove</param>
+    // <returns>True if item was (found and) removed </returns>
     [Tested]
     public virtual bool Remove(T item)
     {
@@ -254,12 +221,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove one copy of an item from the bag, reporting the actual matching item object.
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
-    /// <param name="removeditem">The removed value.</param>
-    /// <returns>True if item was found.</returns>
+    //
+    // Remove one copy of an item from the bag, reporting the actual matching item object.
+    //
+    // <param name="item">The value to remove.</param>
+    // <param name="removeditem">The removed value.</param>
+    // <returns>True if item was found.</returns>
     [Tested]
     public virtual bool Remove(T item, out T removeditem)
     {
@@ -286,11 +253,11 @@ namespace RazorDB.C5
       return false;
     }
 
-    /// <summary>
-    /// Remove all items in a supplied collection from this bag, counting multiplicities.
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to remove.</param>
+    //
+    // Remove all items in a supplied collection from this bag, counting multiplicities.
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to remove.</param>
     [Tested]
     public virtual void RemoveAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -319,9 +286,9 @@ namespace RazorDB.C5
         raiseHandler.Raise();
     }
 
-    /// <summary>
-    /// Remove all items from the bag, resetting internal table to initial size.
-    /// </summary>
+    //
+    // Remove all items from the bag, resetting internal table to initial size.
+    //
     [Tested]
     public virtual void Clear()
     {
@@ -338,12 +305,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove all items *not* in a supplied collection from this bag,
-    /// counting multiplicities.
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to retain</param>
+    //
+    // Remove all items *not* in a supplied collection from this bag,
+    // counting multiplicities.
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to retain</param>
     [Tested]
     public virtual void RetainAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -400,13 +367,13 @@ namespace RazorDB.C5
         raiseCollectionChanged();
     }
 
-    /// <summary>
-    /// Check if all items in a supplied collection is in this bag
-    /// (counting multiplicities). 
-    /// </summary>
-    /// <param name="items">The items to look for.</param>
-    /// <typeparam name="U"></typeparam>
-    /// <returns>True if all items are found.</returns>
+    //
+    // Check if all items in a supplied collection is in this bag
+    // (counting multiplicities). 
+    //
+    // <param name="items">The items to look for.</param>
+    // <typeparam name="U"></typeparam>
+    // <returns>True if all items are found.</returns>
     [Tested]
     public virtual bool ContainsAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -422,10 +389,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Create an array containing all items in this bag (in enumeration order).
-    /// </summary>
-    /// <returns>The array</returns>
+    //
+    // Create an array containing all items in this bag (in enumeration order).
+    //
+    // <returns>The array</returns>
     [Tested]
     public override T[] ToArray()
     {
@@ -440,11 +407,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Count the number of times an item is in this set.
-    /// </summary>
-    /// <param name="item">The item to look for.</param>
-    /// <returns>The count</returns>
+    //
+    // Count the number of times an item is in this set.
+    //
+    // <param name="item">The item to look for.</param>
+    // <returns>The count</returns>
     [Tested]
     public virtual int ContainsCount(T item)
     {
@@ -456,25 +423,17 @@ namespace RazorDB.C5
       return 0;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public virtual ICollectionValue<T> UniqueItems() { return new DropMultiplicity<T>(dict); }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public virtual ICollectionValue<KeyValuePair<T, int>> ItemMultiplicities()
     {
       return new GuardedCollectionValue<KeyValuePair<T, int>>(dict);
     }
 
-    /// <summary>
-    /// Remove all copies of item from this set.
-    /// </summary>
-    /// <param name="item">The item to remove</param>
+    //
+    // Remove all copies of item from this set.
+    //
+    // <param name="item">The item to remove</param>
     [Tested]
     public virtual void RemoveAllCopies(T item)
     {
@@ -498,13 +457,13 @@ namespace RazorDB.C5
     #region ICollection<T> Members
 
 
-    /// <summary>
-    /// Copy the items of this bag to part of an array.
-    /// <exception cref="ArgumentOutOfRangeException"/> if i is negative.
-    /// <exception cref="ArgumentException"/> if the array does not have room for the items.
-    /// </summary>
-    /// <param name="array">The array to copy to</param>
-    /// <param name="index">The starting index.</param>
+    //
+    // Copy the items of this bag to part of an array.
+    // <exception cref="ArgumentOutOfRangeException"/> if i is negative.
+    // <exception cref="ArgumentException"/> if the array does not have room for the items.
+    //
+    // <param name="array">The array to copy to</param>
+    // <param name="index">The starting index.</param>
     [Tested]
     public override void CopyTo(T[] array, int index)
     {
@@ -520,25 +479,25 @@ namespace RazorDB.C5
 
     #region IExtensible<T> Members
 
-    /// <summary>
-    /// Report if this is a set collection.
-    /// </summary>
-    /// <value>Always true</value>
+    //
+    // Report if this is a set collection.
+    //
+    // <value>Always true</value>
     [Tested]
     public virtual bool AllowsDuplicates { [Tested] get { return true; } }
 
-    /// <summary>
-    /// By convention this is true for any collection with set semantics.
-    /// </summary>
-    /// <value>True if only one representative of a group of equal items 
-    /// is kept in the collection together with the total count.</value>
+    //
+    // By convention this is true for any collection with set semantics.
+    //
+    // <value>True if only one representative of a group of equal items 
+    // is kept in the collection together with the total count.</value>
     public virtual bool DuplicatesByCounting { get { return true; } }
 
-    /// <summary>
-    /// Add an item to this bag.
-    /// </summary>
-    /// <param name="item">The item to add.</param>
-    /// <returns>Always true</returns>
+    //
+    // Add an item to this bag.
+    //
+    // <param name="item">The item to add.</param>
+    // <returns>Always true</returns>
     [Tested]
     public virtual bool Add(T item)
     {
@@ -549,17 +508,17 @@ namespace RazorDB.C5
       return true;
     }
 
-    /// <summary>
-    /// Add an item to this bag.
-    /// </summary>
-    /// <param name="item">The item to add.</param>
+    //
+    // Add an item to this bag.
+    //
+    // <param name="item">The item to add.</param>
     [Tested]
     void SCG.ICollection<T>.Add(T item)
     {
         Add(item);
     }
 
-    private void add(ref T item)
+    void add(ref T item)
     {
       KeyValuePair<T, int> p = new KeyValuePair<T, int>(item, 1);
       if (dict.Find(ref p))
@@ -573,12 +532,12 @@ namespace RazorDB.C5
       size++;
     }
 
-    /// <summary>
-    /// Add the elements from another collection with a more specialized item type 
-    /// to this collection. 
-    /// </summary>
-    /// <typeparam name="U">The type of items to add</typeparam>
-    /// <param name="items">The items to add</param>
+    //
+    // Add the elements from another collection with a more specialized item type 
+    // to this collection. 
+    //
+    // <typeparam name="U">The type of items to add</typeparam>
+    // <param name="items">The items to add</param>
     public virtual void AddAll<U>(SCG.IEnumerable<U> items) where U : T
     {
       updatecheck();
@@ -607,21 +566,20 @@ namespace RazorDB.C5
 
     #region IEnumerable<T> Members
 
-
-    /// <summary>
-    /// Choose some item of this collection. 
-    /// </summary>
-    /// <exception cref="NoSuchItemException">if collection is empty.</exception>
-    /// <returns></returns>
+    //
+    // Choose some item of this collection. 
+    //
+    // <exception cref="NoSuchItemException">if collection is empty.</exception>
+    // <returns></returns>
     public override T Choose()
     {
       return dict.Choose().Key;
     }
 
-    /// <summary>
-    /// Create an enumerator for this bag.
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for this bag.
+    //
+    // <returns>The enumerator</returns>
     [Tested]
     public override SCG.IEnumerator<T> GetEnumerator()
     {
@@ -645,10 +603,10 @@ namespace RazorDB.C5
 
     #region ICloneable Members
 
-    /// <summary>
-    /// Make a shallow copy of this HashBag.
-    /// </summary>
-    /// <returns></returns>
+    //
+    // Make a shallow copy of this HashBag.
+    //
+    // <returns></returns>
     public virtual object Clone()
     {
       //TODO: make sure this 
@@ -662,10 +620,10 @@ namespace RazorDB.C5
 
 
     #region Diagnostics
-    /// <summary>
-    /// Test internal structure of data (invariants)
-    /// </summary>
-    /// <returns>True if pass</returns>
+    //
+    // Test internal structure of data (invariants)
+    //
+    // <returns>True if pass</returns>
     [Tested]
     public virtual bool Check()
     {

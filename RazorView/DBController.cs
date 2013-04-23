@@ -26,15 +26,15 @@ namespace RazorView {
             value = pair.Value;
             _viz = viz;
         }
-        private IDataViz _viz;
+        IDataViz _viz;
 
         public int Index { get; set; }
 
-        private byte[] key;
+        byte[] key;
         public string Key {
             get { return _viz.TransformKey(key); }
         }
-        private byte[] value;
+        byte[] value;
         public string Value {
             get { return _viz.TransformValue(value); }
         }
@@ -57,8 +57,8 @@ namespace RazorView {
                 _viz = new ByteViz();
         }
 
-        private KeyValueStore _db;
-        private IDataViz _viz;
+        KeyValueStore _db;
+        IDataViz _viz;
 
         public IEnumerable<Record> GetRecords(string keyFilter, string valueFilter) {
             int index = 0;

@@ -1,19 +1,4 @@
-﻿/* 
-Copyright 2012 Gnoso Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -99,14 +84,14 @@ namespace RazorDBTests {
             for (int i = 0; i < num_tables_to_merge; i++) {
                 var mt = new MemTable();
                 for (int j=0; j < items_per_table; j++) {
-                    var randKey = Key.Random(40);
+                    var randKey = KeyEx.Random(40);
                     var randVal = Value.Random(512);
                     mt.Add(randKey, randVal);
                 }
                 mt.WriteToSortedBlockTable("TestData\\LevelMergeReadTest", 0, i);
                 totalData += mt.Size;
             }
-            var tables = new List<IEnumerable<KeyValuePair<Key, Value>>>();
+            var tables = new List<IEnumerable<KeyValuePair<KeyEx, Value>>>();
             var sbts = new List<SortedBlockTable>();
             var cache = new RazorCache();
             for (int j=0; j < num_tables_to_merge; j++) {
@@ -116,7 +101,7 @@ namespace RazorDBTests {
             }
 
             int ct = 0;
-            Key key = Key.FromBytes(new byte[]{0,0});
+            KeyEx key = KeyEx.FromBytes(new byte[] { 0, 0 });
             var timer = new Stopwatch();
             timer.Start();
             foreach (var pair in MergeEnumerator.Merge(tables, p => p.Key)) {
@@ -127,6 +112,8 @@ namespace RazorDBTests {
             timer.Stop();
 
             sbts.ForEach(s => s.Close());
+
+            SortedBlockTable.CloseFileManager("TestData\\LevelMergeReadTest");
 
             Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
         }
@@ -144,7 +131,7 @@ namespace RazorDBTests {
             for (int i = 0; i < num_tables_to_merge; i++) {
                 var mt = new MemTable();
                 for (int j = 0; j < items_per_table; j++) {
-                    var randKey = Key.Random(40);
+                    var randKey = KeyEx.Random(40);
                     var randVal = Value.Random(512);
                     mt.Add(randKey, randVal);
                 }
@@ -154,10 +141,10 @@ namespace RazorDBTests {
 
             var cache = new RazorCache();
             int ct = 0;
-            Key key = new Key(new ByteArray(new byte[] { 0 }));
+            KeyEx key = new KeyEx(new ByteArray(new byte[] { 0 }));
             var timer = new Stopwatch();
             timer.Start();
-            foreach (var pair in SortedBlockTable.EnumerateMergedTablesPreCached(cache, "TestData\\LevelMergeReadTest2", 
+            foreach (var pair in SortedBlockTable.EnumerateMergedTables(cache, "TestData\\LevelMergeReadTest2", 
                 new List<PageRef>{
                                                               new PageRef { Level = 0, Version = 0},
                                                               new PageRef { Level = 0, Version = 1},
@@ -171,6 +158,7 @@ namespace RazorDBTests {
             timer.Stop();
 
             Console.WriteLine("Scanned through a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+            SortedBlockTable.CloseFileManager("TestData\\LevelMergeReadTest2");
         }
 
         [Test]
@@ -186,7 +174,7 @@ namespace RazorDBTests {
             for (int i = 0; i < num_tables_to_merge; i++) {
                 var mt = new MemTable();
                 for (int j = 0; j < items_per_table; j++) {
-                    var randKey = Key.Random(40);
+                    var randKey = KeyEx.Random(40);
                     var randVal = Value.Random(512);
                     mt.Add(randKey, randVal);
                 }
@@ -194,21 +182,13 @@ namespace RazorDBTests {
                 totalData += mt.Size;
             }
 
-            var cache = new RazorCache();
-            ByteArray key = new ByteArray(new byte[] { 0 });
             var timer = new Stopwatch();
             timer.Start();
-
-            Manifest mf = new Manifest("TestData\\LevelMergeOutputTest");
-            var outputTables = SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
-                                                                                                new PageRef { Level = 0, Version = 0},
-                                                                                                new PageRef { Level = 0, Version = 1},
-                                                                                                new PageRef { Level = 0, Version = 2},
-                                                                                                new PageRef { Level = 0, Version = 3}
-                                                                                            });
             timer.Stop();
 
             Console.WriteLine("Wrote a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+            SortedBlockTable.CloseFileManager("TestData\\LevelMergeOutputTest");
         }
 
         [Test]
@@ -228,7 +208,7 @@ namespace RazorDBTests {
                 var mt = new MemTable();
                 for (int j = 0; j < items_per_table; j++) {
                     int numToStore = j % 100;
-                    var key = new Key(new ByteArray(BitConverter.GetBytes(numToStore)));
+                    var key = new KeyEx(new ByteArray(BitConverter.GetBytes(numToStore)));
                     var value = new Value(BitConverter.GetBytes(j));
                     mt.Add(key, value);
                 }
@@ -241,12 +221,6 @@ namespace RazorDBTests {
             timer.Start();
 
             Manifest mf = new Manifest("TestData\\LevelMergeDuplicateValuesTest");
-            var outputTables = SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
-                                                                                                new PageRef { Level = 0, Version = 0},
-                                                                                                new PageRef { Level = 0, Version = 1},
-                                                                                                new PageRef { Level = 0, Version = 2},
-                                                                                                new PageRef { Level = 0, Version = 3}
-                                                                                            });
             timer.Stop();
 
             // Open the block table and scan it to check the stored values
@@ -260,6 +234,8 @@ namespace RazorDBTests {
             }
 
             Console.WriteLine("Wrote a multilevel merge with duplicates at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+
+            SortedBlockTable.CloseFileManager("TestData\\LevelMergeDuplicateValuesTest");
         }
 
     }

@@ -1,45 +1,25 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
+
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// A collection class implementing a sorted dynamic array data structure.
-  /// </summary>
+  //
+  // A collection class implementing a sorted dynamic array data structure.
+  //
   [Serializable]
   public class SortedArray<T> : ArrayBase<T>, IIndexedSorted<T>
   {
     #region Features
-    /// <summary>
-    /// A debugging artifact. To be removed.
-    /// </summary>
+    //
+    // A debugging artifact. To be removed.
+    //
     [Flags]
     public enum Feature : short
     {
-      /// <summary>
-      /// A debugging artifact. To be removed.
-      /// </summary>
+      //
+      // A debugging artifact. To be removed.
+      //
       Standard = 0
     }
 
@@ -47,20 +27,20 @@ namespace RazorDB.C5
     static Feature features = Feature.Standard;
 
 
-    /// <summary>
-    /// A debugging artifact. To be removed.
-    /// </summary>
-    /// <value></value>
+    //
+    // A debugging artifact. To be removed.
+    //
+    // <value></value>
     public static Feature Features { get { return features; } }
 
     #endregion
 
     #region Events
 
-    /// <summary>
-    ///
-    /// </summary>
-    /// <value></value>
+    //
+    //
+    //
+    // <value></value>
     public override EventTypeEnum ListenableEvents { get { return EventTypeEnum.Basic; } }
 
     #endregion
@@ -72,13 +52,13 @@ namespace RazorDB.C5
     #endregion
 
     #region Util
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item">The item to search for</param>
-    /// <param name="mid">The least index, mid, for which array[mid] >= item</param>
-    /// <returns>True if item found</returns>
-    private bool binarySearch(T item, out int mid)
+    //
+    // 
+    //
+    // <param name="item">The item to search for</param>
+    // <param name="mid">The least index, mid, for which array[mid] >= item</param>
+    // <returns>True if item found</returns>
+    bool binarySearch(T item, out int mid)
     {
       int bot = 0, top = size;
 
@@ -101,7 +81,7 @@ namespace RazorDB.C5
       return false;
     }
 
-    private int indexOf(T item)
+    int indexOf(T item)
     {
       int ind;
 
@@ -115,82 +95,82 @@ namespace RazorDB.C5
 
     #region Constructors
 
-    /// <summary>
-    /// Create a dynamic sorted array with a natural comparer
-    /// (and item equalityComparer,  assumed compatible)
-    /// </summary>
-    /// <exception cref="NotComparableException">If <code>T</code> is not comparable.
-    /// </exception>
+    //
+    // Create a dynamic sorted array with a natural comparer
+    // (and item equalityComparer,  assumed compatible)
+    //
+    // <exception cref="NotComparableException">If <code>T</code> is not comparable.
+    // </exception>
     public SortedArray() : this(8) { }
 
 
-    /// <summary>
-    /// Create a dynamic sorted array with a natural comparer 
-    /// (and item equalityComparer,  assumed compatible)
-    /// and prescribed initial capacity.
-    /// </summary>
-    /// <exception cref="NotComparableException">If <code>T</code> is not comparable.
-    /// </exception>
-    /// <param name="capacity">The capacity</param>
+    //
+    // Create a dynamic sorted array with a natural comparer 
+    // (and item equalityComparer,  assumed compatible)
+    // and prescribed initial capacity.
+    //
+    // <exception cref="NotComparableException">If <code>T</code> is not comparable.
+    // </exception>
+    // <param name="capacity">The capacity</param>
     public SortedArray(int capacity)
       : this(capacity, Comparer<T>.Default, EqualityComparer<T>.Default) { }
 
 
-    /// <summary>
-    /// Create a dynamic sorted array with an external comparer.
-    /// <para>The itemequalityComparer will be compatible 
-    /// <see cref="T:C5.ComparerZeroHashCodeEqualityComparer`1"/> since the 
-    /// default equalityComparer for T (<see cref="P:C5.EqualityComparer`1.Default"/>)
-    /// is unlikely to be compatible with the external comparer. This makes the
-    /// array inadequate for use as item in a collection of unsequenced or sequenced sets or bags
-    /// (<see cref="T:C5.ICollection`1"/> and <see cref="T:C5.ISequenced`1"/>)
-    /// </para>
-    /// </summary>
-    /// <param name="comparer">The comparer</param>
+    //
+    // Create a dynamic sorted array with an external comparer.
+    // <para>The itemequalityComparer will be compatible 
+    // <see cref="T:C5.ComparerZeroHashCodeEqualityComparer`1"/> since the 
+    // default equalityComparer for T (<see cref="P:C5.EqualityComparer`1.Default"/>)
+    // is unlikely to be compatible with the external comparer. This makes the
+    // array inadequate for use as item in a collection of unsequenced or sequenced sets or bags
+    // (<see cref="T:C5.ICollection`1"/> and <see cref="T:C5.ISequenced`1"/>)
+    // </para>
+    //
+    // <param name="comparer">The comparer</param>
     public SortedArray(SCG.IComparer<T> comparer)
       : this(8, comparer) { }
 
-    /// <summary>
-    /// Create a dynamic sorted array with an external comparer
-    /// and prescribed initial capacity.
-    /// <para>The itemequalityComparer will be a compatible 
-    /// <see cref="T:C5.ComparerZeroHashCodeEqualityComparer`1"/> since the 
-    /// default equalityComparer for T (<see cref="P:C5.EqualityComparer`1.Default"/>)
-    /// is unlikely to be compatible with the external comparer. This makes the
-    /// sorted array inadequate for use as item in a collection of unsequenced or sequenced sets or bags
-    /// (<see cref="T:C5.ICollection`1"/> and <see cref="T:C5.ISequenced`1"/>)
-    /// </para>
-    /// </summary>
-    /// <param name="capacity">The capacity</param>
-    /// <param name="comparer">The comparer</param>
+    //
+    // Create a dynamic sorted array with an external comparer
+    // and prescribed initial capacity.
+    // <para>The itemequalityComparer will be a compatible 
+    // <see cref="T:C5.ComparerZeroHashCodeEqualityComparer`1"/> since the 
+    // default equalityComparer for T (<see cref="P:C5.EqualityComparer`1.Default"/>)
+    // is unlikely to be compatible with the external comparer. This makes the
+    // sorted array inadequate for use as item in a collection of unsequenced or sequenced sets or bags
+    // (<see cref="T:C5.ICollection`1"/> and <see cref="T:C5.ISequenced`1"/>)
+    // </para>
+    //
+    // <param name="capacity">The capacity</param>
+    // <param name="comparer">The comparer</param>
     public SortedArray(int capacity, SCG.IComparer<T> comparer)
       : this(capacity, comparer, new ComparerZeroHashCodeEqualityComparer<T>(comparer)) { }
 
-    /// <summary>
-    /// Create a dynamic sorted array with an external comparer, an external item equalityComparer
-    /// and prescribed initial capacity. This is the constructor to use if the collection 
-    /// will be used as item in a hash table based collection.
-    /// </summary>
-    /// <param name="capacity">The capacity</param>
-    /// <param name="comparer">The item comparer</param>
-    /// <param name="equalityComparer">The item equalityComparer (assumed compatible)</param>
-    public SortedArray(int capacity, SCG.IComparer<T> comparer, SCG.IEqualityComparer<T> equalityComparer)
+    //
+    // Create a dynamic sorted array with an external comparer, an external item equalityComparer
+    // and prescribed initial capacity. This is the constructor to use if the collection 
+    // will be used as item in a hash table based collection.
+    //
+    // <param name="capacity">The capacity</param>
+    // <param name="comparer">The item comparer</param>
+    // <param name="equalityComparer">The item equalityComparer (assumed compatible)</param>
+    public SortedArray(int capacity, SCG.IComparer<T> ic, SCG.IEqualityComparer<T> equalityComparer)
       : base(capacity, equalityComparer)
     {
       if (comparer == null)
         throw new NullReferenceException("Comparer cannot be null");
-      this.comparer = comparer;
+      comparer = ic;
     }
 
     #endregion
 
     #region IIndexedSorted<T> Members
 
-    /// <summary>
-    /// Determine the number of items at or above a supplied threshold.
-    /// </summary>
-    /// <param name="bot">The lower bound (inclusive)</param>
-    /// <returns>The number of matcing items.</returns>
+    //
+    // Determine the number of items at or above a supplied threshold.
+    //
+    // <param name="bot">The lower bound (inclusive)</param>
+    // <returns>The number of matcing items.</returns>
     [Tested]
     public int CountFrom(T bot)
     {
@@ -201,12 +181,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Determine the number of items between two supplied thresholds.
-    /// </summary>
-    /// <param name="bot">The lower bound (inclusive)</param>
-    /// <param name="top">The upper bound (exclusive)</param>
-    /// <returns>The number of matcing items.</returns>
+    //
+    // Determine the number of items between two supplied thresholds.
+    //
+    // <param name="bot">The lower bound (inclusive)</param>
+    // <param name="top">The upper bound (exclusive)</param>
+    // <returns>The number of matcing items.</returns>
     [Tested]
     public int CountFromTo(T bot, T top)
     {
@@ -218,11 +198,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Determine the number of items below a supplied threshold.
-    /// </summary>
-    /// <param name="top">The upper bound (exclusive)</param>
-    /// <returns>The number of matcing items.</returns>
+    //
+    // Determine the number of items below a supplied threshold.
+    //
+    // <param name="top">The upper bound (exclusive)</param>
+    // <returns>The number of matcing items.</returns>
     [Tested]
     public int CountTo(T top)
     {
@@ -233,11 +213,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Query this sorted collection for items greater than or equal to a supplied value.
-    /// </summary>
-    /// <param name="bot">The lower bound (inclusive).</param>
-    /// <returns>The result directed collection.</returns>
+    //
+    // Query this sorted collection for items greater than or equal to a supplied value.
+    //
+    // <param name="bot">The lower bound (inclusive).</param>
+    // <returns>The result directed collection.</returns>
     [Tested]
     public IDirectedCollectionValue<T> RangeFrom(T bot)
     {
@@ -248,12 +228,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Query this sorted collection for items between two supplied values.
-    /// </summary>
-    /// <param name="bot">The lower bound (inclusive).</param>
-    /// <param name="top">The upper bound (exclusive).</param>
-    /// <returns>The result directed collection.</returns>
+    //
+    // Query this sorted collection for items between two supplied values.
+    //
+    // <param name="bot">The lower bound (inclusive).</param>
+    // <param name="top">The upper bound (exclusive).</param>
+    // <returns>The result directed collection.</returns>
     [Tested]
     public IDirectedCollectionValue<T> RangeFromTo(T bot, T top)
     {
@@ -268,11 +248,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Query this sorted collection for items less than a supplied value.
-    /// </summary>
-    /// <param name="top">The upper bound (exclusive).</param>
-    /// <returns>The result directed collection.</returns>
+    //
+    // Query this sorted collection for items less than a supplied value.
+    //
+    // <param name="top">The upper bound (exclusive).</param>
+    // <returns>The result directed collection.</returns>
     [Tested]
     public IDirectedCollectionValue<T> RangeTo(T top)
     {
@@ -283,12 +263,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Create a new indexed sorted collection consisting of the items of this
-    /// indexed sorted collection satisfying a certain predicate.
-    /// </summary>
-    /// <param name="f">The filter delegate defining the predicate.</param>
-    /// <returns>The new indexed sorted collection.</returns>
+    //
+    // Create a new indexed sorted collection consisting of the items of this
+    // indexed sorted collection satisfying a certain predicate.
+    //
+    // <param name="f">The filter delegate defining the predicate.</param>
+    // <returns>The new indexed sorted collection.</returns>
     [Tested]
     public IIndexedSorted<T> FindAll(Fun<T, bool> f)
     {
@@ -312,16 +292,16 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Create a new indexed sorted collection consisting of the results of
-    /// mapping all items of this list.
-    /// <exception cref="ArgumentException"/> if the map is not increasing over 
-    /// the items of this collection (with respect to the two given comparison 
-    /// relations).
-    /// </summary>
-    /// <param name="m">The delegate definging the map.</param>
-    /// <param name="c">The comparion relation to use for the result.</param>
-    /// <returns>The new sorted collection.</returns>
+    //
+    // Create a new indexed sorted collection consisting of the results of
+    // mapping all items of this list.
+    // <exception cref="ArgumentException"/> if the map is not increasing over 
+    // the items of this collection (with respect to the two given comparison 
+    // relations).
+    //
+    // <param name="m">The delegate definging the map.</param>
+    // <param name="c">The comparion relation to use for the result.</param>
+    // <returns>The new sorted collection.</returns>
     [Tested]
     public IIndexedSorted<V> Map<V>(Fun<T, V> m, SCG.IComparer<V> c)
     {
@@ -348,13 +328,13 @@ namespace RazorDB.C5
 
     #region ISorted<T> Members
 
-    /// <summary>
-    /// Find the strict predecessor of item in the sorted array,
-    /// that is, the greatest item in the collection smaller than the item.
-    /// </summary>
-    /// <param name="item">The item to find the predecessor for.</param>
-    /// <param name="res">The predecessor, if any; otherwise the default value for T.</param>
-    /// <returns>True if item has a predecessor; otherwise false.</returns>
+    //
+    // Find the strict predecessor of item in the sorted array,
+    // that is, the greatest item in the collection smaller than the item.
+    //
+    // <param name="item">The item to find the predecessor for.</param>
+    // <param name="res">The predecessor, if any; otherwise the default value for T.</param>
+    // <returns>True if item has a predecessor; otherwise false.</returns>
     public bool TryPredecessor(T item, out T res)
     {
         int lo;
@@ -372,13 +352,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find the strict successor of item in the sorted array,
-    /// that is, the least item in the collection greater than the supplied value.
-    /// </summary>
-    /// <param name="item">The item to find the successor for.</param>
-    /// <param name="res">The successor, if any; otherwise the default value for T.</param>
-    /// <returns>True if item has a successor; otherwise false.</returns>
+    //
+    // Find the strict successor of item in the sorted array,
+    // that is, the least item in the collection greater than the supplied value.
+    //
+    // <param name="item">The item to find the successor for.</param>
+    // <param name="res">The successor, if any; otherwise the default value for T.</param>
+    // <returns>True if item has a successor; otherwise false.</returns>
     public bool TrySuccessor(T item, out T res)
     {
         int hi;
@@ -395,13 +375,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find the weak predecessor of item in the sorted array,
-    /// that is, the greatest item in the collection smaller than or equal to the item.
-    /// </summary>
-    /// <param name="item">The item to find the weak predecessor for.</param>
-    /// <param name="res">The weak predecessor, if any; otherwise the default value for T.</param>
-    /// <returns>True if item has a weak predecessor; otherwise false.</returns>
+    //
+    // Find the weak predecessor of item in the sorted array,
+    // that is, the greatest item in the collection smaller than or equal to the item.
+    //
+    // <param name="item">The item to find the weak predecessor for.</param>
+    // <param name="res">The weak predecessor, if any; otherwise the default value for T.</param>
+    // <returns>True if item has a weak predecessor; otherwise false.</returns>
     public bool TryWeakPredecessor(T item, out T res)
     {
         int lo;
@@ -422,13 +402,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find the weak successor of item in the sorted array,
-    /// that is, the least item in the collection greater than or equal to the supplied value.
-    /// </summary>
-    /// <param name="item">The item to find the weak successor for.</param>
-    /// <param name="res">The weak successor, if any; otherwise the default value for T.</param>
-    /// <returns>True if item has a weak successor; otherwise false.</returns>
+    //
+    // Find the weak successor of item in the sorted array,
+    // that is, the least item in the collection greater than or equal to the supplied value.
+    //
+    // <param name="item">The item to find the weak successor for.</param>
+    // <param name="res">The weak successor, if any; otherwise the default value for T.</param>
+    // <returns>True if item has a weak successor; otherwise false.</returns>
     public bool TryWeakSuccessor(T item, out T res)
     {
         int hi;
@@ -447,14 +427,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find the strict predecessor in the sorted collection of a particular value,
-    /// i.e. the largest item in the collection less than the supplied value.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if no such element exists (the
-    /// supplied  value is less than or equal to the minimum of this collection.)</exception>
-    /// <param name="item">The item to find the predecessor for.</param>
-    /// <returns>The predecessor.</returns>
+    //
+    // Find the strict predecessor in the sorted collection of a particular value,
+    // i.e. the largest item in the collection less than the supplied value.
+    //
+    // <exception cref="NoSuchItemException"> if no such element exists (the
+    // supplied  value is less than or equal to the minimum of this collection.)</exception>
+    // <param name="item">The item to find the predecessor for.</param>
+    // <returns>The predecessor.</returns>
     [Tested]
     public T Predecessor(T item)
     {
@@ -468,14 +448,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find the strict successor in the sorted collection of a particular value,
-    /// i.e. the least item in the collection greater than the supplied value.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if no such element exists (the
-    /// supplied  value is greater than or equal to the maximum of this collection.)</exception>
-    /// <param name="item">The item to find the successor for.</param>
-    /// <returns>The successor.</returns>
+    //
+    // Find the strict successor in the sorted collection of a particular value,
+    // i.e. the least item in the collection greater than the supplied value.
+    //
+    // <exception cref="NoSuchItemException"> if no such element exists (the
+    // supplied  value is greater than or equal to the maximum of this collection.)</exception>
+    // <param name="item">The item to find the successor for.</param>
+    // <returns>The successor.</returns>
     [Tested]
     public T Successor(T item)
     {
@@ -490,14 +470,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find the weak predecessor in the sorted collection of a particular value,
-    /// i.e. the largest item in the collection less than or equal to the supplied value.
-    /// <exception cref="NoSuchItemException"/> if no such element exists (the
-    /// supplied  value is less than the minimum of this collection.)
-    /// </summary>
-    /// <param name="item">The item to find the weak predecessor for.</param>
-    /// <returns>The weak predecessor.</returns>
+    //
+    // Find the weak predecessor in the sorted collection of a particular value,
+    // i.e. the largest item in the collection less than or equal to the supplied value.
+    // <exception cref="NoSuchItemException"/> if no such element exists (the
+    // supplied  value is less than the minimum of this collection.)
+    //
+    // <param name="item">The item to find the weak predecessor for.</param>
+    // <returns>The weak predecessor.</returns>
     [Tested]
     public T WeakPredecessor(T item)
     {
@@ -512,14 +492,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find the weak successor in the sorted collection of a particular value,
-    /// i.e. the least item in the collection greater than or equal to the supplied value.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if no such element exists (the
-    /// supplied  value is greater than the maximum of this collection.)</exception>
-    /// <param name="item">The item to find the weak successor for.</param>
-    /// <returns>The weak successor.</returns>
+    //
+    // Find the weak successor in the sorted collection of a particular value,
+    // i.e. the least item in the collection greater than or equal to the supplied value.
+    //
+    // <exception cref="NoSuchItemException"> if no such element exists (the
+    // supplied  value is greater than the maximum of this collection.)</exception>
+    // <param name="item">The item to find the weak successor for.</param>
+    // <returns>The weak successor.</returns>
     [Tested]
     public T WeakSuccessor(T item)
     {
@@ -533,25 +513,25 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Perform a search in the sorted collection for the ranges in which a
-    /// non-increasing (i.e. weakly decrerasing) function from the item type to 
-    /// <code>int</code> is
-    /// negative, zero respectively positive. If the supplied cut function is
-    /// not non-increasing, the result of this call is undefined.
-    /// </summary>
-    /// <param name="c">The cut function <code>T</code> to <code>int</code>, given
-    /// as an <code>IComparable&lt;T&gt;</code> object, where the cut function is
-    /// the <code>c.CompareTo(T that)</code> method.</param>
-    /// <param name="low">Returns the largest item in the collection, where the
-    /// cut function is positive (if any).</param>
-    /// <param name="lowIsValid">True if the cut function is positive somewhere
-    /// on this collection.</param>
-    /// <param name="high">Returns the least item in the collection, where the
-    /// cut function is negative (if any).</param>
-    /// <param name="highIsValid">True if the cut function is negative somewhere
-    /// on this collection.</param>
-    /// <returns></returns>
+    //
+    // Perform a search in the sorted collection for the ranges in which a
+    // non-increasing (i.e. weakly decrerasing) function from the item type to 
+    // <code>int</code> is
+    // negative, zero respectively positive. If the supplied cut function is
+    // not non-increasing, the result of this call is undefined.
+    //
+    // <param name="c">The cut function <code>T</code> to <code>int</code>, given
+    // as an <code>IComparable&lt;T&gt;</code> object, where the cut function is
+    // the <code>c.CompareTo(T that)</code> method.</param>
+    // <param name="low">Returns the largest item in the collection, where the
+    // cut function is positive (if any).</param>
+    // <param name="lowIsValid">True if the cut function is positive somewhere
+    // on this collection.</param>
+    // <param name="high">Returns the least item in the collection, where the
+    // cut function is negative (if any).</param>
+    // <param name="highIsValid">True if the cut function is negative somewhere
+    // on this collection.</param>
+    // <returns></returns>
     [Tested]
     public bool Cut(IComparable<T> c, out T low, out bool lowIsValid, out T high, out bool highIsValid)
     {
@@ -636,23 +616,23 @@ namespace RazorDB.C5
     { return RangeTo(top); }
 
 
-    /// <summary>
-    /// Create a directed collection with the same items as this collection.
-    /// </summary>
-    /// <returns>The result directed collection.</returns>
+    //
+    // Create a directed collection with the same items as this collection.
+    //
+    // <returns>The result directed collection.</returns>
     [Tested]
     public IDirectedCollectionValue<T> RangeAll()
     { return new Range(this, 0, size, true); }
 
 
-    /// <summary>
-    /// Add all the items from another collection with an enumeration order that 
-    /// is increasing in the items.
-    /// <exception cref="ArgumentException"/> if the enumerated items turns out
-    /// not to be in increasing order.
-    /// </summary>
-    /// <param name="items">The collection to add.</param>
-    /// <typeparam name="U"></typeparam>
+    //
+    // Add all the items from another collection with an enumeration order that 
+    // is increasing in the items.
+    // <exception cref="ArgumentException"/> if the enumerated items turns out
+    // not to be in increasing order.
+    //
+    // <param name="items">The collection to add.</param>
+    // <typeparam name="U"></typeparam>
     [Tested]
     public void AddSorted<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -690,10 +670,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove all items of this collection above or at a supplied threshold.
-    /// </summary>
-    /// <param name="low">The lower threshold (inclusive).</param>
+    //
+    // Remove all items of this collection above or at a supplied threshold.
+    //
+    // <param name="low">The lower threshold (inclusive).</param>
     [Tested]
     public void RemoveRangeFrom(T low)
     {
@@ -714,11 +694,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove all items of this collection between two supplied thresholds.
-    /// </summary>
-    /// <param name="low">The lower threshold (inclusive).</param>
-    /// <param name="hi">The upper threshold (exclusive).</param>
+    //
+    // Remove all items of this collection between two supplied thresholds.
+    //
+    // <param name="low">The lower threshold (inclusive).</param>
+    // <param name="hi">The upper threshold (exclusive).</param>
     [Tested]
     public void RemoveRangeFromTo(T low, T hi)
     {
@@ -741,10 +721,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove all items of this collection below a supplied threshold.
-    /// </summary>
-    /// <param name="hi">The upper threshold (exclusive).</param>
+    //
+    // Remove all items of this collection below a supplied threshold.
+    //
+    // <param name="hi">The upper threshold (exclusive).</param>
     [Tested]
     public void RemoveRangeTo(T hi)
     {
@@ -764,7 +744,7 @@ namespace RazorDB.C5
       raiseForRemoveRange(removed);
     }
 
-    private void raiseForRemoveRange(T[] removed)
+    void raiseForRemoveRange(T[] removed)
     {
        foreach(T item in removed)
          raiseItemsRemoved(item, 1);
@@ -776,17 +756,17 @@ namespace RazorDB.C5
     #endregion
 
     #region ICollection<T> Members
-    /// <summary>
-    /// The value is symbolic indicating the type of asymptotic complexity
-    /// in terms of the size of this collection (worst-case).
-    /// </summary>
-    /// <value>Speed.Log</value>
+    //
+    // The value is symbolic indicating the type of asymptotic complexity
+    // in terms of the size of this collection (worst-case).
+    //
+    // <value>Speed.Log</value>
     [Tested]
     public Speed ContainsSpeed { [Tested]get { return Speed.Log; } }
 
-    /// <summary>
-    /// Remove all items from this collection, resetting internal array size.
-    /// </summary>
+    //
+    // Remove all items from this collection, resetting internal array size.
+    //
     [Tested]
     override public void Clear()
     {
@@ -799,12 +779,12 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// Check if this collection contains (an item equivalent according to the
-    /// itemequalityComparer) to a particular value.
-    /// </summary>
-    /// <param name="item">The value to check for.</param>
-    /// <returns>True if the items is in this collection.</returns>
+    //
+    // Check if this collection contains (an item equivalent according to the
+    // itemequalityComparer) to a particular value.
+    //
+    // <param name="item">The value to check for.</param>
+    // <returns>True if the items is in this collection.</returns>
     [Tested]
     public bool Contains(T item)
     {
@@ -814,13 +794,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, return in the ref argument (a
-    /// binary copy of) the actual value found.
-    /// </summary>
-    /// <param name="item">The value to look for.</param>
-    /// <returns>True if the items is in this collection.</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, return in the ref argument (a
+    // binary copy of) the actual value found.
+    //
+    // <param name="item">The value to look for.</param>
+    // <returns>True if the items is in this collection.</returns>
     [Tested]
     public bool Find(ref T item)
     {
@@ -837,13 +817,13 @@ namespace RazorDB.C5
 
 
     //This should probably just be bool Add(ref T item); !!!
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, return in the ref argument (a
-    /// binary copy of) the actual value found. Else, add the item to the collection.
-    /// </summary>
-    /// <param name="item">The value to look for.</param>
-    /// <returns>True if the item was added (hence not found).</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, return in the ref argument (a
+    // binary copy of) the actual value found. Else, add the item to the collection.
+    //
+    // <param name="item">The value to look for.</param>
+    // <returns>True if the item was added (hence not found).</returns>
     [Tested]
     public bool FindOrAdd(ref T item)
     {
@@ -867,25 +847,25 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, update the item in the collection 
-    /// to with a binary copy of the supplied value. If the collection has bag semantics,
-    /// it is implementation dependent if this updates all equivalent copies in
-    /// the collection or just one.
-    /// </summary>
-    /// <param name="item">Value to update.</param>
-    /// <returns>True if the item was found and hence updated.</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, update the item in the collection 
+    // to with a binary copy of the supplied value. If the collection has bag semantics,
+    // it is implementation dependent if this updates all equivalent copies in
+    // the collection or just one.
+    //
+    // <param name="item">Value to update.</param>
+    // <returns>True if the item was found and hence updated.</returns>
     [Tested]
     public bool Update(T item)
     { T olditem; return Update(item, out olditem); }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="olditem"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="item"></param>
+    // <param name="olditem"></param>
+    // <returns></returns>
     public bool Update(T item, out T olditem)
     {
       updatecheck();
@@ -905,23 +885,23 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, update the item in the collection 
-    /// to with a binary copy of the supplied value; else add the value to the collection. 
-    /// </summary>
-    /// <param name="item">Value to add or update.</param>
-    /// <returns>True if the item was found and updated (hence not added).</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, update the item in the collection 
+    // to with a binary copy of the supplied value; else add the value to the collection. 
+    //
+    // <param name="item">Value to add or update.</param>
+    // <returns>True if the item was found and updated (hence not added).</returns>
     [Tested]
     public bool UpdateOrAdd(T item)
     { T olditem; return UpdateOrAdd(item, out olditem); }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="olditem"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="item"></param>
+    // <param name="olditem"></param>
+    // <returns></returns>
     public bool UpdateOrAdd(T item, out T olditem)
     {
       updatecheck();
@@ -947,12 +927,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove a particular item from this collection. If the collection has bag
-    /// semantics only one copy equivalent to the supplied item is removed. 
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
-    /// <returns>True if the item was found (and removed).</returns>
+    //
+    // Remove a particular item from this collection. If the collection has bag
+    // semantics only one copy equivalent to the supplied item is removed. 
+    //
+    // <param name="item">The value to remove.</param>
+    // <returns>True if the item was found (and removed).</returns>
     [Tested]
     public bool Remove(T item)
     {
@@ -972,16 +952,16 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove a particular item from this collection if found. If the collection
-    /// has bag semantics only one copy equivalent to the supplied item is removed,
-    /// which one is implementation dependent. 
-    /// If an item was removed, report a binary copy of the actual item removed in 
-    /// the argument.
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
-    /// <param name="removeditem">The removed value.</param>
-    /// <returns>True if the item was found (and removed).</returns>
+    //
+    // Remove a particular item from this collection if found. If the collection
+    // has bag semantics only one copy equivalent to the supplied item is removed,
+    // which one is implementation dependent. 
+    // If an item was removed, report a binary copy of the actual item removed in 
+    // the argument.
+    //
+    // <param name="item">The value to remove.</param>
+    // <param name="removeditem">The removed value.</param>
+    // <returns>True if the item was found (and removed).</returns>
     [Tested]
     public bool Remove(T item, out T removeditem)
     {
@@ -1002,11 +982,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove all items in another collection from this one. 
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to remove.</param>
+    //
+    // Remove all items in another collection from this one. 
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to remove.</param>
     [Tested]
     public void RemoveAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1036,11 +1016,11 @@ namespace RazorDB.C5
         raiseHandler.Raise();
     }
 
-    /// <summary>
-    /// Remove all items not in some other collection from this one. 
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to retain.</param>
+    //
+    // Remove all items not in some other collection from this one. 
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to retain.</param>
     [Tested]
     public void RetainAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1070,13 +1050,13 @@ namespace RazorDB.C5
         raiseHandler.Raise();
     }
 
-    /// <summary>
-    /// Check if this collection contains all the values in another collection.
-    /// Multiplicities are not taken into account.
-    /// </summary>
-    /// <param name="items">The </param>
-    /// <typeparam name="U"></typeparam>
-    /// <returns>True if all values in <code>items</code>is in this collection.</returns>
+    //
+    // Check if this collection contains all the values in another collection.
+    // Multiplicities are not taken into account.
+    //
+    // <param name="items">The </param>
+    // <typeparam name="U"></typeparam>
+    // <returns>True if all values in <code>items</code>is in this collection.</returns>
     [Tested]
     public bool ContainsAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1090,12 +1070,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Count the number of items of the collection equal to a particular value.
-    /// Returns 0 if and only if the value is not in the collection.
-    /// </summary>
-    /// <param name="item">The value to count.</param>
-    /// <returns>The number of copies found (0 or 1).</returns>
+    //
+    // Count the number of items of the collection equal to a particular value.
+    // Returns 0 if and only if the value is not in the collection.
+    //
+    // <param name="item">The value to count.</param>
+    // <returns>The number of copies found (0 or 1).</returns>
     [Tested]
     public int ContainsCount(T item)
     {
@@ -1104,34 +1084,34 @@ namespace RazorDB.C5
       return binarySearch(item, out tmp) ? 1 : 0;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public virtual ICollectionValue<T> UniqueItems() { return this; }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public virtual ICollectionValue<KeyValuePair<T, int>> ItemMultiplicities()
     {
       return new MultiplicityOne<T>(this);
     }
 
-    /// <summary>
-    /// Remove all (0 or 1) items equivalent to a given value.
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
+    //
+    // Remove all (0 or 1) items equivalent to a given value.
+    //
+    // <param name="item">The value to remove.</param>
     [Tested]
     public void RemoveAllCopies(T item) { Remove(item); }
 
 
-    /// <summary>
-    /// Check the integrity of the internal data structures of this collection.
-    /// Only avaliable in DEBUG builds???
-    /// </summary>
-    /// <returns>True if check does not fail.</returns>
+    //
+    // Check the integrity of the internal data structures of this collection.
+    // Only avaliable in DEBUG builds???
+    //
+    // <returns>True if check does not fail.</returns>
     [Tested]
     public override bool Check()
     {
@@ -1165,27 +1145,27 @@ namespace RazorDB.C5
 
     #region IExtensible<T> Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>False since this collection has set semantics</value>
+    //
+    // 
+    //
+    // <value>False since this collection has set semantics</value>
     [Tested]
     public bool AllowsDuplicates { [Tested]get { return false; } }
 
-    /// <summary>
-    /// By convention this is true for any collection with set semantics.
-    /// </summary>
-    /// <value>True if only one representative of a group of equal items 
-    /// is kept in the collection together with the total count.</value>
+    //
+    // By convention this is true for any collection with set semantics.
+    //
+    // <value>True if only one representative of a group of equal items 
+    // is kept in the collection together with the total count.</value>
     public virtual bool DuplicatesByCounting { get { return true; } }
 
-    /// <summary>
-    /// Add an item to this collection if possible. If this collection has set
-    /// semantics, the item will be added if not already in the collection. If
-    /// bag semantics, the item will always be added.
-    /// </summary>
-    /// <param name="item">The item to add.</param>
-    /// <returns>True if item was added.</returns>
+    //
+    // Add an item to this collection if possible. If this collection has set
+    // semantics, the item will be added if not already in the collection. If
+    // bag semantics, the item will always be added.
+    //
+    // <param name="item">The item to add.</param>
+    // <returns>True if item was added.</returns>
     [Tested]
     public bool Add(T item)
     {
@@ -1200,10 +1180,10 @@ namespace RazorDB.C5
       return true;
     }
 
-    /// <summary>
-    /// Add an item to this collection if possible. 
-    /// </summary>
-    /// <param name="item">The item to add.</param>
+    //
+    // Add an item to this collection if possible. 
+    //
+    // <param name="item">The item to add.</param>
     [Tested]
     void SCG.ICollection<T>.Add(T item)
     {
@@ -1211,14 +1191,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Add the elements from another collection with a more specialized item type 
-    /// to this collection. Since this
-    /// collection has set semantics, only items not already in the collection
-    /// will be added.
-    /// </summary>
-    /// <typeparam name="U">The type of items to add</typeparam>
-    /// <param name="items">The items to add</param>
+    //
+    // Add the elements from another collection with a more specialized item type 
+    // to this collection. Since this
+    // collection has set semantics, only items not already in the collection
+    // will be added.
+    //
+    // <typeparam name="U">The type of items to add</typeparam>
+    // <param name="items">The items to add</param>
     [Tested]
     public void AddAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1257,7 +1237,7 @@ namespace RazorDB.C5
       raiseForAddAll(addedItems, numAdded);
     }
 
-    private void raiseForAddAll(T[] addedItems, int numAdded)
+    void raiseForAddAll(T[] addedItems, int numAdded)
     {
       if ((ActiveEvents & EventTypeEnum.Added) != 0)
         for(int i = 0 ;i < numAdded; i += 1)
@@ -1270,10 +1250,10 @@ namespace RazorDB.C5
 
     #region IPriorityQueue<T> Members
 
-    /// <summary>
-    /// Find the current least item of this priority queue.
-    /// </summary>
-    /// <returns>The least item.</returns>
+    //
+    // Find the current least item of this priority queue.
+    //
+    // <returns>The least item.</returns>
     [Tested]
     public T FindMin()
     {
@@ -1283,10 +1263,10 @@ namespace RazorDB.C5
       return array[0];
     }
 
-    /// <summary>
-    /// Remove the least item from this  priority queue.
-    /// </summary>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the least item from this  priority queue.
+    //
+    // <returns>The removed item.</returns>
     [Tested]
     public T DeleteMin()
     {
@@ -1304,10 +1284,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find the current largest item of this priority queue.
-    /// </summary>
-    /// <returns>The largest item.</returns>
+    //
+    // Find the current largest item of this priority queue.
+    //
+    // <returns>The largest item.</returns>
     [Tested]
     public T FindMax()
     {
@@ -1318,10 +1298,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove the largest item from this  priority queue.
-    /// </summary>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the largest item from this  priority queue.
+    //
+    // <returns>The removed item.</returns>
     [Tested]
     public T DeleteMax()
     {
@@ -1337,22 +1317,22 @@ namespace RazorDB.C5
       return retval;
     }
 
-    /// <summary>
-    /// The comparer object supplied at creation time for this collection
-    /// </summary>
-    /// <value>The comparer</value>
+    //
+    // The comparer object supplied at creation time for this collection
+    //
+    // <value>The comparer</value>
     public SCG.IComparer<T> Comparer { get { return comparer; } }
 
     #endregion
 
     #region IIndexed<T> Members
 
-    /// <summary>
-    /// <exception cref="IndexOutOfRangeException"/> if i is negative or
-    /// &gt;= the size of the collection.
-    /// </summary>
-    /// <value>The i'th item of this list.</value>
-    /// <param name="i">the index to lookup</param>
+    //
+    // <exception cref="IndexOutOfRangeException"/> if i is negative or
+    // &gt;= the size of the collection.
+    //
+    // <value>The i'th item of this list.</value>
+    // <param name="i">the index to lookup</param>
     [Tested]
     public T this[int i]
     {
@@ -1366,37 +1346,37 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public virtual Speed IndexingSpeed { get { return Speed.Constant; } }
 
-    /// <summary>
-    /// Searches for an item in the list going forwrds from the start.
-    /// </summary>
-    /// <param name="item">Item to search for.</param>
-    /// <returns>Index of item from start.</returns>
+    //
+    // Searches for an item in the list going forwrds from the start.
+    //
+    // <param name="item">Item to search for.</param>
+    // <returns>Index of item from start.</returns>
     [Tested]
     public int IndexOf(T item) { return indexOf(item); }
 
 
-    /// <summary>
-    /// Searches for an item in the list going backwords from the end.
-    /// </summary>
-    /// <param name="item">Item to search for.</param>
-    /// <returns>Index of of item from the end.</returns>
+    //
+    // Searches for an item in the list going backwords from the end.
+    //
+    // <param name="item">Item to search for.</param>
+    // <returns>Index of of item from the end.</returns>
     [Tested]
     public int LastIndexOf(T item) { return indexOf(item); }
 
 
-    /// <summary>
-    /// Remove the item at a specific position of the list.
-    /// <exception cref="IndexOutOfRangeException"/> if i is negative or
-    /// &gt;= the size of the collection.
-    /// </summary>
-    /// <param name="i">The index of the item to remove.</param>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the item at a specific position of the list.
+    // <exception cref="IndexOutOfRangeException"/> if i is negative or
+    // &gt;= the size of the collection.
+    //
+    // <param name="i">The index of the item to remove.</param>
+    // <returns>The removed item.</returns>
     [Tested]
     public T RemoveAt(int i)
     {
@@ -1414,12 +1394,12 @@ namespace RazorDB.C5
       return retval;
     }
 
-    /// <summary>
-    /// Remove all items in an index interval.
-    /// <exception cref="IndexOutOfRangeException"/>???. 
-    /// </summary>
-    /// <param name="start">The index of the first item to remove.</param>
-    /// <param name="count">The number of items to remove.</param>
+    //
+    // Remove all items in an index interval.
+    // <exception cref="IndexOutOfRangeException"/>???. 
+    //
+    // <param name="start">The index of the first item to remove.</param>
+    // <param name="count">The number of items to remove.</param>
     [Tested]
     public void RemoveInterval(int start, int count)
     {
@@ -1431,7 +1411,7 @@ namespace RazorDB.C5
       raiseForRemoveInterval(start, count);
     }
 
-    private void raiseForRemoveInterval(int start, int count)
+    void raiseForRemoveInterval(int start, int count)
     {
       if (ActiveEvents != 0 && count > 0)
       {
@@ -1444,13 +1424,13 @@ namespace RazorDB.C5
 
     #region IDirectedEnumerable<T> Members
 
-    /// <summary>
-    /// Create a collection containing the same items as this collection, but
-    /// whose enumerator will enumerate the items backwards. The new collection
-    /// will become invalid if the original is modified. Method typicaly used as in
-    /// <code>foreach (T x in coll.Backwards()) {...}</code>
-    /// </summary>
-    /// <returns>The backwards collection.</returns>
+    //
+    // Create a collection containing the same items as this collection, but
+    // whose enumerator will enumerate the items backwards. The new collection
+    // will become invalid if the original is modified. Method typicaly used as in
+    // <code>foreach (T x in coll.Backwards()) {...}</code>
+    //
+    // <returns>The backwards collection.</returns>
     [Tested]
     IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards()
     { return Backwards(); }
@@ -1459,10 +1439,10 @@ namespace RazorDB.C5
 
     #region ICloneable Members
 
-    /// <summary>
-    /// Make a shallow copy of this SortedArray.
-    /// </summary>
-    /// <returns></returns>
+    //
+    // Make a shallow copy of this SortedArray.
+    //
+    // <returns></returns>
     public virtual object Clone()
     {
       SortedArray<T> clone = new SortedArray<T>(size, comparer, itemequalityComparer);

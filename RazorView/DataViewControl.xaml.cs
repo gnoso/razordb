@@ -25,7 +25,7 @@ namespace RazorView {
             Close();
         }
 
-        private DBController _db;
+        DBController _db;
         public DBController DBController { 
             get { return _db; }
             set { _db = value; if (_db != null) RefreshData(); }
@@ -42,7 +42,7 @@ namespace RazorView {
             dataGrid.ItemsSource = DBController.GetRecords(KeyFilterTextBox.Text, ValueFilterTextBox.Text);
         }
 
-        private void RefreshButton_Click(object sender, RoutedEventArgs e) {
+        void RefreshButton_Click(object sender, RoutedEventArgs e) {
             RefreshData();
         }
 

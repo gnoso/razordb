@@ -1,41 +1,20 @@
-
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 #define HASHINDEX
 
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
+
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// A list collection based on a plain dynamic array data structure.
-  /// Expansion of the internal array is performed by doubling on demand. 
-  /// The internal array is only shrinked by the Clear method. 
-  ///
-  /// <i>When the FIFO property is set to false this class works fine as a stack of T.
-  /// When the FIFO property is set to true the class will function as a (FIFO) queue
-  /// but very inefficiently, use a LinkedList (<see cref="T:C5.LinkedList`1"/>) instead.</i>
-  /// </summary>
+  //
+  // A list collection based on a plain dynamic array data structure.
+  // Expansion of the internal array is performed by doubling on demand. 
+  // The internal array is only shrinked by the Clear method. 
+  //
+  // <i>When the FIFO property is set to false this class works fine as a stack of T.
+  // When the FIFO property is set to true the class will function as a (FIFO) queue
+  // but very inefficiently, use a LinkedList (<see cref="T:C5.LinkedList`1"/>) instead.</i>
+  //
   [Serializable]
   public class HashedArrayList<T> : ArrayBase<T>, IList<T>, SCG.IList<T>
 #if HASHINDEX
@@ -45,28 +24,28 @@ namespace RazorDB.C5
   {
     #region Fields
 
-    /// <summary>
-    /// Has this list or view not been invalidated by some operation (by someone calling Dispose())
-    /// </summary>
+    //
+    // Has this list or view not been invalidated by some operation (by someone calling Dispose())
+    //
     bool isValid = true;
 
     //TODO: wonder if we should save some memory on none-view situations by 
     //      putting these three fields into a single ref field?
-    /// <summary>
-    /// The underlying list if we are a view, null else.
-    /// </summary>
+    //
+    // The underlying list if we are a view, null else.
+    //
     HashedArrayList<T> underlying;
     WeakViewList<HashedArrayList<T>> views;
     WeakViewList<HashedArrayList<T>>.Node myWeakReference;
 
-    /// <summary>
-    /// The size of the underlying list.
-    /// </summary>
+    //
+    // The size of the underlying list.
+    //
     int underlyingsize { get { return (underlying ?? this).size; } }
 
-    /// <summary>
-    /// The underlying field of the FIFO property
-    /// </summary>
+    //
+    // The underlying field of the FIFO property
+    //
     bool fIFO = false;
 
 #if HASHINDEX
@@ -75,17 +54,17 @@ namespace RazorDB.C5
     #endregion
     #region Events
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public override EventTypeEnum ListenableEvents { get { return underlying == null ? EventTypeEnum.All : EventTypeEnum.None; } }
 
     /*
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
+        //
+        // 
+        //
+        // <value></value>
         public override event CollectionChangedHandler<T> CollectionChanged
         {
           add
@@ -104,10 +83,10 @@ namespace RazorDB.C5
           }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
+        //
+        // 
+        //
+        // <value></value>
         public override event CollectionClearedHandler<T> CollectionCleared
         {
           add
@@ -126,10 +105,10 @@ namespace RazorDB.C5
           }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
+        //
+        // 
+        //
+        // <value></value>
         public override event ItemsAddedHandler<T> ItemsAdded
         {
           add
@@ -148,10 +127,10 @@ namespace RazorDB.C5
           }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
+        //
+        // 
+        //
+        // <value></value>
         public override event ItemInsertedHandler<T> ItemInserted
         {
           add
@@ -170,10 +149,10 @@ namespace RazorDB.C5
           }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
+        //
+        // 
+        //
+        // <value></value>
         public override event ItemsRemovedHandler<T> ItemsRemoved
         {
           add
@@ -192,10 +171,10 @@ namespace RazorDB.C5
           }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <value></value>
+        //
+        // 
+        //
+        // <value></value>
         public override event ItemRemovedAtHandler<T> ItemRemovedAt
         {
           add
@@ -221,10 +200,10 @@ namespace RazorDB.C5
 
     bool equals(T i1, T i2) { return itemequalityComparer.Equals(i1, i2); }
 
-    /// <summary>
-    /// Increment or decrement the private size fields
-    /// </summary>
-    /// <param name="delta">Increment (with sign)</param>
+    //
+    // Increment or decrement the size fields
+    //
+    // <param name="delta">Increment (with sign)</param>
     void addtosize(int delta)
     {
       size += delta;
@@ -233,18 +212,18 @@ namespace RazorDB.C5
     }
 
     #region Array handling
-    /// <summary>
-    /// Double the size of the internal array.
-    /// </summary>
+    //
+    // Double the size of the internal array.
+    //
     protected override void expand()
     { expand(2 * array.Length, underlyingsize); }
 
 
-    /// <summary>
-    /// Expand the internal array, resetting the index of the first unused element.
-    /// </summary>
-    /// <param name="newcapacity">The new capacity (will be rouded upwards to a power of 2).</param>
-    /// <param name="newsize">The new count of </param>
+    //
+    // Expand the internal array, resetting the index of the first unused element.
+    //
+    // <param name="newcapacity">The new capacity (will be rouded upwards to a power of 2).</param>
+    // <param name="newsize">The new count of </param>
     protected override void expand(int newcapacity, int newsize)
     {
       if (underlying != null)
@@ -261,11 +240,11 @@ namespace RazorDB.C5
     #endregion
 
     #region Checks
-    /// <summary>
-    /// Check if it is valid to perform updates and increment stamp if so.
-    /// </summary>
-    /// <exception cref="ViewDisposedException"> If check fails by this list being a disposed view.</exception>
-    /// <exception cref="ReadOnlyCollectionException"> If check fails by this being a read only list.</exception>
+    //
+    // Check if it is valid to perform updates and increment stamp if so.
+    //
+    // <exception cref="ViewDisposedException"> If check fails by this list being a disposed view.</exception>
+    // <exception cref="ReadOnlyCollectionException"> If check fails by this being a read only list.</exception>
     protected override void updatecheck()
     {
       validitycheck();
@@ -275,12 +254,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if we are a view that the underlying list has only been updated through us.
-    /// <para>This method should be called from enumerators etc to guard against 
-    /// modification of the base collection.</para>
-    /// </summary>
-    /// <exception cref="ViewDisposedException"> if check fails.</exception>
+    //
+    // Check if we are a view that the underlying list has only been updated through us.
+    // <para>This method should be called from enumerators etc to guard against 
+    // modification of the base collection.</para>
+    //
+    // <exception cref="ViewDisposedException"> if check fails.</exception>
     void validitycheck()
     {
       if (!isValid)
@@ -288,17 +267,17 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check that the list has not been updated since a particular time.
-    /// <para>To be used by enumerators and range </para>
-    /// </summary>
-    /// <exception cref="ViewDisposedException"> If check fails by this list being a disposed view.</exception>
-    /// <exception cref="CollectionModifiedException">If the list *has* beeen updated since that  time..</exception>
-    /// <param name="stamp">The stamp indicating the time.</param>
-    protected override void modifycheck(int stamp)
+    //
+    // Check that the list has not been updated since a particular time.
+    // <para>To be used by enumerators and range </para>
+    //
+    // <exception cref="ViewDisposedException"> If check fails by this list being a disposed view.</exception>
+    // <exception cref="CollectionModifiedException">If the list *has* beeen updated since that  time..</exception>
+    // <param name="stamp">The stamp indicating the time.</param>
+    protected override void modifycheck(int s)
     {
       validitycheck();
-      if (this.stamp != stamp)
+      if (stamp != s)
         throw new CollectionModifiedException();
     }
 
@@ -306,11 +285,11 @@ namespace RazorDB.C5
 
     #region Searching
 
-    /// <summary>
-    /// Internal version of IndexOf without modification checks.
-    /// </summary>
-    /// <param name="item">Item to look for</param>
-    /// <returns>The index of first occurrence</returns>
+    //
+    // Internal version of IndexOf without modification checks.
+    //
+    // <param name="item">Item to look for</param>
+    // <returns>The index of first occurrence</returns>
     int indexOf(T item)
     {
 #if HASHINDEX
@@ -325,11 +304,11 @@ namespace RazorDB.C5
       return ~size;
     }
 
-    /// <summary>
-    /// Internal version of LastIndexOf without modification checks.
-    /// </summary>
-    /// <param name="item">Item to look for</param>
-    /// <returns>The index of last occurrence</returns>
+    //
+    // Internal version of LastIndexOf without modification checks.
+    //
+    // <param name="item">Item to look for</param>
+    // <returns>The index of last occurrence</returns>
     int lastIndexOf(T item)
     {
 #if HASHINDEX
@@ -346,18 +325,18 @@ namespace RazorDB.C5
     #region Inserting
 
 #if HASHINDEX
-    /// <summary>
-    /// Internal version of Insert with no modification checks.
-    /// </summary>
-    /// <exception cref="DuplicateNotAllowedException"> if item already in list.</exception>
-    /// <param name="i">Index to insert at</param>
-    /// <param name="item">Item to insert</param>
+    //
+    // Internal version of Insert with no modification checks.
+    //
+    // <exception cref="DuplicateNotAllowedException"> if item already in list.</exception>
+    // <param name="i">Index to insert at</param>
+    // <param name="item">Item to insert</param>
 #else
-    /// <summary>
-    /// Internal version of Insert with no modification checks.
-    /// </summary>
-    /// <param name="i">Index to insert at</param>
-    /// <param name="item">Item to insert</param>
+    //
+    // Internal version of Insert with no modification checks.
+    //
+    // <param name="i">Index to insert at</param>
+    // <param name="item">Item to insert</param>
 #endif
     protected override void insert(int i, T item)
     {
@@ -372,7 +351,7 @@ namespace RazorDB.C5
 #endif
     }
 
-    private void baseinsert(int i, T item)
+    void baseinsert(int i, T item)
     {
       if (underlyingsize == array.Length)
         expand();
@@ -387,11 +366,11 @@ namespace RazorDB.C5
 
     #region Removing
 
-    /// <summary>
-    /// Internal version of RemoveAt with no modification checks.
-    /// </summary>
-    /// <param name="i">Index to remove at</param>
-    /// <returns>The removed item</returns>
+    //
+    // Internal version of RemoveAt with no modification checks.
+    //
+    // <param name="i">Index to remove at</param>
+    // <returns>The removed item</returns>
     T removeAt(int i)
     {
       i += offset;
@@ -412,9 +391,9 @@ namespace RazorDB.C5
     #region Indexing
 
 #if HASHINDEX
-    private void reindex(int start) { reindex(start, underlyingsize); }
+    void reindex(int start) { reindex(start, underlyingsize); }
 
-    private void reindex(int start, int end)
+    void reindex(int start, int end)
     {
       for (int j = start; j < end; j++)
         itemIndex.UpdateOrAdd(new KeyValuePair<T, int>(array[j], j));
@@ -424,11 +403,11 @@ namespace RazorDB.C5
 
     #region fixView utilities
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="added">The actual number of inserted nodes</param>
-    /// <param name="realInsertionIndex"></param>
+    //
+    // 
+    //
+    // <param name="added">The actual number of inserted nodes</param>
+    // <param name="realInsertionIndex"></param>
     void fixViewsAfterInsert(int added, int realInsertionIndex)
     {
       if (views != null)
@@ -459,11 +438,11 @@ namespace RazorDB.C5
         }
     }
 
-    /// <summary>
-    /// Fix offsets and sizes of other views before removing an interval from this 
-    /// </summary>
-    /// <param name="start">the start of the interval relative to the array/underlying</param>
-    /// <param name="count"></param>
+    //
+    // Fix offsets and sizes of other views before removing an interval from this 
+    //
+    // <param name="start">the start of the interval relative to the array/underlying</param>
+    // <param name="count"></param>
     void fixViewsBeforeRemove(int start, int count)
     {
       int clearend = start + count - 1;
@@ -488,12 +467,12 @@ namespace RazorDB.C5
         }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="otherOffset"></param>
-    /// <param name="otherSize"></param>
-    /// <returns>The position of View(otherOffset, otherSize) wrt. this view</returns>
+    //
+    // 
+    //
+    // <param name="otherOffset"></param>
+    // <param name="otherSize"></param>
+    // <returns>The position of View(otherOffset, otherSize) wrt. this view</returns>
     MutualViewPosition viewPosition(int otherOffset, int otherSize)
     {
       int end = offset + size, otherEnd = otherOffset + otherSize;
@@ -544,24 +523,23 @@ namespace RazorDB.C5
         return a.index.CompareTo(b.index);
       }
     }
-    /// <summary>
-    /// During RemoveAll, we need to cache the original endpoint indices of views (??? also for HashedArrayList?)
-    /// </summary>
+    //
+    // During RemoveAll, we need to cache the original endpoint indices of views (??? also for HashedArrayList?)
+    //
     struct Position
     {
       public readonly HashedArrayList<T> view;
       public readonly int index;
-      public Position(HashedArrayList<T> view, bool left)
-      {
-        this.view = view;
+      public Position(HashedArrayList<T> v, bool left) {
+        view = v;
         index = left ? view.offset : view.offset + view.size - 1;
       }
-      public Position(int index) { this.index = index; view = null; }
+      public Position(int i) { index = i; view = null; }
     }
 
-    /// <summary>
-    /// Handle the update of (other) views during a multi-remove operation.
-    /// </summary>
+    //
+    // Handle the update of (other) views during a multi-remove operation.
+    //
     struct ViewHandler
     {
       HashedArrayList<Position> leftEnds;
@@ -590,11 +568,11 @@ namespace RazorDB.C5
         leftEnds.Sort(new PositionComparer());
         rightEnds.Sort(new PositionComparer());
       }
-      /// <summary>
-      /// This is to be called with realindex pointing to the first node to be removed after a (stretch of) node that was not removed
-      /// </summary>
-      /// <param name="removed"></param>
-      /// <param name="realindex"></param>
+      //
+      // This is to be called with realindex pointing to the first node to be removed after a (stretch of) node that was not removed
+      //
+      // <param name="removed"></param>
+      // <param name="realindex"></param>
       internal void skipEndpoints(int removed, int realindex)
       {
         if (viewCount > 0)
@@ -637,31 +615,31 @@ namespace RazorDB.C5
     #endregion
 
     #region Constructors
-    /// <summary>
-    /// Create an array list with default item equalityComparer and initial capacity 8 items.
-    /// </summary>
+    //
+    // Create an array list with default item equalityComparer and initial capacity 8 items.
+    //
     public HashedArrayList() : this(8) { }
 
 
-    /// <summary>
-    /// Create an array list with external item equalityComparer and initial capacity 8 items.
-    /// </summary>
-    /// <param name="itemequalityComparer">The external item equalityComparer</param>
+    //
+    // Create an array list with external item equalityComparer and initial capacity 8 items.
+    //
+    // <param name="itemequalityComparer">The external item equalityComparer</param>
     public HashedArrayList(SCG.IEqualityComparer<T> itemequalityComparer) : this(8, itemequalityComparer) { }
 
 
-    /// <summary>
-    /// Create an array list with default item equalityComparer and prescribed initial capacity.
-    /// </summary>
-    /// <param name="capacity">The prescribed capacity</param>
+    //
+    // Create an array list with default item equalityComparer and prescribed initial capacity.
+    //
+    // <param name="capacity">The prescribed capacity</param>
     public HashedArrayList(int capacity) : this(capacity, EqualityComparer<T>.Default) { }
 
 
-    /// <summary>
-    /// Create an array list with external item equalityComparer and prescribed initial capacity.
-    /// </summary>
-    /// <param name="capacity">The prescribed capacity</param>
-    /// <param name="itemequalityComparer">The external item equalityComparer</param>
+    //
+    // Create an array list with external item equalityComparer and prescribed initial capacity.
+    //
+    // <param name="capacity">The prescribed capacity</param>
+    // <param name="itemequalityComparer">The external item equalityComparer</param>
     public HashedArrayList(int capacity, SCG.IEqualityComparer<T> itemequalityComparer)
       : base(capacity, itemequalityComparer)
     {
@@ -674,10 +652,10 @@ namespace RazorDB.C5
 
     #region IList<T> Members
 
-    /// <summary>
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if this list is empty.</exception>
-    /// <value>The first item in this list.</value>
+    //
+    //
+    // <exception cref="NoSuchItemException"> if this list is empty.</exception>
+    // <value>The first item in this list.</value>
     [Tested]
     public virtual T First
     {
@@ -693,10 +671,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if this list is empty.</exception>
-    /// <value>The last item in this list.</value>
+    //
+    //
+    // <exception cref="NoSuchItemException"> if this list is empty.</exception>
+    // <value>The last item in this list.</value>
     [Tested]
     public virtual T Last
     {
@@ -712,12 +690,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Since <code>Add(T item)</code> always add at the end of the list,
-    /// this describes if list has FIFO or LIFO semantics.
-    /// </summary>
-    /// <value>True if the <code>Remove()</code> operation removes from the
-    /// start of the list, false if it removes from the end. The default for a new array list is false.</value>
+    //
+    // Since <code>Add(T item)</code> always add at the end of the list,
+    // this describes if list has FIFO or LIFO semantics.
+    //
+    // <value>True if the <code>Remove()</code> operation removes from the
+    // start of the list, false if it removes from the end. The default for a new array list is false.</value>
     [Tested]
     public virtual bool FIFO
     {
@@ -727,9 +705,9 @@ namespace RazorDB.C5
       set { updatecheck(); fIFO = value; }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public virtual bool IsFixedSize
     {
       get { validitycheck(); return false; }
@@ -737,23 +715,23 @@ namespace RazorDB.C5
 
 
 #if HASHINDEX
-    /// <summary>
-    /// On this list, this indexer is read/write.
-    /// </summary>
-    /// <exception cref="IndexOutOfRangeException"> if index is negative or
-    /// &gt;= the size of the collection.</exception>
-    /// <exception cref="DuplicateNotAllowedException"> By the get operation
-    /// if the item already is present somewhere else in the list.</exception>
-    /// <value>The index'th item of this list.</value>
-    /// <param name="index">The index of the item to fetch or store.</param>
+    //
+    // On this list, this indexer is read/write.
+    //
+    // <exception cref="IndexOutOfRangeException"> if index is negative or
+    // &gt;= the size of the collection.</exception>
+    // <exception cref="DuplicateNotAllowedException"> By the get operation
+    // if the item already is present somewhere else in the list.</exception>
+    // <value>The index'th item of this list.</value>
+    // <param name="index">The index of the item to fetch or store.</param>
 #else
-    /// <summary>
-    /// On this list, this indexer is read/write.
-    /// </summary>
-    /// <exception cref="IndexOutOfRangeException"> if index is negative or
-    /// &gt;= the size of the collection.</exception>
-    /// <value>The index'th item of this list.</value>
-    /// <param name="index">The index of the item to fetch or store.</param>
+    //
+    // On this list, this indexer is read/write.
+    //
+    // <exception cref="IndexOutOfRangeException"> if index is negative or
+    // &gt;= the size of the collection.</exception>
+    // <value>The index'th item of this list.</value>
+    // <param name="index">The index of the item to fetch or store.</param>
 #endif
     [Tested]
     public virtual T this[int index]
@@ -796,30 +774,30 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public virtual Speed IndexingSpeed { get { return Speed.Constant; } }
 
 #if HASHINDEX
-    /// <summary>
-    /// Insert an item at a specific index location in this list. 
-    ///</summary>
-    /// <exception cref="IndexOutOfRangeException"> if index is negative or
-    /// &gt; the size of the collection. </exception>
-    /// <exception cref="DuplicateNotAllowedException"> 
-    /// If the item is already present in the list.</exception>
-    /// <param name="index">The index at which to insert.</param>
-    /// <param name="item">The item to insert.</param>
+    //
+    // Insert an item at a specific index location in this list. 
+    //</summary>
+    // <exception cref="IndexOutOfRangeException"> if index is negative or
+    // &gt; the size of the collection. </exception>
+    // <exception cref="DuplicateNotAllowedException"> 
+    // If the item is already present in the list.</exception>
+    // <param name="index">The index at which to insert.</param>
+    // <param name="item">The item to insert.</param>
 #else
-    /// <summary>
-    /// Insert an item at a specific index location in this list. 
-    ///</summary>
-    /// <exception cref="IndexOutOfRangeException"> if i is negative or
-    /// &gt; the size of the collection. </exception>
-    /// <param name="index">The index at which to insert.</param>
-    /// <param name="item">The item to insert.</param>
+    //
+    // Insert an item at a specific index location in this list. 
+    //</summary>
+    // <exception cref="IndexOutOfRangeException"> if i is negative or
+    // &gt; the size of the collection. </exception>
+    // <param name="index">The index at which to insert.</param>
+    // <param name="item">The item to insert.</param>
 #endif
     [Tested]
     public virtual void Insert(int index, T item)
@@ -832,21 +810,21 @@ namespace RazorDB.C5
       (underlying ?? this).raiseForInsert(index + offset, item);
     }
 
-    /// <summary>
-    /// Insert an item at the end of a compatible view, used as a pointer.
-    /// <para>The <code>pointer</code> must be a view on the same list as
-    /// <code>this</code> and the endpoitn of <code>pointer</code> must be
-    /// a valid insertion point of <code>this</code></para>
-    /// </summary>
-    /// <exception cref="IncompatibleViewException">If <code>pointer</code> 
-    /// is not a view on or the same list as <code>this</code></exception>
-    /// <exception cref="IndexOutOfRangeException"><b>??????</b> if the endpoint of 
-    ///  <code>pointer</code> is not inside <code>this</code></exception>
-    /// <exception cref="DuplicateNotAllowedException"> if the list has
-    /// <code>AllowsDuplicates==false</code> and the item is 
-    /// already in the list.</exception>
-    /// <param name="pointer"></param>
-    /// <param name="item"></param>
+    //
+    // Insert an item at the end of a compatible view, used as a pointer.
+    // <para>The <code>pointer</code> must be a view on the same list as
+    // <code>this</code> and the endpoitn of <code>pointer</code> must be
+    // a valid insertion point of <code>this</code></para>
+    //
+    // <exception cref="IncompatibleViewException">If <code>pointer</code> 
+    // is not a view on or the same list as <code>this</code></exception>
+    // <exception cref="IndexOutOfRangeException"><b>??????</b> if the endpoint of 
+    //  <code>pointer</code> is not inside <code>this</code></exception>
+    // <exception cref="DuplicateNotAllowedException"> if the list has
+    // <code>AllowsDuplicates==false</code> and the item is 
+    // already in the list.</exception>
+    // <param name="pointer"></param>
+    // <param name="item"></param>
     public void Insert(IList<T> pointer, T item)
     {
       if ((pointer == null) || ((pointer.Underlying ?? pointer) != (underlying ?? this)))
@@ -855,26 +833,26 @@ namespace RazorDB.C5
     }
 
 #if HASHINDEX
-    /// <summary>
-    /// Insert into this list all items from an enumerable collection starting 
-    /// at a particular index.
-    /// </summary>
-    /// <exception cref="IndexOutOfRangeException"> if index is negative or
-    /// &gt; the size of the collection.</exception>
-    /// <exception cref="DuplicateNotAllowedException"> If <code>items</code> 
-    /// contains duplicates or some item already  present in the list.</exception>
-    /// <param name="index">Index to start inserting at</param>
-    /// <param name="items">Items to insert</param>
+    //
+    // Insert into this list all items from an enumerable collection starting 
+    // at a particular index.
+    //
+    // <exception cref="IndexOutOfRangeException"> if index is negative or
+    // &gt; the size of the collection.</exception>
+    // <exception cref="DuplicateNotAllowedException"> If <code>items</code> 
+    // contains duplicates or some item already  present in the list.</exception>
+    // <param name="index">Index to start inserting at</param>
+    // <param name="items">Items to insert</param>
 #else
-    /// <summary>
-    /// Insert into this list all items from an enumerable collection starting 
-    /// at a particular index.
-    /// </summary>
-    /// <exception cref="IndexOutOfRangeException"> if index is negative or
-    /// &gt; the size of the collection.</exception>
-    /// <param name="index">Index to start inserting at</param>
-    /// <param name="items">Items to insert</param>
-    /// <typeparam name="U"></typeparam>
+    //
+    // Insert into this list all items from an enumerable collection starting 
+    // at a particular index.
+    //
+    // <exception cref="IndexOutOfRangeException"> if index is negative or
+    // &gt; the size of the collection.</exception>
+    // <param name="index">Index to start inserting at</param>
+    // <param name="items">Items to insert</param>
+    // <typeparam name="U"></typeparam>
 #endif
     [Tested]
     public virtual void InsertAll<U>(int index, SCG.IEnumerable<U> items) where U : T
@@ -923,7 +901,7 @@ namespace RazorDB.C5
         }
       }
     }
-    private void raiseForInsertAll(int index, int added)
+    void raiseForInsertAll(int index, int added)
     {
       if (ActiveEvents != 0)
       {
@@ -938,16 +916,16 @@ namespace RazorDB.C5
     }
 
 #if HASHINDEX
-    /// <summary>
-    /// Insert an item at the front of this list;
-    /// </summary>
-    /// <exception cref="DuplicateNotAllowedException">If the item is already in the list</exception>
-    /// <param name="item">The item to insert.</param>
+    //
+    // Insert an item at the front of this list;
+    //
+    // <exception cref="DuplicateNotAllowedException">If the item is already in the list</exception>
+    // <param name="item">The item to insert.</param>
 #else
-    /// <summary>
-    /// Insert an item at the front of this list;
-    /// </summary>
-    /// <param name="item">The item to insert.</param>
+    //
+    // Insert an item at the front of this list;
+    //
+    // <param name="item">The item to insert.</param>
 #endif
     [Tested]
     public virtual void InsertFirst(T item)
@@ -959,16 +937,16 @@ namespace RazorDB.C5
 
 
 #if HASHINDEX
-    /// <summary>
-    /// Insert an item at the back of this list.
-    /// </summary>
-    /// <exception cref="DuplicateNotAllowedException">If the item is already in the list</exception>
-    /// <param name="item">The item to insert.</param>
+    //
+    // Insert an item at the back of this list.
+    //
+    // <exception cref="DuplicateNotAllowedException">If the item is already in the list</exception>
+    // <param name="item">The item to insert.</param>
 #else
-    /// <summary>
-    /// Insert an item at the back of this list.
-    /// </summary>
-    /// <param name="item">The item to insert.</param>
+    //
+    // Insert an item at the back of this list.
+    //
+    // <param name="item">The item to insert.</param>
 #endif
     [Tested]
     public virtual void InsertLast(T item)
@@ -980,18 +958,17 @@ namespace RazorDB.C5
 
 
     //NOTE: if the filter throws an exception, no result will be returned.
-    /// <summary>
-    /// Create a new list consisting of the items of this list satisfying a 
-    /// certain predicate.
-    /// <para>The new list will be of type HashedArrayList</para>
-    /// </summary>
-    /// <param name="filter">The filter delegate defining the predicate.</param>
-    /// <returns>The new list.</returns>
+    //
+    // Create a new list consisting of the items of this list satisfying a 
+    // certain predicate.
+    // <para>The new list will be of type HashedArrayList</para>
+    //
+    // <param name="filter">The filter delegate defining the predicate.</param>
+    // <returns>The new list.</returns>
     [Tested]
     public virtual IList<T> FindAll(Fun<T, bool> filter)
     {
       validitycheck();
-      int stamp = this.stamp;
       HashedArrayList<T> res = new HashedArrayList<T>(itemequalityComparer);
       int j = 0, rescap = res.array.Length;
       for (int i = 0; i < size; i++)
@@ -1014,25 +991,25 @@ namespace RazorDB.C5
 
 
 #if HASHINDEX
-    /// <summary>
-    /// Create a new list consisting of the results of mapping all items of this
-    /// list. The new list will use the default item equalityComparer for the item type V.
-    /// <para>The new list will be of type HashedArrayList</para>
-    /// </summary>
-    /// <exception cref="DuplicateNotAllowedException">If <code>mapper</code>
-    /// creates duplicates</exception>
-    /// <typeparam name="V">The type of items of the new list</typeparam>
-    /// <param name="mapper">The delegate defining the map.</param>
-    /// <returns>The new list.</returns>
+    //
+    // Create a new list consisting of the results of mapping all items of this
+    // list. The new list will use the default item equalityComparer for the item type V.
+    // <para>The new list will be of type HashedArrayList</para>
+    //
+    // <exception cref="DuplicateNotAllowedException">If <code>mapper</code>
+    // creates duplicates</exception>
+    // <typeparam name="V">The type of items of the new list</typeparam>
+    // <param name="mapper">The delegate defining the map.</param>
+    // <returns>The new list.</returns>
 #else
-    /// <summary>
-    /// Create a new list consisting of the results of mapping all items of this
-    /// list. The new list will use the default item equalityComparer for the item type V.
-    /// <para>The new list will be of type HashedArrayList</para>
-    /// </summary>
-    /// <typeparam name="V">The type of items of the new list</typeparam>
-    /// <param name="mapper">The delegate defining the map.</param>
-    /// <returns>The new list.</returns>
+    //
+    // Create a new list consisting of the results of mapping all items of this
+    // list. The new list will use the default item equalityComparer for the item type V.
+    // <para>The new list will be of type HashedArrayList</para>
+    //
+    // <typeparam name="V">The type of items of the new list</typeparam>
+    // <param name="mapper">The delegate defining the map.</param>
+    // <returns>The new list.</returns>
 #endif
     [Tested]
     public virtual IList<V> Map<V>(Fun<T, V> mapper)
@@ -1045,27 +1022,27 @@ namespace RazorDB.C5
     }
 
 #if HASHINDEX
-    /// <summary>
-    /// Create a new list consisting of the results of mapping all items of this
-    /// list. The new list will use a specified item equalityComparer for the item type.
-    /// <para>The new list will be of type HashedArrayList</para>
-    /// </summary>
-    /// <exception cref="DuplicateNotAllowedException">If <code>mapper</code>
-    /// creates duplicates</exception>
-    /// <typeparam name="V">The type of items of the new list</typeparam>
-    /// <param name="mapper">The delegate defining the map.</param>
-    /// <param name="itemequalityComparer">The item equalityComparer to use for the new list</param>
-    /// <returns>The new list.</returns>
+    //
+    // Create a new list consisting of the results of mapping all items of this
+    // list. The new list will use a specified item equalityComparer for the item type.
+    // <para>The new list will be of type HashedArrayList</para>
+    //
+    // <exception cref="DuplicateNotAllowedException">If <code>mapper</code>
+    // creates duplicates</exception>
+    // <typeparam name="V">The type of items of the new list</typeparam>
+    // <param name="mapper">The delegate defining the map.</param>
+    // <param name="itemequalityComparer">The item equalityComparer to use for the new list</param>
+    // <returns>The new list.</returns>
 #else
-    /// <summary>
-    /// Create a new list consisting of the results of mapping all items of this
-    /// list. The new list will use a specified item equalityComparer for the item type.
-    /// <para>The new list will be of type HashedArrayList</para>
-    /// </summary>
-    /// <typeparam name="V">The type of items of the new list</typeparam>
-    /// <param name="mapper">The delegate defining the map.</param>
-    /// <param name="itemequalityComparer">The item equalityComparer to use for the new list</param>
-    /// <returns>The new list.</returns>
+    //
+    // Create a new list consisting of the results of mapping all items of this
+    // list. The new list will use a specified item equalityComparer for the item type.
+    // <para>The new list will be of type HashedArrayList</para>
+    //
+    // <typeparam name="V">The type of items of the new list</typeparam>
+    // <param name="mapper">The delegate defining the map.</param>
+    // <param name="itemequalityComparer">The item equalityComparer to use for the new list</param>
+    // <returns>The new list.</returns>
 #endif
     public virtual IList<V> Map<V>(Fun<T, V> mapper, SCG.IEqualityComparer<V> itemequalityComparer)
     {
@@ -1076,9 +1053,8 @@ namespace RazorDB.C5
       return map<V>(mapper, res);
     }
 
-    private IList<V> map<V>(Fun<T, V> mapper, HashedArrayList<V> res)
+    IList<V> map<V>(Fun<T, V> mapper, HashedArrayList<V> res)
     {
-      int stamp = this.stamp;
       if (size > 0)
         for (int i = 0; i < size; i++)
         {
@@ -1095,12 +1071,12 @@ namespace RazorDB.C5
       return res;
     }
 
-    /// <summary>
-    /// Remove one item from the list: from the front if <code>FIFO</code>
-    /// is true, else from the back.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if this list is empty.</exception>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove one item from the list: from the front if <code>FIFO</code>
+    // is true, else from the back.
+    //
+    // <exception cref="NoSuchItemException"> if this list is empty.</exception>
+    // <returns>The removed item.</returns>
     [Tested]
     public virtual T Remove()
     {
@@ -1113,11 +1089,11 @@ namespace RazorDB.C5
       return item;
     }
 
-    /// <summary>
-    /// Remove one item from the fromnt of the list.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if this list is empty.</exception>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove one item from the fromnt of the list.
+    //
+    // <exception cref="NoSuchItemException"> if this list is empty.</exception>
+    // <returns>The removed item.</returns>
     [Tested]
     public virtual T RemoveFirst()
     {
@@ -1131,11 +1107,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove one item from the back of the list.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if this list is empty.</exception>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove one item from the back of the list.
+    //
+    // <exception cref="NoSuchItemException"> if this list is empty.</exception>
+    // <returns>The removed item.</returns>
     [Tested]
     public virtual T RemoveLast()
     {
@@ -1148,14 +1124,14 @@ namespace RazorDB.C5
       return item;
     }
 
-    /// <summary>
-    /// Create a list view on this list. 
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException"> if the start or count is negative
-    /// or the range does not fit within list.</exception>
-    /// <param name="start">The index in this list of the start of the view.</param>
-    /// <param name="count">The size of the view.</param>
-    /// <returns>The new list view.</returns>
+    //
+    // Create a list view on this list. 
+    //
+    // <exception cref="ArgumentOutOfRangeException"> if the start or count is negative
+    // or the range does not fit within list.</exception>
+    // <param name="start">The index in this list of the start of the view.</param>
+    // <param name="count">The size of the view.</param>
+    // <returns>The new list view.</returns>
     [Tested]
     public virtual IList<T> View(int start, int count)
     {
@@ -1173,12 +1149,12 @@ namespace RazorDB.C5
       return retval;
     }
 
-    /// <summary>
-    /// Create a list view on this list containing the (first) occurrence of a particular item.
-    /// <para>Returns <code>null</code> if the item is not in this list.</para>
-    /// </summary>
-    /// <param name="item">The item to find.</param>
-    /// <returns>The new list view.</returns>
+    //
+    // Create a list view on this list containing the (first) occurrence of a particular item.
+    // <para>Returns <code>null</code> if the item is not in this list.</para>
+    //
+    // <param name="item">The item to find.</param>
+    // <returns>The new list view.</returns>
     [Tested]
     public virtual IList<T> ViewOf(T item)
     {
@@ -1189,12 +1165,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Create a list view on this list containing the last occurrence of a particular item. 
-    /// <para>Returns <code>null</code> if the item is not in this list.</para>
-    /// </summary>
-    /// <param name="item">The item to find.</param>
-    /// <returns>The new list view.</returns>
+    //
+    // Create a list view on this list containing the last occurrence of a particular item. 
+    // <para>Returns <code>null</code> if the item is not in this list.</para>
+    //
+    // <param name="item">The item to find.</param>
+    // <returns>The new list view.</returns>
     [Tested]
     public virtual IList<T> LastViewOf(T item)
     {
@@ -1204,34 +1180,34 @@ namespace RazorDB.C5
       return View(index, 1);
     }
 
-    /// <summary>
-    /// Null if this list is not a view.
-    /// </summary>
-    /// <value>Underlying list for view.</value>
+    //
+    // Null if this list is not a view.
+    //
+    // <value>Underlying list for view.</value>
     [Tested]
     public virtual IList<T> Underlying { [Tested]get { return underlying; } }
 
 
-    /// <summary>
-    /// </summary>
-    /// <value>Offset for this list view or 0 for an underlying list.</value>
+    //
+    //
+    // <value>Offset for this list view or 0 for an underlying list.</value>
     [Tested]
     public virtual int Offset { [Tested]get { return offset; } }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public virtual bool IsValid { get { return isValid; } }
 
-    /// <summary>
-    /// Slide this list view along the underlying list.
-    /// </summary>
-    /// <exception cref="NotAViewException"> if this list is not a view.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"> if the operation
-    /// would bring either end of the view outside the underlying list.</exception>
-    /// <param name="offset">The signed amount to slide: positive to slide
-    /// towards the end.</param>
+    //
+    // Slide this list view along the underlying list.
+    //
+    // <exception cref="NotAViewException"> if this list is not a view.</exception>
+    // <exception cref="ArgumentOutOfRangeException"> if the operation
+    // would bring either end of the view outside the underlying list.</exception>
+    // <param name="offset">The signed amount to slide: positive to slide
+    // towards the end.</param>
     [Tested]
     public virtual IList<T> Slide(int offset)
     {
@@ -1241,15 +1217,15 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Slide this list view along the underlying list, changing its size.
-    /// </summary>
-    /// <exception cref="NotAViewException"> if this list is not a view.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"> if the operation
-    /// would bring either end of the view outside the underlying list.</exception>
-    /// <param name="offset">The signed amount to slide: positive to slide
-    /// towards the end.</param>
-    /// <param name="size">The new size of the view.</param>
+    //
+    // Slide this list view along the underlying list, changing its size.
+    //
+    // <exception cref="NotAViewException"> if this list is not a view.</exception>
+    // <exception cref="ArgumentOutOfRangeException"> if the operation
+    // would bring either end of the view outside the underlying list.</exception>
+    // <param name="offset">The signed amount to slide: positive to slide
+    // towards the end.</param>
+    // <param name="size">The new size of the view.</param>
     [Tested]
     public virtual IList<T> Slide(int offset, int size)
     {
@@ -1258,25 +1234,25 @@ namespace RazorDB.C5
       return this;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <exception cref="NotAViewException"> if this list is not a view.</exception>
-    /// <param name="offset"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <exception cref="NotAViewException"> if this list is not a view.</exception>
+    // <param name="offset"></param>
+    // <returns></returns>
     [Tested]
     public virtual bool TrySlide(int offset)
     {
       return TrySlide(offset, size);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <exception cref="NotAViewException"> if this list is not a view.</exception>
-    /// <param name="offset"></param>
-    /// <param name="size"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <exception cref="NotAViewException"> if this list is not a view.</exception>
+    // <param name="offset"></param>
+    // <param name="size"></param>
+    // <returns></returns>
     [Tested]
     public virtual bool TrySlide(int offset, int size)
     {
@@ -1284,24 +1260,24 @@ namespace RazorDB.C5
       if (underlying == null)
         throw new NotAViewException("Not a view");
 
-      int newoffset = this.offset + offset;
+      int newoffset = offset + offset;
       int newsize = size;
 
       if (newoffset < 0 || newsize < 0 || newoffset + newsize > underlyingsize)
         return false;
 
-      this.offset = newoffset;
-      this.size = newsize;
+      offset = newoffset;
+      size = newsize;
       return true;
     }
 
-    /// <summary>
-    /// 
-    /// <para>Returns null if <code>otherView</code> is strictly to the left of this view</para>
-    /// </summary>
-    /// <param name="otherView"></param>
-    /// <exception cref="IncompatibleViewException">If otherView does not have the same underlying list as this</exception>
-    /// <returns></returns>
+    //
+    // 
+    // <para>Returns null if <code>otherView</code> is strictly to the left of this view</para>
+    //
+    // <param name="otherView"></param>
+    // <exception cref="IncompatibleViewException">If otherView does not have the same underlying list as this</exception>
+    // <returns></returns>
     public virtual IList<T> Span(IList<T> otherView)
     {
       if ((otherView == null) || ((otherView.Underlying ?? otherView) != (underlying ?? this)))
@@ -1311,9 +1287,9 @@ namespace RazorDB.C5
       return (underlying ?? this).View(Offset, otherView.Offset + otherView.Count - Offset);
     }
 
-    /// <summary>
-    /// Reverst the list so the items are in the opposite sequence order.
-    /// </summary>
+    //
+    // Reverst the list so the items are in the opposite sequence order.
+    //
     [Tested]
     public virtual void Reverse()
     {
@@ -1335,20 +1311,20 @@ namespace RazorDB.C5
       (underlying ?? this).raiseCollectionChanged();
     }
 
-    /// <summary>
-    /// Check if this list is sorted according to the default sorting order
-    /// for the item type T, as defined by the <see cref="T:C5.Comparer`1"/> class 
-    /// </summary>
-    /// <exception cref="NotComparableException">if T is not comparable</exception>
-    /// <returns>True if the list is sorted, else false.</returns>
+    //
+    // Check if this list is sorted according to the default sorting order
+    // for the item type T, as defined by the <see cref="T:C5.Comparer`1"/> class 
+    //
+    // <exception cref="NotComparableException">if T is not comparable</exception>
+    // <returns>True if the list is sorted, else false.</returns>
     [Tested]
     public bool IsSorted() { return IsSorted(Comparer<T>.Default); }
 
-    /// <summary>
-    /// Check if this list is sorted according to a specific sorting order.
-    /// </summary>
-    /// <param name="c">The comparer defining the sorting order.</param>
-    /// <returns>True if the list is sorted, else false.</returns>
+    //
+    // Check if this list is sorted according to a specific sorting order.
+    //
+    // <param name="c">The comparer defining the sorting order.</param>
+    // <returns>True if the list is sorted, else false.</returns>
     [Tested]
     public virtual bool IsSorted(SCG.IComparer<T> c)
     {
@@ -1360,22 +1336,22 @@ namespace RazorDB.C5
       return true;
     }
 
-    /// <summary>
-    /// Sort the items of the list according to the default sorting order
-    /// for the item type T, as defined by the Comparer[T] class 
-    /// (<see cref="T:C5.Comparer`1"/>).
-    /// </summary>
-    /// <exception cref="InvalidOperationException">if T is not comparable</exception>
+    //
+    // Sort the items of the list according to the default sorting order
+    // for the item type T, as defined by the Comparer[T] class 
+    // (<see cref="T:C5.Comparer`1"/>).
+    //
+    // <exception cref="InvalidOperationException">if T is not comparable</exception>
     public virtual void Sort()
     {
       Sort(Comparer<T>.Default);
     }
 
 
-    /// <summary>
-    /// Sort the items of the list according to a specific sorting order.
-    /// </summary>
-    /// <param name="comparer">The comparer defining the sorting order.</param>
+    //
+    // Sort the items of the list according to a specific sorting order.
+    //
+    // <param name="comparer">The comparer defining the sorting order.</param>
     [Tested]
     public virtual void Sort(SCG.IComparer<T> comparer)
     {
@@ -1391,16 +1367,16 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Randomly shuffle the items of this list. 
-    /// </summary>
+    //
+    // Randomly shuffle the items of this list. 
+    //
     public virtual void Shuffle() { Shuffle(new C5Random()); }
 
 
-    /// <summary>
-    /// Shuffle the items of this list according to a specific random source.
-    /// </summary>
-    /// <param name="rnd">The random source.</param>
+    //
+    // Shuffle the items of this list according to a specific random source.
+    //
+    // <param name="rnd">The random source.</param>
     public virtual void Shuffle(Random rnd)
     {
       updatecheck();
@@ -1426,31 +1402,31 @@ namespace RazorDB.C5
 
     #region IIndexed<T> Members
 
-    /// <summary>
-    /// Search for an item in the list going forwrds from the start.
-    /// </summary>
-    /// <param name="item">Item to search for.</param>
-    /// <returns>Index of item from start.</returns>
+    //
+    // Search for an item in the list going forwrds from the start.
+    //
+    // <param name="item">Item to search for.</param>
+    // <returns>Index of item from start.</returns>
     [Tested]
     public virtual int IndexOf(T item) { validitycheck(); return indexOf(item); }
 
 
-    /// <summary>
-    /// Search for an item in the list going backwords from the end.
-    /// </summary>
-    /// <param name="item">Item to search for.</param>
-    /// <returns>Index of item from the end.</returns>
+    //
+    // Search for an item in the list going backwords from the end.
+    //
+    // <param name="item">Item to search for.</param>
+    // <returns>Index of item from the end.</returns>
     [Tested]
     public virtual int LastIndexOf(T item) { validitycheck(); return lastIndexOf(item); }
 
 
-    /// <summary>
-    /// Remove the item at a specific position of the list.
-    /// </summary>
-    /// <exception cref="IndexOutOfRangeException"> if index is negative or
-    /// &gt;= the size of the collection.</exception>
-    /// <param name="index">The index of the item to remove.</param>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the item at a specific position of the list.
+    //
+    // <exception cref="IndexOutOfRangeException"> if index is negative or
+    // &gt;= the size of the collection.</exception>
+    // <param name="index">The index of the item to remove.</param>
+    // <returns>The removed item.</returns>
     [Tested]
     public virtual T RemoveAt(int index)
     {
@@ -1464,13 +1440,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove all items in an index interval.
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">If <code>start</code>
-    /// and <code>count</code> does not describe a valid interval in the list</exception> 
-    /// <param name="start">The index of the first item to remove.</param>
-    /// <param name="count">The number of items to remove.</param>
+    //
+    // Remove all items in an index interval.
+    //
+    // <exception cref="ArgumentOutOfRangeException">If <code>start</code>
+    // and <code>count</code> does not describe a valid interval in the list</exception> 
+    // <param name="start">The index of the first item to remove.</param>
+    // <param name="count">The number of items to remove.</param>
     [Tested]
     public virtual void RemoveInterval(int start, int count)
     {
@@ -1508,12 +1484,12 @@ namespace RazorDB.C5
 
     #region ICollection<T> Members
 
-    /// <summary>
-    /// The value is symbolic indicating the type of asymptotic complexity
-    /// in terms of the size of this collection (worst-case or amortized as
-    /// relevant).
-    /// </summary>
-    /// <value>Speed.Linear</value>
+    //
+    // The value is symbolic indicating the type of asymptotic complexity
+    // in terms of the size of this collection (worst-case or amortized as
+    // relevant).
+    //
+    // <value>Speed.Linear</value>
     [Tested]
     public virtual Speed ContainsSpeed
     {
@@ -1528,41 +1504,41 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     [Tested]
     public override int GetUnsequencedHashCode()
     { validitycheck(); return base.GetUnsequencedHashCode(); }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="that"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="that"></param>
+    // <returns></returns>
     [Tested]
     public override bool UnsequencedEquals(ICollection<T> that)
     { validitycheck(); return base.UnsequencedEquals(that); }
 
-    /// <summary>
-    /// Check if this collection contains (an item equivalent to according to the
-    /// itemequalityComparer) a particular value.
-    /// </summary>
-    /// <param name="item">The value to check for.</param>
-    /// <returns>True if the items is in this collection.</returns>
+    //
+    // Check if this collection contains (an item equivalent to according to the
+    // itemequalityComparer) a particular value.
+    //
+    // <param name="item">The value to check for.</param>
+    // <returns>True if the items is in this collection.</returns>
     [Tested]
     public virtual bool Contains(T item)
     { validitycheck(); return indexOf(item) >= 0; }
 
 
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, return in the ref argument (a
-    /// binary copy of) the actual value found.
-    /// </summary>
-    /// <param name="item">The value to look for.</param>
-    /// <returns>True if the items is in this collection.</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, return in the ref argument (a
+    // binary copy of) the actual value found.
+    //
+    // <param name="item">The value to look for.</param>
+    // <returns>True if the items is in this collection.</returns>
     [Tested]
     public virtual bool Find(ref T item)
     {
@@ -1580,14 +1556,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, update the item in the collection 
-    /// to with a binary copy of the supplied value. This will only update the first 
-    /// mathching item.
-    /// </summary>
-    /// <param name="item">Value to update.</param>
-    /// <returns>True if the item was found and hence updated.</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, update the item in the collection 
+    // to with a binary copy of the supplied value. This will only update the first 
+    // mathching item.
+    //
+    // <param name="item">Value to update.</param>
+    // <returns>True if the item was found and hence updated.</returns>
     [Tested]
     public virtual bool Update(T item)
     {
@@ -1595,12 +1571,12 @@ namespace RazorDB.C5
       return Update(item, out olditem);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="olditem"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="item"></param>
+    // <param name="olditem"></param>
+    // <returns></returns>
     public virtual bool Update(T item, out T olditem)
     {
       updatecheck();
@@ -1621,13 +1597,13 @@ namespace RazorDB.C5
       return false;
     }
 
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, return in the ref argument (a
-    /// binary copy of) the actual value found. Else, add the item to the collection.
-    /// </summary>
-    /// <param name="item">The value to look for.</param>
-    /// <returns>True if the item was found (hence not added).</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, return in the ref argument (a
+    // binary copy of) the actual value found. Else, add the item to the collection.
+    //
+    // <param name="item">The value to look for.</param>
+    // <returns>True if the item was found (hence not added).</returns>
     [Tested]
     public virtual bool FindOrAdd(ref T item)
     {
@@ -1640,14 +1616,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, update the item in the collection 
-    /// to with a binary copy of the supplied value. This will only update the first 
-    /// mathching item.
-    /// </summary>
-    /// <param name="item">Value to update.</param>
-    /// <returns>True if the item was found and hence updated.</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, update the item in the collection 
+    // to with a binary copy of the supplied value. This will only update the first 
+    // mathching item.
+    //
+    // <param name="item">Value to update.</param>
+    // <returns>True if the item was found and hence updated.</returns>
     [Tested]
     public virtual bool UpdateOrAdd(T item)
     {
@@ -1659,12 +1635,12 @@ namespace RazorDB.C5
       return false;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="olditem"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="item"></param>
+    // <param name="olditem"></param>
+    // <returns></returns>
     public virtual bool UpdateOrAdd(T item, out T olditem)
     {
       updatecheck();
@@ -1676,13 +1652,13 @@ namespace RazorDB.C5
       return false;
     }
 
-    /// <summary>
-    /// Remove a particular item from this list. The item will be searched 
-    /// for from the end of the list if <code>FIFO == false</code> (the default), 
-    /// else from the start.
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
-    /// <returns>True if the item was found (and removed).</returns>
+    //
+    // Remove a particular item from this list. The item will be searched 
+    // for from the end of the list if <code>FIFO == false</code> (the default), 
+    // else from the start.
+    //
+    // <param name="item">The value to remove.</param>
+    // <returns>True if the item was found (and removed).</returns>
     [Tested]
     public virtual bool Remove(T item)
     {
@@ -1699,16 +1675,16 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove the first copy of a particular item from this collection if found.
-    /// If an item was removed, report a binary copy of the actual item removed in 
-    /// the argument. The item will be searched 
-    /// for from the end of the list if <code>FIFO == false</code> (the default), 
-    /// else from the start.
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
-    /// <param name="removeditem">The removed value.</param>
-    /// <returns>True if the item was found (and removed).</returns>
+    //
+    // Remove the first copy of a particular item from this collection if found.
+    // If an item was removed, report a binary copy of the actual item removed in 
+    // the argument. The item will be searched 
+    // for from the end of the list if <code>FIFO == false</code> (the default), 
+    // else from the start.
+    //
+    // <param name="item">The value to remove.</param>
+    // <param name="removeditem">The removed value.</param>
+    // <returns>True if the item was found (and removed).</returns>
     [Tested]
     public virtual bool Remove(T item, out T removeditem)
     {
@@ -1729,12 +1705,12 @@ namespace RazorDB.C5
 
 
     //TODO: remove from end or according to FIFO?
-    /// <summary>
-    /// Remove all items in another collection from this one, taking multiplicities into account.
-    /// Matching items will be removed from the front. Current implementation is not optimal.
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to remove.</param>
+    //
+    // Remove all items in another collection from this one, taking multiplicities into account.
+    // Matching items will be removed from the front. Current implementation is not optimal.
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to remove.</param>
     [Tested]
     public virtual void RemoveAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1801,10 +1777,10 @@ namespace RazorDB.C5
         raiseHandler.Raise();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="predicate"></param>
+    //
+    // 
+    //
+    // <param name="predicate"></param>
     void RemoveAll(Fun<T, bool> predicate)
     {
       updatecheck();
@@ -1869,9 +1845,9 @@ namespace RazorDB.C5
         raiseHandler.Raise();
     }
 
-    /// <summary>
-    /// Remove all items from this collection, resetting internal array size.
-    /// </summary>
+    //
+    // Remove all items from this collection, resetting internal array size.
+    //
     [Tested]
     public override void Clear()
     {
@@ -1893,12 +1869,12 @@ namespace RazorDB.C5
         RemoveInterval(0, size);
     }
 
-    /// <summary>
-    /// Remove all items not in some other collection from this one, taking multiplicities into account.
-    /// Items are retained front first.  
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to retain.</param>
+    //
+    // Remove all items not in some other collection from this one, taking multiplicities into account.
+    // Items are retained front first.  
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to retain.</param>
     [Tested]
     public virtual void RetainAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1966,10 +1942,10 @@ namespace RazorDB.C5
       raiseHandler.Raise();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="predicate"></param>
+    //
+    // 
+    //
+    // <param name="predicate"></param>
     void RetainAll(Fun<T, bool> predicate)
     {
       updatecheck();
@@ -2034,14 +2010,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if this collection contains all the values in another collection,
-    /// taking multiplicities into account.
-    /// Current implementation is not optimal.
-    /// </summary>
-    /// <param name="items">The </param>
-    /// <typeparam name="U"></typeparam>
-    /// <returns>True if all values in <code>items</code>is in this collection.</returns>
+    //
+    // Check if this collection contains all the values in another collection,
+    // taking multiplicities into account.
+    // Current implementation is not optimal.
+    //
+    // <param name="items">The </param>
+    // <typeparam name="U"></typeparam>
+    // <returns>True if all values in <code>items</code>is in this collection.</returns>
     [Tested]
     public virtual bool ContainsAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -2069,12 +2045,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Count the number of items of the collection equal to a particular value.
-    /// Returns 0 if and only if the value is not in the collection.
-    /// </summary>
-    /// <param name="item">The value to count.</param>
-    /// <returns>The number of copies found.</returns>
+    //
+    // Count the number of items of the collection equal to a particular value.
+    // Returns 0 if and only if the value is not in the collection.
+    //
+    // <param name="item">The value to count.</param>
+    // <returns>The number of copies found.</returns>
     [Tested]
     public virtual int ContainsCount(T item)
     {
@@ -2090,10 +2066,10 @@ namespace RazorDB.C5
 #endif
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public virtual ICollectionValue<T> UniqueItems()
     {
 #if HASHINDEX
@@ -2105,10 +2081,10 @@ namespace RazorDB.C5
 #endif
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public virtual ICollectionValue<KeyValuePair<T, int>> ItemMultiplicities()
     {
 #if HASHINDEX
@@ -2124,10 +2100,10 @@ namespace RazorDB.C5
 
 
 
-    /// <summary>
-    /// Remove all items equal to a given one.
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
+    //
+    // Remove all items equal to a given one.
+    //
+    // <param name="item">The value to remove.</param>
     [Tested]
     public virtual void RemoveAllCopies(T item)
     {
@@ -2171,10 +2147,10 @@ namespace RazorDB.C5
 
 
     //TODO: check views
-    /// <summary>
-    /// Check the integrity of the internal data structures of this array list.
-    /// </summary>
-    /// <returns>True if check does not fail.</returns>
+    //
+    // Check the integrity of the internal data structures of this array list.
+    //
+    // <returns>True if check does not fail.</returns>
     [Tested]
     public override bool Check()
     {
@@ -2261,10 +2237,10 @@ namespace RazorDB.C5
 
     #region IExtensible<T> Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>True, indicating array list has bag semantics.</value>
+    //
+    // 
+    //
+    // <value>True, indicating array list has bag semantics.</value>
     [Tested]
     public virtual bool AllowsDuplicates
     {
@@ -2279,11 +2255,11 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// By convention this is true for any collection with set semantics.
-    /// </summary>
-    /// <value>True if only one representative of a group of equal items 
-    /// is kept in the collection together with the total count.</value>
+    //
+    // By convention this is true for any collection with set semantics.
+    //
+    // <value>True if only one representative of a group of equal items 
+    // is kept in the collection together with the total count.</value>
     public virtual bool DuplicatesByCounting
     {
       get
@@ -2296,11 +2272,11 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// Add an item to end of this list.
-    /// </summary>
-    /// <param name="item">The item to add.</param>
-    /// <returns>True</returns>
+    //
+    // Add an item to end of this list.
+    //
+    // <param name="item">The item to add.</param>
+    // <returns>True</returns>
     [Tested]
     public virtual bool Add(T item)
     {
@@ -2319,11 +2295,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Add the elements from another collection to this collection.
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items"></param>
+    //
+    // Add the elements from another collection to this collection.
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items"></param>
     [Tested]
     public virtual void AddAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -2369,7 +2345,7 @@ namespace RazorDB.C5
         }
       }
     }
-    private void raiseForAddAll(int start, int added)
+    void raiseForAddAll(int start, int added)
     {
       if ((ActiveEvents & EventTypeEnum.Added) != 0)
         for (int i = start, end = start + added; i < end; i++)
@@ -2381,33 +2357,33 @@ namespace RazorDB.C5
 
     #region IDirectedEnumerable<T> Members
 
-    /// <summary>
-    /// Create a collection containing the same items as this collection, but
-    /// whose enumerator will enumerate the items backwards. The new collection
-    /// will become invalid if the original is modified. Method typicaly used as in
-    /// <code>foreach (T x in coll.Backwards()) {...}</code>
-    /// </summary>
-    /// <returns>The backwards collection.</returns>
+    //
+    // Create a collection containing the same items as this collection, but
+    // whose enumerator will enumerate the items backwards. The new collection
+    // will become invalid if the original is modified. Method typicaly used as in
+    // <code>foreach (T x in coll.Backwards()) {...}</code>
+    //
+    // <returns>The backwards collection.</returns>
     [Tested]
     IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards() { return Backwards(); }
 
     #endregion
 
     #region ICollectionValue<T> Members
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>The number of items in this collection</value>
+    //
+    // 
+    //
+    // <value>The number of items in this collection</value>
     [Tested]
     public override int Count { [Tested]get { validitycheck(); return size; } }
     #endregion
 
     #region IEnumerable<T> Members
     //TODO: make tests of all calls on a disposed view throws the right exception! (Which should be C5.InvalidListViewException)
-    /// <summary>
-    /// Create an enumerator for the collection
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for the collection
+    //
+    // <returns>The enumerator</returns>
     [Tested]
     public override SCG.IEnumerator<T> GetEnumerator()
     {
@@ -2420,20 +2396,20 @@ namespace RazorDB.C5
 #else
     #region IStack<T> Members
 
-    /// <summary>
-    /// Push an item to the top of the stack.
-    /// </summary>
-    /// <param name="item">The item</param>
+    //
+    // Push an item to the top of the stack.
+    //
+    // <param name="item">The item</param>
     [Tested]
     public virtual void Push(T item)
     {
       InsertLast(item);
     }
 
-    /// <summary>
-    /// Pop the item at the top of the stack from the stack.
-    /// </summary>
-    /// <returns>The popped item.</returns>
+    //
+    // Pop the item at the top of the stack from the stack.
+    //
+    // <returns>The popped item.</returns>
     [Tested]
     public virtual T Pop()
     {
@@ -2444,20 +2420,20 @@ namespace RazorDB.C5
 
     #region IQueue<T> Members
 
-    /// <summary>
-    /// Enqueue an item at the back of the queue. 
-    /// </summary>
-    /// <param name="item">The item</param>
+    //
+    // Enqueue an item at the back of the queue. 
+    //
+    // <param name="item">The item</param>
     [Tested]
     public virtual void Enqueue(T item)
     {
       InsertLast(item);
     }
 
-    /// <summary>
-    /// Dequeue an item from the front of the queue.
-    /// </summary>
-    /// <returns>The item</returns>
+    //
+    // Dequeue an item from the front of the queue.
+    //
+    // <returns>The item</returns>
     [Tested]
     public virtual T Dequeue()
     {
@@ -2468,10 +2444,10 @@ namespace RazorDB.C5
 #endif
     #region IDisposable Members
 
-    /// <summary>
-    /// Invalidate this list. If a view, just invalidate the view. 
-    /// If not a view, invalidate the list and all views on it.
-    /// </summary>
+    //
+    // Invalidate this list. If a view, just invalidate the view. 
+    // If not a view, invalidate the list and all views on it.
+    //
     public virtual void Dispose()
     {
       Dispose(false);
@@ -2505,10 +2481,10 @@ namespace RazorDB.C5
 
     #region ICloneable Members
 
-    /// <summary>
-    /// Make a shallow copy of this HashedArrayList.
-    /// </summary>
-    /// <returns></returns>
+    //
+    // Make a shallow copy of this HashedArrayList.
+    //
+    // <returns></returns>
     public virtual object Clone()
     {
       HashedArrayList<T> clone = new HashedArrayList<T>(size, itemequalityComparer);
@@ -2520,11 +2496,11 @@ namespace RazorDB.C5
 
     #region ISerializable Members
     /*
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="info"></param>
-    /// <param name="context"></param>
+    //
+    // 
+    //
+    // <param name="info"></param>
+    // <param name="context"></param>
     public HashedArrayList(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) :
       this(info.GetInt32("sz"),(SCG.IEqualityComparer<T>)(info.GetValue("eq",typeof(SCG.IEqualityComparer<T>))))
     {
@@ -2538,11 +2514,11 @@ namespace RazorDB.C5
 #endif      
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="info"></param>
-    /// <param name="context"></param>
+    //
+    // 
+    //
+    // <param name="info"></param>
+    // <param name="context"></param>
     public void GetObjectData(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
     {
       info.AddValue("sz", size);

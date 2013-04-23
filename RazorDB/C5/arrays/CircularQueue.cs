@@ -1,33 +1,10 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
+
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <typeparam name="T"></typeparam>
+  // <typeparam name="T"></typeparam>
   public class CircularQueue<T> : SequencedBase<T>, IQueue<T>, IStack<T>
   {
     #region Fields
@@ -40,19 +17,12 @@ namespace RazorDB.C5
 
         */
     int front, back;
-    /// <summary>
-    /// The internal container array is doubled when necessary, but never shrinked.
-    /// </summary>
+    // The internal container array is doubled when necessary, but never shrinked.
     T[] array;
     bool forwards = true, original = true;
     #endregion
 
     #region Events
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
     public override EventTypeEnum ListenableEvents { get { return EventTypeEnum.Basic; } }
 
     #endregion
@@ -80,16 +50,8 @@ namespace RazorDB.C5
     #endregion
 
     #region Constructors
-
-    /// <summary>
-    /// 
-    /// </summary>
     public CircularQueue() : this(8) { }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="capacity"></param>
+    // <param name="capacity"></param>
     public CircularQueue(int capacity)
       : base(EqualityComparer<T>.Default)
     {
@@ -101,17 +63,12 @@ namespace RazorDB.C5
     #endregion
 
     #region IQueue<T> Members
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
     public virtual bool AllowsDuplicates { get { return true; } }
 
-    /// <summary>
-    /// Get the i'th item in the queue. The front of the queue is at index 0.
-    /// </summary>
-    /// <param name="i"></param>
-    /// <returns></returns>
+
+    // Get the i'th item in the queue. The front of the queue is at index 0.
+    // <param name="i"></param>
+    // <returns></returns>
     public virtual T this[int i]
     {
       get
@@ -124,11 +81,7 @@ namespace RazorDB.C5
       }
     }
 
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
+    // <param name="item"></param>
     [Tested]
     public virtual void Enqueue(T item)
     {
@@ -144,10 +97,6 @@ namespace RazorDB.C5
         raiseForAdd(item);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     [Tested]
     public virtual T Dequeue()
     {
@@ -166,10 +115,7 @@ namespace RazorDB.C5
       return retval;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
+    // <param name="item"></param>
     public void Push(T item) //== Enqueue
     {
       if (!original)
@@ -184,10 +130,6 @@ namespace RazorDB.C5
         raiseForAdd(item);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public T Pop()
     {
       if (!original)
@@ -218,10 +160,6 @@ namespace RazorDB.C5
         {
         }*/
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     [Tested]
     public override T Choose()
     {
@@ -233,21 +171,16 @@ namespace RazorDB.C5
     #endregion
 
     #region IEnumerable<T> Members
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public override SCG.IEnumerator<T> GetEnumerator()
     {
-      int stamp = this.stamp;
+      int s = stamp;
       if (forwards)
       {
         int position = front;
         int end = front <= back ? back : array.Length;
         while (position < end)
         {
-          if (stamp != this.stamp)
+          if (s != stamp)
             throw new CollectionModifiedException();
           yield return array[position++];
         }
@@ -256,7 +189,7 @@ namespace RazorDB.C5
           position = 0;
           while (position < back)
           {
-            if (stamp != this.stamp)
+            if (s != stamp)
               throw new CollectionModifiedException();
             yield return array[position++];
           }
@@ -268,7 +201,7 @@ namespace RazorDB.C5
         int end = front <= back ? front : 0;
         while (position >= end)
         {
-          if (stamp != this.stamp)
+          if (s != stamp)
             throw new CollectionModifiedException();
           yield return array[position--];
         }
@@ -277,7 +210,7 @@ namespace RazorDB.C5
           position = array.Length - 1;
           while (position >= front)
           {
-            if (stamp != this.stamp)
+            if (s != stamp)
               throw new CollectionModifiedException();
             yield return array[position--];
           }
@@ -288,11 +221,6 @@ namespace RazorDB.C5
     #endregion
 
     #region IDirectedCollectionValue<T> Members
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public override IDirectedCollectionValue<T> Backwards()
     {
       CircularQueue<T> retval = (CircularQueue<T>)MemberwiseClone();
@@ -304,22 +232,12 @@ namespace RazorDB.C5
     #endregion
 
     #region IDirectedEnumerable<T> Members
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards()
     {
       return Backwards();
     }
 
     #endregion
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
     public virtual bool Check()
     {
       if (front < 0 || front >= array.Length || back < 0 || back >= array.Length ||

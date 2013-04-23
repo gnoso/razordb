@@ -1,24 +1,3 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 #define IMPROVED_COLLECTION_HASHFUNCTION
 
 using System;
@@ -26,23 +5,23 @@ using System.Diagnostics;
 using SCG = System.Collections.Generic;
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// A base class for implementing an IEnumerable&lt;T&gt;
-  /// </summary>
+  //
+  // A base class for implementing an IEnumerable&lt;T&gt;
+  //
   [Serializable]
   public abstract class EnumerableBase<T> : SCG.IEnumerable<T>
   {
-    /// <summary>
-    /// Create an enumerator for this collection.
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for this collection.
+    //
+    // <returns>The enumerator</returns>
     public abstract SCG.IEnumerator<T> GetEnumerator();
 
-    /// <summary>
-    /// Count the number of items in an enumerable by enumeration
-    /// </summary>
-    /// <param name="items">The enumerable to count</param>
-    /// <returns>The size of the enumerable</returns>
+    //
+    // Count the number of items in an enumerable by enumeration
+    //
+    // <param name="items">The enumerable to count</param>
+    // <returns>The size of the enumerable</returns>
     [Tested]
     protected static int countItems(SCG.IEnumerable<T> items)
     {
@@ -70,35 +49,35 @@ namespace RazorDB.C5
   }
 
 
-  /// <summary>
-  /// Base class for classes implementing ICollectionValue[T]
-  /// </summary>
+  //
+  // Base class for classes implementing ICollectionValue[T]
+  //
   [Serializable]
   public abstract class CollectionValueBase<T> : EnumerableBase<T>, ICollectionValue<T>, IShowable
   {
     #region Event handling
     EventBlock<T> eventBlock;
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public virtual EventTypeEnum ListenableEvents { get { return 0; } }
 
-    /// <summary>
-    /// A flag bitmap of the events currently subscribed to by this collection.
-    /// </summary>
-    /// <value></value>
+    //
+    // A flag bitmap of the events currently subscribed to by this collection.
+    //
+    // <value></value>
     public virtual EventTypeEnum ActiveEvents { get { return eventBlock == null ? 0 : eventBlock.events; } }
 
-    private void checkWillListen(EventTypeEnum eventType)
+    void checkWillListen(EventTypeEnum eventType)
     {
       if ((ListenableEvents & eventType) == 0)
         throw new UnlistenableEventException();
     }
 
-    /// <summary>
-    /// The change event. Will be raised for every change operation on the collection.
-    /// </summary>
+    //
+    // The change event. Will be raised for every change operation on the collection.
+    //
     public virtual event CollectionChangedHandler<T> CollectionChanged
     {
       add { checkWillListen(EventTypeEnum.Changed); (eventBlock ?? (eventBlock = new EventBlock<T>())).CollectionChanged += value; }
@@ -112,15 +91,15 @@ namespace RazorDB.C5
         }
       }
     }
-    /// <summary>
-    /// Fire the CollectionChanged event
-    /// </summary>
+    //
+    // Fire the CollectionChanged event
+    //
     protected virtual void raiseCollectionChanged()
     { if (eventBlock != null) eventBlock.raiseCollectionChanged(this); }
 
-    /// <summary>
-    /// The clear event. Will be raised for every Clear operation on the collection.
-    /// </summary>
+    //
+    // The clear event. Will be raised for every Clear operation on the collection.
+    //
     public virtual event CollectionClearedHandler<T> CollectionCleared
     {
       add { checkWillListen(EventTypeEnum.Cleared); (eventBlock ?? (eventBlock = new EventBlock<T>())).CollectionCleared += value; }
@@ -134,21 +113,21 @@ namespace RazorDB.C5
         }
       }
     }
-    /// <summary>
-    /// Fire the CollectionCleared event
-    /// </summary>
+    //
+    // Fire the CollectionCleared event
+    //
     protected virtual void raiseCollectionCleared(bool full, int count)
     { if (eventBlock != null) eventBlock.raiseCollectionCleared(this, full, count); }
 
-    /// <summary>
-    /// Fire the CollectionCleared event
-    /// </summary>
+    //
+    // Fire the CollectionCleared event
+    //
     protected virtual void raiseCollectionCleared(bool full, int count, int? offset)
     { if (eventBlock != null) eventBlock.raiseCollectionCleared(this, full, count, offset); }
 
-    /// <summary>
-    /// The item added  event. Will be raised for every individual addition to the collection.
-    /// </summary>
+    //
+    // The item added  event. Will be raised for every individual addition to the collection.
+    //
     public virtual event ItemsAddedHandler<T> ItemsAdded
     {
       add { checkWillListen(EventTypeEnum.Added); (eventBlock ?? (eventBlock = new EventBlock<T>())).ItemsAdded += value; }
@@ -162,17 +141,17 @@ namespace RazorDB.C5
         }
       }
     }
-    /// <summary>
-    /// Fire the ItemsAdded event
-    /// </summary>
-    /// <param name="item">The item that was added</param>
-    /// <param name="count"></param>
+    //
+    // Fire the ItemsAdded event
+    //
+    // <param name="item">The item that was added</param>
+    // <param name="count"></param>
     protected virtual void raiseItemsAdded(T item, int count)
     { if (eventBlock != null) eventBlock.raiseItemsAdded(this, item, count); }
 
-    /// <summary>
-    /// The item removed event. Will be raised for every individual removal from the collection.
-    /// </summary>
+    //
+    // The item removed event. Will be raised for every individual removal from the collection.
+    //
     public virtual event ItemsRemovedHandler<T> ItemsRemoved
     {
       add { checkWillListen(EventTypeEnum.Removed); (eventBlock ?? (eventBlock = new EventBlock<T>())).ItemsRemoved += value; }
@@ -186,17 +165,17 @@ namespace RazorDB.C5
         }
       }
     }
-    /// <summary>
-    /// Fire the ItemsRemoved event
-    /// </summary>
-    /// <param name="item">The item that was removed</param>
-    /// <param name="count"></param>
+    //
+    // Fire the ItemsRemoved event
+    //
+    // <param name="item">The item that was removed</param>
+    // <param name="count"></param>
     protected virtual void raiseItemsRemoved(T item, int count)
     { if (eventBlock != null) eventBlock.raiseItemsRemoved(this, item, count); }
 
-    /// <summary>
-    /// The item added  event. Will be raised for every individual addition to the collection.
-    /// </summary>
+    //
+    // The item added  event. Will be raised for every individual addition to the collection.
+    //
     public virtual event ItemInsertedHandler<T> ItemInserted
     {
       add { checkWillListen(EventTypeEnum.Inserted); (eventBlock ?? (eventBlock = new EventBlock<T>())).ItemInserted += value; }
@@ -210,17 +189,17 @@ namespace RazorDB.C5
         }
       }
     }
-    /// <summary>
-    /// Fire the ItemInserted event
-    /// </summary>
-    /// <param name="item">The item that was added</param>
-    /// <param name="index"></param>
+    //
+    // Fire the ItemInserted event
+    //
+    // <param name="item">The item that was added</param>
+    // <param name="index"></param>
     protected virtual void raiseItemInserted(T item, int index)
     { if (eventBlock != null) eventBlock.raiseItemInserted(this, item, index); }
 
-    /// <summary>
-    /// The item removed event. Will be raised for every individual removal from the collection.
-    /// </summary>
+    //
+    // The item removed event. Will be raised for every individual removal from the collection.
+    //
     public virtual event ItemRemovedAtHandler<T> ItemRemovedAt
     {
       add { checkWillListen(EventTypeEnum.RemovedAt); (eventBlock ?? (eventBlock = new EventBlock<T>())).ItemRemovedAt += value; }
@@ -234,21 +213,21 @@ namespace RazorDB.C5
         }
       }
     }
-    /// <summary> 
-    /// Fire the ItemRemovedAt event
-    /// </summary>
-    /// <param name="item">The item that was removed</param>
-    /// <param name="index"></param>
+    // 
+    // Fire the ItemRemovedAt event
+    //
+    // <param name="item">The item that was removed</param>
+    // <param name="index"></param>
     protected virtual void raiseItemRemovedAt(T item, int index)
     { if (eventBlock != null) eventBlock.raiseItemRemovedAt(this, item, index); }
 
     #region Event support for IList
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="index"></param>
-    /// <param name="value"></param>
-    /// <param name="item"></param>
+    //
+    // 
+    //
+    // <param name="index"></param>
+    // <param name="value"></param>
+    // <param name="item"></param>
     protected virtual void raiseForSetThis(int index, T value, T item)
     {
       if (ActiveEvents != 0)
@@ -260,11 +239,11 @@ namespace RazorDB.C5
         raiseCollectionChanged();
       }
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="i"></param>
-    /// <param name="item"></param>
+    //
+    // 
+    //
+    // <param name="i"></param>
+    // <param name="item"></param>
     protected virtual void raiseForInsert(int i, T item)
     {
       if (ActiveEvents != 0)
@@ -275,10 +254,10 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
+    //
+    // 
+    //
+    // <param name="item"></param>
     protected void raiseForRemove(T item)
     {
       if (ActiveEvents != 0)
@@ -288,11 +267,11 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="count"></param>
+    //
+    // 
+    //
+    // <param name="item"></param>
+    // <param name="count"></param>
     protected void raiseForRemove(T item, int count)
     {
       if (ActiveEvents != 0)
@@ -302,11 +281,11 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="index"></param>
-    /// <param name="item"></param>
+    //
+    // 
+    //
+    // <param name="index"></param>
+    // <param name="item"></param>
     protected void raiseForRemoveAt(int index, T item)
     {
       if (ActiveEvents != 0)
@@ -320,11 +299,11 @@ namespace RazorDB.C5
     #endregion
 
     #region Event  Support for ICollection
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="newitem"></param>
-    /// <param name="olditem"></param>
+    //
+    // 
+    //
+    // <param name="newitem"></param>
+    // <param name="olditem"></param>
     protected virtual void raiseForUpdate(T newitem, T olditem)
     {
       if (ActiveEvents != 0)
@@ -334,12 +313,12 @@ namespace RazorDB.C5
         raiseCollectionChanged();
       }
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="newitem"></param>
-    /// <param name="olditem"></param>
-    /// <param name="count"></param>
+    //
+    // 
+    //
+    // <param name="newitem"></param>
+    // <param name="olditem"></param>
+    // <param name="count"></param>
     protected virtual void raiseForUpdate(T newitem, T olditem, int count)
     {
       if (ActiveEvents != 0)
@@ -349,10 +328,10 @@ namespace RazorDB.C5
         raiseCollectionChanged();
       }
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
+    //
+    // 
+    //
+    // <param name="item"></param>
     protected virtual void raiseForAdd(T item)
     {
       if (ActiveEvents != 0)
@@ -361,10 +340,10 @@ namespace RazorDB.C5
         raiseCollectionChanged();
       }
     }
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="wasRemoved"></param>
+    //
+    // 
+    //
+    // <param name="wasRemoved"></param>
     protected virtual void raiseForRemoveAll(ICollectionValue<T> wasRemoved)
     {
       if ((ActiveEvents & EventTypeEnum.Removed) != 0)
@@ -374,36 +353,36 @@ namespace RazorDB.C5
         raiseCollectionChanged();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     protected class RaiseForRemoveAllHandler
     {
       CollectionValueBase<T> collection;
       CircularQueue<T> wasRemoved;
       bool wasChanged = false;
 
-      /// <summary>
-      /// 
-      /// </summary>
-      /// <param name="collection"></param>
-      public RaiseForRemoveAllHandler(CollectionValueBase<T> collection)
+      //
+      // 
+      //
+      // <param name="collection"></param>
+      public RaiseForRemoveAllHandler(CollectionValueBase<T> c)
       {
-        this.collection = collection;
+        collection = c;
         mustFireRemoved = (collection.ActiveEvents & EventTypeEnum.Removed) != 0;
         MustFire = (collection.ActiveEvents & (EventTypeEnum.Removed | EventTypeEnum.Changed)) != 0;
       }
 
       bool mustFireRemoved;
-      /// <summary>
-      /// 
-      /// </summary>
+      //
+      // 
+      //
       public readonly bool MustFire;
 
-      /// <summary>
-      /// 
-      /// </summary>
-      /// <param name="item"></param>
+      //
+      // 
+      //
+      // <param name="item"></param>
       public void Remove(T item)
       {
         if (mustFireRemoved)
@@ -416,9 +395,9 @@ namespace RazorDB.C5
           wasChanged = true;
       }
 
-      /// <summary>
-      /// 
-      /// </summary>
+      //
+      // 
+      //
       public void Raise()
       {
         if (wasRemoved != null)
@@ -432,36 +411,36 @@ namespace RazorDB.C5
 
     #endregion
 
-    /// <summary>
-    /// Check if collection is empty.
-    /// </summary>
-    /// <value>True if empty</value>
+    //
+    // Check if collection is empty.
+    //
+    // <value>True if empty</value>
     public abstract bool IsEmpty { get;}
 
-    /// <summary>
-    /// The number of items in this collection.
-    /// </summary>
-    /// <value></value>
+    //
+    // The number of items in this collection.
+    //
+    // <value></value>
     public abstract int Count { get;}
 
-    /// <summary>
-    /// The value is symbolic indicating the type of asymptotic complexity
-    /// in terms of the size of this collection (worst-case or amortized as
-    /// relevant).
-    /// </summary>
-    /// <value>A characterization of the speed of the 
-    /// <code>Count</code> property in this collection.</value>
+    //
+    // The value is symbolic indicating the type of asymptotic complexity
+    // in terms of the size of this collection (worst-case or amortized as
+    // relevant).
+    //
+    // <value>A characterization of the speed of the 
+    // <code>Count</code> property in this collection.</value>
     public abstract Speed CountSpeed { get; }
 
-    /// <summary>
-    /// Copy the items of this collection to part of an array.
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException"> if <code>index</code> 
-    /// is not a valid index
-    /// into the array (i.e. negative or greater than the size of the array)
-    /// or the array does not have room for the items.</exception>
-    /// <param name="array">The array to copy to.</param>
-    /// <param name="index">The starting index.</param>
+    //
+    // Copy the items of this collection to part of an array.
+    //
+    // <exception cref="ArgumentOutOfRangeException"> if <code>index</code> 
+    // is not a valid index
+    // into the array (i.e. negative or greater than the size of the array)
+    // or the array does not have room for the items.</exception>
+    // <param name="array">The array to copy to.</param>
+    // <param name="index">The starting index.</param>
     [Tested]
     public virtual void CopyTo(T[] array, int index)
     {
@@ -471,11 +450,11 @@ namespace RazorDB.C5
       foreach (T item in this) array[index++] = item;
     }
 
-    /// <summary>
-    /// Create an array with the items of this collection (in the same order as an
-    /// enumerator would output them).
-    /// </summary>
-    /// <returns>The array</returns>
+    //
+    // Create an array with the items of this collection (in the same order as an
+    // enumerator would output them).
+    //
+    // <returns>The array</returns>
     //[Tested]
     public virtual T[] ToArray()
     {
@@ -487,10 +466,10 @@ namespace RazorDB.C5
       return res;
     }
 
-    /// <summary>
-    /// Apply an single argument action, <see cref="T:C5.Act`1"/> to this enumerable
-    /// </summary>
-    /// <param name="action">The action delegate</param>
+    //
+    // Apply an single argument action, <see cref="T:C5.Act`1"/> to this enumerable
+    //
+    // <param name="action">The action delegate</param>
     [Tested]
     public virtual void Apply(Act<T> action)
     {
@@ -499,14 +478,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if there exists an item  that satisfies a
-    /// specific predicate in this collection.
-    /// </summary>
-    /// <param name="predicate">A delegate 
-    /// (<see cref="T:C5.Fun`2"/> with <code>R = bool</code>) 
-    /// defining the predicate</param>
-    /// <returns>True if such an item exists</returns>
+    //
+    // Check if there exists an item  that satisfies a
+    // specific predicate in this collection.
+    //
+    // <param name="predicate">A delegate 
+    // (<see cref="T:C5.Fun`2"/> with <code>R = bool</code>) 
+    // defining the predicate</param>
+    // <returns>True if such an item exists</returns>
     [Tested]
     public virtual bool Exists(Fun<T, bool> predicate)
     {
@@ -517,14 +496,14 @@ namespace RazorDB.C5
       return false;
     }
 
-    /// <summary>
-    /// Check if there exists an item  that satisfies a
-    /// specific predicate in this collection and return the first one in enumeration order.
-    /// </summary>
-    /// <param name="predicate">A delegate 
-    /// (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
-    /// <param name="item"></param>
-    /// <returns>True is such an item exists</returns>
+    //
+    // Check if there exists an item  that satisfies a
+    // specific predicate in this collection and return the first one in enumeration order.
+    //
+    // <param name="predicate">A delegate 
+    // (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
+    // <param name="item"></param>
+    // <returns>True is such an item exists</returns>
     public virtual bool Find(Fun<T, bool> predicate, out T item)
     {
       foreach (T jtem in this)
@@ -537,13 +516,13 @@ namespace RazorDB.C5
       return false;
     }
 
-    /// <summary>
-    /// Check if all items in this collection satisfies a specific predicate.
-    /// </summary>
-    /// <param name="predicate">A delegate 
-    /// (<see cref="T:C5.Fun`2"/> with <code>R = bool</code>) 
-    /// defining the predicate</param>
-    /// <returns>True if all items satisfies the predicate</returns>
+    //
+    // Check if all items in this collection satisfies a specific predicate.
+    //
+    // <param name="predicate">A delegate 
+    // (<see cref="T:C5.Fun`2"/> with <code>R = bool</code>) 
+    // defining the predicate</param>
+    // <returns>True if all items satisfies the predicate</returns>
     [Tested]
     public virtual bool All(Fun<T, bool> predicate)
     {
@@ -554,14 +533,14 @@ namespace RazorDB.C5
       return true;
     }
 
-    /// <summary>
-    /// Create an enumerable, enumerating the items of this collection that satisfies 
-    /// a certain condition.
-    /// </summary>
-    /// <param name="predicate">A delegate 
-    /// (<see cref="T:C5.Fun`2"/> with <code>R = bool</code>) 
-    /// defining the predicate</param>
-    /// <returns>The filtered enumerable</returns>
+    //
+    // Create an enumerable, enumerating the items of this collection that satisfies 
+    // a certain condition.
+    //
+    // <param name="predicate">A delegate 
+    // (<see cref="T:C5.Fun`2"/> with <code>R = bool</code>) 
+    // defining the predicate</param>
+    // <returns>The filtered enumerable</returns>
     public virtual SCG.IEnumerable<T> Filter(Fun<T, bool> predicate)
     {
       foreach (T item in this)
@@ -569,29 +548,29 @@ namespace RazorDB.C5
           yield return item;
     }
 
-    /// <summary>
-    /// Choose some item of this collection. 
-    /// </summary>
-    /// <exception cref="NoSuchItemException">if collection is empty.</exception>
-    /// <returns></returns>
+    //
+    // Choose some item of this collection. 
+    //
+    // <exception cref="NoSuchItemException">if collection is empty.</exception>
+    // <returns></returns>
     public abstract T Choose();
 
 
-    /// <summary>
-    /// Create an enumerator for this collection.
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for this collection.
+    //
+    // <returns>The enumerator</returns>
     public override abstract SCG.IEnumerator<T> GetEnumerator();
 
     #region IShowable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="stringbuilder"></param>
-    /// <param name="rest"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="stringbuilder"></param>
+    // <param name="rest"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public virtual bool Show(System.Text.StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       return Showing.ShowCollectionValue<T>(this, stringbuilder, ref rest, formatProvider);
@@ -600,12 +579,12 @@ namespace RazorDB.C5
 
     #region IFormattable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="format"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="format"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public virtual string ToString(string format, IFormatProvider formatProvider)
     {
       return Showing.ShowString(this, format, formatProvider);
@@ -613,10 +592,10 @@ namespace RazorDB.C5
 
     #endregion
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public override string ToString()
     {
       return ToString(null, null);
@@ -624,34 +603,34 @@ namespace RazorDB.C5
 
   }
 
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <typeparam name="T"></typeparam>
+  //
+  // 
+  //
+  // <typeparam name="T"></typeparam>
   public abstract class DirectedCollectionValueBase<T> : CollectionValueBase<T>, IDirectedCollectionValue<T>
   {
-    /// <summary>
-    /// <code>Forwards</code> if same, else <code>Backwards</code>
-    /// </summary>
-    /// <value>The enumeration direction relative to the original collection.</value>
+    //
+    // <code>Forwards</code> if same, else <code>Backwards</code>
+    //
+    // <value>The enumeration direction relative to the original collection.</value>
     public virtual EnumerationDirection Direction { [Tested]get { return EnumerationDirection.Forwards; } }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public abstract IDirectedCollectionValue<T> Backwards();
 
-    IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards() { return this.Backwards(); }
+    IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards() { return Backwards(); }
 
-    /// <summary>
-    /// Check if there exists an item  that satisfies a
-    /// specific predicate in this collection and return the first one in enumeration order.
-    /// </summary>
-    /// <param name="predicate">A delegate 
-    /// (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
-    /// <param name="item"></param>
-    /// <returns>True is such an item exists</returns>
+    //
+    // Check if there exists an item  that satisfies a
+    // specific predicate in this collection and return the first one in enumeration order.
+    //
+    // <param name="predicate">A delegate 
+    // (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
+    // <param name="item"></param>
+    // <returns>True is such an item exists</returns>
     public virtual bool FindLast(Fun<T, bool> predicate, out T item)
     {
       foreach (T jtem in Backwards())
@@ -665,58 +644,58 @@ namespace RazorDB.C5
     }
   }
 
-  /// <summary>
-  /// Base class (abstract) for ICollection implementations.
-  /// </summary>
+  //
+  // Base class (abstract) for ICollection implementations.
+  //
   [Serializable]
   public abstract class CollectionBase<T> : CollectionValueBase<T>
   {
     #region Fields
 
-    /// <summary>
-    /// The underlying field of the ReadOnly property
-    /// </summary>
+    //
+    // The underlying field of the ReadOnly property
+    //
     protected bool isReadOnlyBase = false;
 
-    /// <summary>
-    /// The current stamp value
-    /// </summary>
+    //
+    // The current stamp value
+    //
     protected int stamp;
 
-    /// <summary>
-    /// The number of items in the collection
-    /// </summary>
+    //
+    // The number of items in the collection
+    //
     protected int size;
 
-    /// <summary>
-    /// The item equalityComparer of the collection
-    /// </summary>
+    //
+    // The item equalityComparer of the collection
+    //
     protected readonly SCG.IEqualityComparer<T> itemequalityComparer;
 
     int iUnSequencedHashCode, iUnSequencedHashCodeStamp = -1;
 
     #endregion
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="itemequalityComparer"></param>
-    protected CollectionBase(SCG.IEqualityComparer<T> itemequalityComparer)
+    //
+    // 
+    //
+    // <param name="itemequalityComparer"></param>
+    protected CollectionBase(SCG.IEqualityComparer<T> i)
     {
       if (itemequalityComparer == null)
         throw new NullReferenceException("Item EqualityComparer cannot be null.");
-      this.itemequalityComparer = itemequalityComparer;
+      itemequalityComparer = i;
     }
 
     #region Util
 
-    /// <summary>
-    /// Utility method for range checking.
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException"> if the start or count is negative or
-    ///  if the range does not fit within collection size.</exception>
-    /// <param name="start">start of range</param>
-    /// <param name="count">size of range</param>
+    //
+    // Utility method for range checking.
+    //
+    // <exception cref="ArgumentOutOfRangeException"> if the start or count is negative or
+    //  if the range does not fit within collection size.</exception>
+    // <param name="start">start of range</param>
+    // <param name="count">size of range</param>
     [Tested]
     protected void checkRange(int start, int count)
     {
@@ -725,12 +704,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Compute the unsequenced hash code of a collection
-    /// </summary>
-    /// <param name="items">The collection to compute hash code for</param>
-    /// <param name="itemequalityComparer">The item equalityComparer</param>
-    /// <returns>The hash code</returns>
+    //
+    // Compute the unsequenced hash code of a collection
+    //
+    // <param name="items">The collection to compute hash code for</param>
+    // <param name="itemequalityComparer">The item equalityComparer</param>
+    // <returns>The hash code</returns>
     [Tested]
     public static int ComputeHashCode(ICollectionValue<T> items, SCG.IEqualityComparer<T> itemequalityComparer)
     {
@@ -775,16 +754,14 @@ namespace RazorDB.C5
 #endif
     }
 
-    static Type isortedtype = typeof(ISorted<T>);
-
-    /// <summary>
-    /// Examine if collection1 and collection2 are equal as unsequenced collections
-    /// using the specified item equalityComparer (assumed compatible with the two collections).
-    /// </summary>
-    /// <param name="collection1">The first collection</param>
-    /// <param name="collection2">The second collection</param>
-    /// <param name="itemequalityComparer">The item equalityComparer to use for comparison</param>
-    /// <returns>True if equal</returns>
+    //
+    // Examine if collection1 and collection2 are equal as unsequenced collections
+    // using the specified item equalityComparer (assumed compatible with the two collections).
+    //
+    // <param name="collection1">The first collection</param>
+    // <param name="collection2">The second collection</param>
+    // <param name="itemequalityComparer">The item equalityComparer to use for comparison</param>
+    // <returns>True if equal</returns>
     [Tested]
     public static bool StaticEquals(ICollection<T> collection1, ICollection<T> collection2, SCG.IEqualityComparer<T> itemequalityComparer)
     {
@@ -862,11 +839,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Get the unsequenced collection hash code of this collection: from the cached 
-    /// value if present and up to date, else (re)compute.
-    /// </summary>
-    /// <returns>The hash code</returns>
+    //
+    // Get the unsequenced collection hash code of this collection: from the cached 
+    // value if present and up to date, else (re)compute.
+    //
+    // <returns>The hash code</returns>
     public virtual int GetUnsequencedHashCode()
     {
       if (iUnSequencedHashCodeStamp == stamp)
@@ -878,35 +855,35 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if the contents of otherCollection is equal to the contents of this
-    /// in the unsequenced sense.  Uses the item equality comparer of this collection
-    /// </summary>
-    /// <param name="otherCollection">The collection to compare to.</param>
-    /// <returns>True if  equal</returns>
+    //
+    // Check if the contents of otherCollection is equal to the contents of this
+    // in the unsequenced sense.  Uses the item equality comparer of this collection
+    //
+    // <param name="otherCollection">The collection to compare to.</param>
+    // <returns>True if  equal</returns>
     public virtual bool UnsequencedEquals(ICollection<T> otherCollection)
     {
       return otherCollection != null && StaticEquals((ICollection<T>)this, otherCollection, itemequalityComparer);
     }
 
 
-    /// <summary>
-    /// Check if the collection has been modified since a specified time, expressed as a stamp value.
-    /// </summary>
-    /// <exception cref="CollectionModifiedException"> if this collection has been updated 
-    /// since a target time</exception>
-    /// <param name="thestamp">The stamp identifying the target time</param>
+    //
+    // Check if the collection has been modified since a specified time, expressed as a stamp value.
+    //
+    // <exception cref="CollectionModifiedException"> if this collection has been updated 
+    // since a target time</exception>
+    // <param name="thestamp">The stamp identifying the target time</param>
     protected virtual void modifycheck(int thestamp)
     {
-      if (this.stamp != thestamp)
+      if (stamp != thestamp)
         throw new CollectionModifiedException();
     }
 
 
-    /// <summary>
-    /// Check if it is valid to perform update operations, and if so increment stamp.
-    /// </summary>
-    /// <exception cref="ReadOnlyCollectionException">If colection is read-only</exception>
+    //
+    // Check if it is valid to perform update operations, and if so increment stamp.
+    //
+    // <exception cref="ReadOnlyCollectionException">If colection is read-only</exception>
     protected virtual void updatecheck()
     {
       if (isReadOnlyBase)
@@ -919,30 +896,30 @@ namespace RazorDB.C5
 
     #region ICollection<T> members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>True if this collection is read only</value>
+    //
+    // 
+    //
+    // <value>True if this collection is read only</value>
     [Tested]
     public virtual bool IsReadOnly { [Tested]get { return isReadOnlyBase; } }
 
     #endregion
 
     #region ICollectionValue<T> members
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>The size of this collection</value>
+    //
+    // 
+    //
+    // <value>The size of this collection</value>
     [Tested]
     public override int Count { [Tested]get { return size; } }
 
-    /// <summary>
-    /// The value is symbolic indicating the type of asymptotic complexity
-    /// in terms of the size of this collection (worst-case or amortized as
-    /// relevant).
-    /// </summary>
-    /// <value>A characterization of the speed of the 
-    /// <code>Count</code> property in this collection.</value>
+    //
+    // The value is symbolic indicating the type of asymptotic complexity
+    // in terms of the size of this collection (worst-case or amortized as
+    // relevant).
+    //
+    // <value>A characterization of the speed of the 
+    // <code>Count</code> property in this collection.</value>
     public override Speed CountSpeed { get { return Speed.Constant; } }
 
 
@@ -950,64 +927,64 @@ namespace RazorDB.C5
 
     #region IExtensible<T> members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public virtual SCG.IEqualityComparer<T> EqualityComparer { get { return itemequalityComparer; } }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>True if this collection is empty</value>
+    //
+    // 
+    //
+    // <value>True if this collection is empty</value>
     [Tested]
     public override bool IsEmpty { [Tested]get { return size == 0; } }
 
     #endregion
 
     #region IEnumerable<T> Members
-    /// <summary>
-    /// Create an enumerator for this collection.
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for this collection.
+    //
+    // <returns>The enumerator</returns>
     public override abstract SCG.IEnumerator<T> GetEnumerator();
     #endregion
   }
 
-  /// <summary>
-  /// 
-  /// </summary>
-  /// <typeparam name="T"></typeparam>
+  //
+  // 
+  //
+  // <typeparam name="T"></typeparam>
   [Serializable]
   public abstract class DirectedCollectionBase<T> : CollectionBase<T>, IDirectedCollectionValue<T>
   {
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="itemequalityComparer"></param>
+    //
+    // 
+    //
+    // <param name="itemequalityComparer"></param>
     protected DirectedCollectionBase(SCG.IEqualityComparer<T> itemequalityComparer) : base(itemequalityComparer) { }
-    /// <summary>
-    /// <code>Forwards</code> if same, else <code>Backwards</code>
-    /// </summary>
-    /// <value>The enumeration direction relative to the original collection.</value>
+    //
+    // <code>Forwards</code> if same, else <code>Backwards</code>
+    //
+    // <value>The enumeration direction relative to the original collection.</value>
     public virtual EnumerationDirection Direction { [Tested]get { return EnumerationDirection.Forwards; } }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public abstract IDirectedCollectionValue<T> Backwards();
 
-    IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards() { return this.Backwards(); }
+    IDirectedEnumerable<T> IDirectedEnumerable<T>.Backwards() { return Backwards(); }
 
-    /// <summary>
-    /// Check if there exists an item  that satisfies a
-    /// specific predicate in this collection and return the first one in enumeration order.
-    /// </summary>
-    /// <param name="predicate">A delegate 
-    /// (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
-    /// <param name="item"></param>
-    /// <returns>True is such an item exists</returns>
+    //
+    // Check if there exists an item  that satisfies a
+    // specific predicate in this collection and return the first one in enumeration order.
+    //
+    // <param name="predicate">A delegate 
+    // (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
+    // <param name="item"></param>
+    // <returns>True is such an item exists</returns>
     public virtual bool FindLast(Fun<T, bool> predicate, out T item)
     {
       foreach (T jtem in Backwards())
@@ -1021,9 +998,9 @@ namespace RazorDB.C5
     }
   }
 
-  /// <summary>
-  /// Base class (abstract) for sequenced collection implementations.
-  /// </summary>
+  //
+  // Base class (abstract) for sequenced collection implementations.
+  //
   [Serializable]
   public abstract class SequencedBase<T> : DirectedCollectionBase<T>, IDirectedCollectionValue<T>
   {
@@ -1033,10 +1010,10 @@ namespace RazorDB.C5
 
     #endregion
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="itemequalityComparer"></param>
+    //
+    // 
+    //
+    // <param name="itemequalityComparer"></param>
     protected SequencedBase(SCG.IEqualityComparer<T> itemequalityComparer) : base(itemequalityComparer) { }
 
     #region Util
@@ -1044,12 +1021,12 @@ namespace RazorDB.C5
     //TODO: make random for release
     const int HASHFACTOR = 31;
 
-    /// <summary>
-    /// Compute the unsequenced hash code of a collection
-    /// </summary>
-    /// <param name="items">The collection to compute hash code for</param>
-    /// <param name="itemequalityComparer">The item equalityComparer</param>
-    /// <returns>The hash code</returns>
+    //
+    // Compute the unsequenced hash code of a collection
+    //
+    // <param name="items">The collection to compute hash code for</param>
+    // <param name="itemequalityComparer">The item equalityComparer</param>
+    // <returns>The hash code</returns>
     [Tested]
     public static int ComputeHashCode(ISequenced<T> items, SCG.IEqualityComparer<T> itemequalityComparer)
     {
@@ -1068,14 +1045,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Examine if tit and tat are equal as sequenced collections
-    /// using the specified item equalityComparer (assumed compatible with the two collections).
-    /// </summary>
-    /// <param name="collection1">The first collection</param>
-    /// <param name="collection2">The second collection</param>
-    /// <param name="itemequalityComparer">The item equalityComparer to use for comparison</param>
-    /// <returns>True if equal</returns>
+    //
+    // Examine if tit and tat are equal as sequenced collections
+    // using the specified item equalityComparer (assumed compatible with the two collections).
+    //
+    // <param name="collection1">The first collection</param>
+    // <param name="collection2">The second collection</param>
+    // <param name="itemequalityComparer">The item equalityComparer to use for comparison</param>
+    // <returns>True if equal</returns>
     [Tested]
     public static bool StaticEquals(ISequenced<T> collection1, ISequenced<T> collection2, SCG.IEqualityComparer<T> itemequalityComparer)
     {
@@ -1104,11 +1081,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Get the sequenced collection hash code of this collection: from the cached 
-    /// value if present and up to date, else (re)compute.
-    /// </summary>
-    /// <returns>The hash code</returns>
+    //
+    // Get the sequenced collection hash code of this collection: from the cached 
+    // value if present and up to date, else (re)compute.
+    //
+    // <returns>The hash code</returns>
     public virtual int GetSequencedHashCode()
     {
       if (iSequencedHashCodeStamp == stamp)
@@ -1120,12 +1097,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if the contents of that is equal to the contents of this
-    /// in the sequenced sense. Using the item equalityComparer of this collection.
-    /// </summary>
-    /// <param name="otherCollection">The collection to compare to.</param>
-    /// <returns>True if  equal</returns>
+    //
+    // Check if the contents of that is equal to the contents of this
+    // in the sequenced sense. Using the item equalityComparer of this collection.
+    //
+    // <param name="otherCollection">The collection to compare to.</param>
+    // <returns>True if  equal</returns>
     public virtual bool SequencedEquals(ISequenced<T> otherCollection)
     {
       return StaticEquals((ISequenced<T>)this, otherCollection, itemequalityComparer);
@@ -1134,26 +1111,26 @@ namespace RazorDB.C5
 
     #endregion
 
-    /// <summary>
-    /// Create an enumerator for this collection.
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for this collection.
+    //
+    // <returns>The enumerator</returns>
     public override abstract SCG.IEnumerator<T> GetEnumerator();
 
-    /// <summary>
-    /// <code>Forwards</code> if same, else <code>Backwards</code>
-    /// </summary>
-    /// <value>The enumeration direction relative to the original collection.</value>
+    //
+    // <code>Forwards</code> if same, else <code>Backwards</code>
+    //
+    // <value>The enumeration direction relative to the original collection.</value>
     [Tested]
     public override EnumerationDirection Direction { [Tested]get { return EnumerationDirection.Forwards; } }
 
-    /// <summary>
-    /// Check if there exists an item  that satisfies a
-    /// specific predicate in this collection and return the index of the first one.
-    /// </summary>
-    /// <param name="predicate">A delegate 
-    /// (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
-    /// <returns>the index, if found, a negative value else</returns>
+    //
+    // Check if there exists an item  that satisfies a
+    // specific predicate in this collection and return the index of the first one.
+    //
+    // <param name="predicate">A delegate 
+    // (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
+    // <returns>the index, if found, a negative value else</returns>
     public int FindIndex(Fun<T, bool> predicate)
     {
       int index = 0;
@@ -1166,13 +1143,13 @@ namespace RazorDB.C5
       return -1;
     }
 
-    /// <summary>
-    /// Check if there exists an item  that satisfies a
-    /// specific predicate in this collection and return the index of the last one.
-    /// </summary>
-    /// <param name="predicate">A delegate 
-    /// (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
-    /// <returns>the index, if found, a negative value else</returns>
+    //
+    // Check if there exists an item  that satisfies a
+    // specific predicate in this collection and return the index of the last one.
+    //
+    // <param name="predicate">A delegate 
+    // (<see cref="T:C5.Fun`2"/> with <code>R == bool</code>) defining the predicate</param>
+    // <returns>the index, if found, a negative value else</returns>
     public int FindLastIndex(Fun<T, bool> predicate)
     {
       int index = Count - 1;
@@ -1188,41 +1165,41 @@ namespace RazorDB.C5
   }
 
 
-  /// <summary>
-  /// Base class for collection classes of dynamic array type implementations.
-  /// </summary>
+  //
+  // Base class for collection classes of dynamic array type implementations.
+  //
   [Serializable]
   public abstract class ArrayBase<T> : SequencedBase<T>
   {
     #region Fields
-    /// <summary>
-    /// The actual internal array container. Will be extended on demand.
-    /// </summary>
+    //
+    // The actual internal array container. Will be extended on demand.
+    //
     protected T[] array;
 
-    /// <summary>
-    /// The offset into the internal array container of the first item. The offset is 0 for a 
-    /// base dynamic array and may be positive for an updatable view into a base dynamic array.
-    /// </summary>
+    //
+    // The offset into the internal array container of the first item. The offset is 0 for a 
+    // base dynamic array and may be positive for an updatable view into a base dynamic array.
+    //
     protected int offset;
     #endregion
 
     #region Util
-    /// <summary>
-    /// Double the size of the internal array.
-    /// </summary>
+    //
+    // Double the size of the internal array.
+    //
     protected virtual void expand()
     {
       expand(2 * array.Length, size);
     }
 
 
-    /// <summary>
-    /// Expand the internal array container.
-    /// </summary>
-    /// <param name="newcapacity">The new size of the internal array - 
-    /// will be rounded upwards to a power of 2.</param>
-    /// <param name="newsize">The (new) size of the (base) collection.</param>
+    //
+    // Expand the internal array container.
+    //
+    // <param name="newcapacity">The new size of the internal array - 
+    // will be rounded upwards to a power of 2.</param>
+    // <param name="newsize">The (new) size of the (base) collection.</param>
     protected virtual void expand(int newcapacity, int newsize)
     {
       Debug.Assert(newcapacity >= newsize);
@@ -1238,12 +1215,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Insert an item at a specific index, moving items to the right
-    /// upwards and expanding the array if necessary.
-    /// </summary>
-    /// <param name="i">The index at which to insert.</param>
-    /// <param name="item">The item to insert.</param>
+    //
+    // Insert an item at a specific index, moving items to the right
+    // upwards and expanding the array if necessary.
+    //
+    // <param name="i">The index at which to insert.</param>
+    // <param name="item">The item to insert.</param>
     protected virtual void insert(int i, T item)
     {
       if (size == array.Length)
@@ -1260,12 +1237,12 @@ namespace RazorDB.C5
 
     #region Constructors
 
-    /// <summary>
-    /// Create an empty ArrayBase object.
-    /// </summary>
-    /// <param name="capacity">The initial capacity of the internal array container.
-    /// Will be rounded upwards to the nearest power of 2 greater than or equal to 8.</param>
-    /// <param name="itemequalityComparer">The item equalityComparer to use, primarily for item equality</param>
+    //
+    // Create an empty ArrayBase object.
+    //
+    // <param name="capacity">The initial capacity of the internal array container.
+    // Will be rounded upwards to the nearest power of 2 greater than or equal to 8.</param>
+    // <param name="itemequalityComparer">The item equalityComparer to use, primarily for item equality</param>
     protected ArrayBase(int capacity, SCG.IEqualityComparer<T> itemequalityComparer)
       : base(itemequalityComparer)
     {
@@ -1278,13 +1255,13 @@ namespace RazorDB.C5
 
     #region IIndexed members
 
-    /// <summary>
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">If the arguments does not describe a 
-    /// valid range in the indexed collection, cf. <see cref="M:C5.CollectionBase`1.checkRange(System.Int32,System.Int32)"/>.</exception>
-    /// <value>The directed collection of items in a specific index interval.</value>
-    /// <param name="start">The low index of the interval (inclusive).</param>
-    /// <param name="count">The size of the range.</param>
+    //
+    //
+    // <exception cref="ArgumentOutOfRangeException">If the arguments does not describe a 
+    // valid range in the indexed collection, cf. <see cref="M:C5.CollectionBase`1.checkRange(System.Int32,System.Int32)"/>.</exception>
+    // <value>The directed collection of items in a specific index interval.</value>
+    // <param name="start">The low index of the interval (inclusive).</param>
+    // <param name="count">The size of the range.</param>
     [Tested]
     public virtual IDirectedCollectionValue<T> this[int start, int count]
     {
@@ -1299,9 +1276,9 @@ namespace RazorDB.C5
     #endregion
 
     #region IEditableCollection members
-    /// <summary>
-    /// Remove all items and reset size of internal array container.
-    /// </summary>
+    //
+    // Remove all items and reset size of internal array container.
+    //
     [Tested]
     public virtual void Clear()
     {
@@ -1311,10 +1288,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Create an array containing (copies) of the items of this collection in enumeration order.
-    /// </summary>
-    /// <returns>The new array</returns>
+    //
+    // Create an array containing (copies) of the items of this collection in enumeration order.
+    //
+    // <returns>The new array</returns>
     [Tested]
     public override T[] ToArray()
     {
@@ -1325,10 +1302,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Perform an internal consistency (invariant) test on the array base.
-    /// </summary>
-    /// <returns>True if test succeeds.</returns>
+    //
+    // Perform an internal consistency (invariant) test on the array base.
+    //
+    // <returns>True if test succeeds.</returns>
     [Tested]
     public virtual bool Check()
     {
@@ -1356,29 +1333,29 @@ namespace RazorDB.C5
 
     #region IDirectedCollection<T> Members
 
-    /// <summary>
-    /// Create a directed collection with the same contents as this one, but 
-    /// opposite enumeration sequence.
-    /// </summary>
-    /// <returns>The mirrored collection.</returns>
+    //
+    // Create a directed collection with the same contents as this one, but 
+    // opposite enumeration sequence.
+    //
+    // <returns>The mirrored collection.</returns>
     [Tested]
     public override IDirectedCollectionValue<T> Backwards() { return this[0, size].Backwards(); }
 
     #endregion
 
-    /// <summary>
-    /// Choose some item of this collection. The result is the last item in the internal array,
-    /// making it efficient to remove.
-    /// </summary>
-    /// <exception cref="NoSuchItemException">if collection is empty.</exception>
-    /// <returns></returns>
+    //
+    // Choose some item of this collection. The result is the last item in the internal array,
+    // making it efficient to remove.
+    //
+    // <exception cref="NoSuchItemException">if collection is empty.</exception>
+    // <returns></returns>
     public override T Choose() { if (size > 0) return array[size - 1]; throw new NoSuchItemException(); }
 
     #region IEnumerable<T> Members
-    /// <summary>
-    /// Create an enumerator for this array based collection.
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for this array based collection.
+    //
+    // <returns>The enumerator</returns>
     [Tested]
     public override SCG.IEnumerator<T> GetEnumerator()
     {
@@ -1393,55 +1370,54 @@ namespace RazorDB.C5
     #endregion
 
     #region Range nested class
-    /// <summary>
-    /// A helper class for defining results of interval queries on array based collections.
-    /// </summary>
+    //
+    // A helper class for defining results of interval queries on array based collections.
+    //
     protected class Range : DirectedCollectionValueBase<T>, IDirectedCollectionValue<T>
     {
       int start, count, delta, stamp;
 
       ArrayBase<T> thebase;
 
-
-      internal Range(ArrayBase<T> thebase, int start, int count, bool forwards)
+      internal Range(ArrayBase<T> a, int s, int c, bool forwards)
       {
-        this.thebase = thebase; stamp = thebase.stamp;
+        thebase = a; stamp = thebase.stamp;
         delta = forwards ? 1 : -1;
-        this.start = start + thebase.offset; this.count = count;
+        start = s + thebase.offset; count = c;
       }
 
-      /// <summary>
-      /// 
-      /// </summary>
-      /// <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
-      /// <value>True if this collection is empty.</value>
+      //
+      // 
+      //
+      // <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
+      // <value>True if this collection is empty.</value>
       public override bool IsEmpty { get { thebase.modifycheck(stamp); return count == 0; } }
 
 
-      /// <summary>
-      /// 
-      /// </summary>
-      /// <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
-      /// <value>The number of items in the range</value>
+      //
+      // 
+      //
+      // <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
+      // <value>The number of items in the range</value>
       [Tested]
       public override int Count { [Tested]get { thebase.modifycheck(stamp); return count; } }
 
-      /// <summary>
-      /// The value is symbolic indicating the type of asymptotic complexity
-      /// in terms of the size of this collection (worst-case or amortized as
-      /// relevant).
-      /// </summary>
-      /// <value>A characterization of the speed of the 
-      /// <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
-      /// <code>Count</code> property in this collection.</value>
+      //
+      // The value is symbolic indicating the type of asymptotic complexity
+      // in terms of the size of this collection (worst-case or amortized as
+      // relevant).
+      //
+      // <value>A characterization of the speed of the 
+      // <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
+      // <code>Count</code> property in this collection.</value>
       public override Speed CountSpeed { get { thebase.modifycheck(stamp); return Speed.Constant; } }
 
-      /// <summary>
-      /// Choose some item of this collection. 
-      /// </summary>
-      /// <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
-      /// <exception cref="NoSuchItemException">if range is empty.</exception>
-      /// <returns></returns>
+      //
+      // Choose some item of this collection. 
+      //
+      // <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
+      // <exception cref="NoSuchItemException">if range is empty.</exception>
+      // <returns></returns>
       public override T Choose()
       {
         thebase.modifycheck(stamp);
@@ -1451,11 +1427,11 @@ namespace RazorDB.C5
       }
 
 
-      /// <summary>
-      /// Create an enumerator for this range of an array based collection.
-      /// </summary>
-      /// <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
-      /// <returns>The enumerator</returns>
+      //
+      // Create an enumerator for this range of an array based collection.
+      //
+      // <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
+      // <returns>The enumerator</returns>
       [Tested]
       public override SCG.IEnumerator<T> GetEnumerator()
       {
@@ -1467,12 +1443,12 @@ namespace RazorDB.C5
       }
 
 
-      /// <summary>
-      /// Create a araay collection range with the same contents as this one, but 
-      /// opposite enumeration sequence.
-      /// </summary>
-      /// <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
-      /// <returns>The mirrored collection.</returns>
+      //
+      // Create a araay collection range with the same contents as this one, but 
+      // opposite enumeration sequence.
+      //
+      // <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
+      // <returns>The mirrored collection.</returns>
       [Tested]
       public override IDirectedCollectionValue<T> Backwards()
       {
@@ -1492,11 +1468,11 @@ namespace RazorDB.C5
       }
 
 
-      /// <summary>
-      /// <code>Forwards</code> if same, else <code>Backwards</code>
-      /// </summary>
-      /// <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
-      /// <value>The enumeration direction relative to the original collection.</value>
+      //
+      // <code>Forwards</code> if same, else <code>Backwards</code>
+      //
+      // <exception cref="CollectionModifiedException">if underlying collection has been modified.</exception>
+      // <value>The enumeration direction relative to the original collection.</value>
       [Tested]
       public override EnumerationDirection Direction
       {

@@ -1,27 +1,7 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
+
 namespace RazorDB.C5
 {
   abstract class MappedDirectedCollectionValue<T, V> : DirectedCollectionValueBase<V>, IDirectedCollectionValue<V>
@@ -30,9 +10,9 @@ namespace RazorDB.C5
 
     abstract public V Map(T item);
 
-    public MappedDirectedCollectionValue(IDirectedCollectionValue<T> directedcollectionvalue)
+    public MappedDirectedCollectionValue(IDirectedCollectionValue<T> d)
     {
-      this.directedcollectionvalue = directedcollectionvalue;
+      directedcollectionvalue = d;
     }
 
     public override V Choose() { return Map(directedcollectionvalue.Choose()); }
@@ -78,9 +58,9 @@ namespace RazorDB.C5
 
     abstract public V Map(T item);
 
-    public MappedCollectionValue(ICollectionValue<T> collectionvalue)
+    public MappedCollectionValue(ICollectionValue<T> c)
     {
-      this.collectionvalue = collectionvalue;
+      collectionvalue = c;
     }
 
     public override V Choose() { return Map(collectionvalue.Choose()); }
@@ -116,9 +96,9 @@ namespace RazorDB.C5
 
     abstract public V Map(T item);
 
-    public MappedDirectedEnumerable(IDirectedEnumerable<T> directedenumerable)
+    public MappedDirectedEnumerable(IDirectedEnumerable<T> d)
     {
-      this.directedenumerable = directedenumerable;
+      directedenumerable = d;
     }
 
     public IDirectedEnumerable<V> Backwards()

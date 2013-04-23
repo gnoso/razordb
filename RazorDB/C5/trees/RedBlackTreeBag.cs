@@ -1,24 +1,3 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 #define MAINTAIN_SIZE
 #define BAG
 #define NCP
@@ -33,42 +12,42 @@
 using System;
 using SCG = System.Collections.Generic;
 
-// NOTE NOTE NOTE NOTE
+// ALERT
 // This source file is used to produce both TreeBag<T> and TreeBag<T>
-// It should be copied to a file called TreeBag.cs in which all code mentions of 
-// TreeBag is changed to TreeBag and the preprocessor symbol BAG is defined.
+// It should be copied to a file called TreeBag.cs, which contain all of the code mentions of 
+// TreeBag changed to TreeBag and the preprocessor symbol BAG is defined.
 // NOTE: there may be problems with documentation comments.
 
 namespace RazorDB.C5
 {
 #if BAG
-  /// <summary>
-  /// An implementation of Red-Black trees as an indexed, sorted collection with bag semantics,
-  /// cf. <a href="litterature.htm#CLRS">CLRS</a>. (<see cref="T:C5.TreeBag`1"/> for an 
-  /// implementation with set semantics).
-  /// <br/>
-  /// The comparer (sorting order) may be either natural, because the item type is comparable 
-  /// (generic: <see cref="T:C5.IComparable`1"/> or non-generic: System.IComparable) or it can
-  /// be external and supplied by the user in the constructor.
-  /// <br/>
-  /// Each distinct item is only kept in one place in the tree - together with the number
-  /// of times it is a member of the bag. Thus, if two items that are equal according
-  /// </summary>
+  //
+  // An implementation of Red-Black trees as an indexed, sorted collection with bag semantics,
+  // cf. <a href="litterature.htm#CLRS">CLRS</a>. (<see cref="T:C5.TreeBag`1"/> for an 
+  // implementation with set semantics).
+  // <br/>
+  // The comparer (sorting order) may be either natural, because the item type is comparable 
+  // (generic: <see cref="T:C5.IComparable`1"/> or non-generic: System.IComparable) or it can
+  // be external and supplied by the user in the constructor.
+  // <br/>
+  // Each distinct item is only kept in one place in the tree - together with the number
+  // of times it is a member of the bag. Thus, if two items that are equal according
+  //
 #else
-  /// <summary>
-  /// An implementation of Red-Black trees as an indexed, sorted collection with set semantics,
-  /// cf. <a href="litterature.htm#CLRS">CLRS</a>. <see cref="T:C5.TreeBag`1"/> for a version 
-  /// with bag semantics. <see cref="T:C5.TreeDictionary`2"/> for a sorted dictionary 
-  /// based on this tree implementation.
-  /// <i>
-  /// The comparer (sorting order) may be either natural, because the item type is comparable 
-  /// (generic: <see cref="T:C5.IComparable`1"/> or non-generic: System.IComparable) or it can
-  /// be external and supplied by the user in the constructor.</i>
-  ///
-  /// <i>TODO: describe performance here</i>
-  /// <i>TODO: discuss persistence and its useful usage modes. Warn about the space
-  /// leak possible with other usage modes.</i>
-  /// </summary>
+  //
+  // An implementation of Red-Black trees as an indexed, sorted collection with set semantics,
+  // cf. <a href="litterature.htm#CLRS">CLRS</a>. <see cref="T:C5.TreeBag`1"/> for a version 
+  // with bag semantics. <see cref="T:C5.TreeDictionary`2"/> for a sorted dictionary 
+  // based on this tree implementation.
+  // <i>
+  // The comparer (sorting order) may be either natural, because the item type is comparable 
+  // (generic: <see cref="T:C5.IComparable`1"/> or non-generic: System.IComparable) or it can
+  // be external and supplied by the user in the constructor.</i>
+  //
+  // <i>TODO: describe performance here</i>
+  // <i>TODO: discuss persistence and its useful usage modes. Warn about the space
+  // leak possible with other usage modes.</i>
+  //
 #endif
   [Serializable]
   public class TreeBag<T> : SequencedBase<T>, IIndexedSorted<T>, IPersistentSorted<T>
@@ -84,9 +63,9 @@ namespace RazorDB.C5
 
     //We double these stacks for the iterative add and remove on demand
     //TODO: refactor dirs[] into bool fields on Node (?)
-    private int[] dirs = new int[2];
+    int[] dirs = new int[2];
 
-    private Node[] path = new Node[2];
+    Node[] path = new Node[2];
 #if NCP
     //TODO: refactor into separate class
     bool isSnapShot = false;
@@ -101,22 +80,22 @@ namespace RazorDB.C5
 
     #region Events
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public override EventTypeEnum ListenableEvents { get { return EventTypeEnum.Basic; } }
 
     #endregion
     #region Util
 
-    /// <summary>
-    /// Fetch the left child of n taking node-copying persistence into
-    /// account if relevant. 
-    /// </summary>
-    /// <param name="n"></param>
-    /// <returns></returns>
-    private Node left(Node n)
+    //
+    // Fetch the left child of n taking node-copying persistence into
+    // account if relevant. 
+    //
+    // <param name="n"></param>
+    // <returns></returns>
+    Node left(Node n)
     {
 #if NCP
       if (isSnapShot)
@@ -136,7 +115,7 @@ namespace RazorDB.C5
     }
 
 
-    private Node right(Node n)
+    Node right(Node n)
     {
 #if NCP
       if (isSnapShot)
@@ -158,7 +137,7 @@ namespace RazorDB.C5
 
     //This method should be called by methods that use the internal 
     //traversal stack, unless certain that there is room enough
-    private void stackcheck()
+    void stackcheck()
     {
       while (dirs.Length < 2 * blackdepth)
       {
@@ -172,9 +151,9 @@ namespace RazorDB.C5
     #region Node nested class
 
 
-    /// <summary>
-    /// The type of node in a Red-Black binary tree
-    /// </summary>
+    //
+    // The type of node in a Red-Black binary tree
+    //
     [Serializable]
     class Node
     {
@@ -219,15 +198,15 @@ namespace RazorDB.C5
       public bool leftnode;
 #endif
 
-      /// <summary>
-      /// Update a child pointer
-      /// </summary>
-      /// <param name="cursor"></param>
-      /// <param name="leftnode"></param>
-      /// <param name="child"></param>
-      /// <param name="maxsnapid"></param>
-      /// <param name="generation"></param>
-      /// <returns>True if node was *copied*</returns>
+      //
+      // Update a child pointer
+      //
+      // <param name="cursor"></param>
+      // <param name="leftnode"></param>
+      // <param name="child"></param>
+      // <param name="maxsnapid"></param>
+      // <param name="generation"></param>
+      // <returns>True if node was *copied*</returns>
       internal static bool update(ref Node cursor, bool leftnode, Node child, int maxsnapid, int generation)
       {
         Node oldref = leftnode ? cursor.left : cursor.right;
@@ -303,55 +282,55 @@ namespace RazorDB.C5
 
     #region Constructors
 
-    /// <summary>
-    /// Create a red-black tree collection with natural comparer and item equalityComparer.
-    /// We assume that if <code>T</code> is comparable, its default equalityComparer 
-    /// will be compatible with the comparer.
-    /// </summary>
-    /// <exception cref="NotComparableException">If <code>T</code> is not comparable.
-    /// </exception>
+    //
+    // Create a red-black tree collection with natural comparer and item equalityComparer.
+    // We assume that if <code>T</code> is comparable, its default equalityComparer 
+    // will be compatible with the comparer.
+    //
+    // <exception cref="NotComparableException">If <code>T</code> is not comparable.
+    // </exception>
     public TreeBag() : this(Comparer<T>.Default, EqualityComparer<T>.Default) { }
 
 
-    /// <summary>
-    /// Create a red-black tree collection with an external comparer. 
-    /// <para>The itemequalityComparer will be a compatible 
-    /// <see cref="T:C5.ComparerZeroHashCodeEqualityComparer`1"/> since the 
-    /// default equalityComparer for T (<see cref="P:C5.EqualityComparer`1.Default"/>)
-    /// is unlikely to be compatible with the external comparer. This makes the
-    /// tree inadequate for use as item in a collection of unsequenced or sequenced sets or bags
-    /// (<see cref="T:C5.ICollection`1"/> and <see cref="T:C5.ISequenced`1"/>)
-    /// </para>
-    /// </summary>
-    /// <param name="comparer">The external comparer</param>
+    //
+    // Create a red-black tree collection with an external comparer. 
+    // <para>The itemequalityComparer will be a compatible 
+    // <see cref="T:C5.ComparerZeroHashCodeEqualityComparer`1"/> since the 
+    // default equalityComparer for T (<see cref="P:C5.EqualityComparer`1.Default"/>)
+    // is unlikely to be compatible with the external comparer. This makes the
+    // tree inadequate for use as item in a collection of unsequenced or sequenced sets or bags
+    // (<see cref="T:C5.ICollection`1"/> and <see cref="T:C5.ISequenced`1"/>)
+    // </para>
+    //
+    // <param name="comparer">The external comparer</param>
     public TreeBag(SCG.IComparer<T> comparer) : this(comparer, new ComparerZeroHashCodeEqualityComparer<T>(comparer)) { }
 
-    /// <summary>
-    /// Create a red-black tree collection with an external comparer and an external
-    /// item equalityComparer, assumed consistent.
-    /// </summary>
-    /// <param name="comparer">The external comparer</param>
-    /// <param name="equalityComparer">The external item equalityComparer</param>
-    public TreeBag(SCG.IComparer<T> comparer, SCG.IEqualityComparer<T> equalityComparer)
+    //
+    // Create a red-black tree collection with an external comparer and an external
+    // item equalityComparer, assumed consistent.
+    //
+    // <param name="comparer">The external comparer</param>
+    // <param name="equalityComparer">The external item equalityComparer</param>
+    public TreeBag(SCG.IComparer<T> c, SCG.IEqualityComparer<T> equalityComparer)
       : base(equalityComparer)
     {
       if (comparer == null)
         throw new NullReferenceException("Item comparer cannot be null");
-      this.comparer = comparer;
+      comparer = c;
     }
 
     #endregion
 
     #region TreeBag.Enumerator nested class
 
-    /// <summary>
-    /// An enumerator for a red-black tree collection. Based on an explicit stack
-    /// of subtrees waiting to be enumerated. Currently only used for the tree set 
-    /// enumerators (tree bag enumerators use an iterator block based enumerator).
-    /// </summary>
+    //
+    // An enumerator for a red-black tree collection. Based on an explicit stack
+    // of subtrees waiting to be enumerated. Currently only used for the tree set 
+    // enumerators (tree bag enumerators use an iterator block based enumerator).
+    //
     internal class Enumerator : SCG.IEnumerator<T>
     {
-      #region Private Fields
+      #region Fields
       TreeBag<T> tree;
 
       bool valid = false;
@@ -366,13 +345,13 @@ namespace RazorDB.C5
 
       int level = 0;
       #endregion
-      /// <summary>
-      /// Create a tree enumerator
-      /// </summary>
-      /// <param name="tree">The red-black tree to enumerate</param>
-      public Enumerator(TreeBag<T> tree)
+      //
+      // Create a tree enumerator
+      //
+      // <param name="tree">The red-black tree to enumerate</param>
+      public Enumerator(TreeBag<T> t)
       {
-        this.tree = tree;
+        tree = t;
         stamp = tree.stamp;
         path = new Node[2 * tree.blackdepth];
         cursor = new Node();
@@ -380,10 +359,10 @@ namespace RazorDB.C5
       }
 
 
-      /// <summary>
-      /// Undefined if enumerator is not valid (MoveNext hash been called returning true)
-      /// </summary>
-      /// <value>The current item of the enumerator.</value>
+      //
+      // Undefined if enumerator is not valid (MoveNext hash been called returning true)
+      //
+      // <value>The current item of the enumerator.</value>
       [Tested]
       public T Current
       {
@@ -403,12 +382,12 @@ namespace RazorDB.C5
       //The stack nodes together with their right subtrees
       //consists of exactly the items we have not passed
       //yet (the top of the stack holds current item).
-      /// <summary>
-      /// Move enumerator to next item in tree, or the first item if
-      /// this is the first call to MoveNext. 
-      /// <exception cref="CollectionModifiedException"/> if underlying tree was modified.
-      /// </summary>
-      /// <returns>True if enumerator is valid now</returns>
+      //
+      // Move enumerator to next item in tree, or the first item if
+      // this is the first call to MoveNext. 
+      // <exception cref="CollectionModifiedException"/> if underlying tree was modified.
+      //
+      // <returns>True if enumerator is valid now</returns>
       [Tested]
       public bool MoveNext()
       {
@@ -434,9 +413,9 @@ namespace RazorDB.C5
       bool disposed;
 
 
-      /// <summary>
-      /// Call Dispose(true) and then suppress finalization of this enumerator.
-      /// </summary>
+      //
+      // Call Dispose(true) and then suppress finalization of this enumerator.
+      //
       [Tested]
       public void Dispose()
       {
@@ -445,11 +424,11 @@ namespace RazorDB.C5
       }
 
 
-      /// <summary>
-      /// Remove the internal data (notably the stack array).
-      /// </summary>
-      /// <param name="disposing">True if called from Dispose(),
-      /// false if called from the finalizer</param>
+      //
+      // Remove the internal data (notably the stack array).
+      //
+      // <param name="disposing">True if called from Dispose(),
+      // false if called from the finalizer</param>
       protected virtual void Dispose(bool disposing)
       {
         if (!disposed)
@@ -466,9 +445,9 @@ namespace RazorDB.C5
       }
 
 
-      /// <summary>
-      /// Finalizer for enumerator
-      /// </summary>
+      //
+      // Finalizer for enumerator
+      //
       ~Enumerator()
       {
         Dispose(false);
@@ -496,13 +475,13 @@ namespace RazorDB.C5
       #endregion
     }
 #if NCP
-    /// <summary>
-    /// An enumerator for a snapshot of a node copy persistent red-black tree
-    /// collection.
-    /// </summary>
+    //
+    // An enumerator for a snapshot of a node copy persistent red-black tree
+    // collection.
+    //
     internal class SnapEnumerator : SCG.IEnumerator<T>
     {
-      #region Private Fields
+      #region Fields
       TreeBag<T> tree;
 
       bool valid = false;
@@ -521,14 +500,14 @@ namespace RazorDB.C5
       int level;
       #endregion
 
-      /// <summary>
-      /// Creta an enumerator for a snapshot of a node copy persistent red-black tree
-      /// collection
-      /// </summary>
-      /// <param name="tree">The snapshot</param>
-      public SnapEnumerator(TreeBag<T> tree)
+      //
+      // Creta an enumerator for a snapshot of a node copy persistent red-black tree
+      // collection
+      //
+      // <param name="tree">The snapshot</param>
+      public SnapEnumerator(TreeBag<T> t)
       {
-        this.tree = tree;
+        tree = t;
         stamp = tree.stamp;
         path = new Node[2 * tree.blackdepth];
         cursor = new Node();
@@ -538,12 +517,12 @@ namespace RazorDB.C5
 
       #region SCG.IEnumerator<T> Members
 
-      /// <summary>
-      /// Move enumerator to next item in tree, or the first item if
-      /// this is the first call to MoveNext. 
-      /// <exception cref="CollectionModifiedException"/> if underlying tree was modified.
-      /// </summary>
-      /// <returns>True if enumerator is valid now</returns>
+      //
+      // Move enumerator to next item in tree, or the first item if
+      // this is the first call to MoveNext. 
+      // <exception cref="CollectionModifiedException"/> if underlying tree was modified.
+      //
+      // <returns>True if enumerator is valid now</returns>
       [Tested]
       public bool MoveNext()
       {
@@ -578,10 +557,10 @@ namespace RazorDB.C5
       }
 
 
-      /// <summary>
-      /// Undefined if enumerator is not valid (MoveNext hash been called returning true)
-      /// </summary>
-      /// <value>The current value of the enumerator.</value>
+      //
+      // Undefined if enumerator is not valid (MoveNext hash been called returning true)
+      //
+      // <value>The current value of the enumerator.</value>
       [Tested]
       public T Current
       {
@@ -635,7 +614,7 @@ namespace RazorDB.C5
 
     #region IEnumerable<T> Members
 
-    private SCG.IEnumerator<T> getEnumerator(Node node, int origstamp)
+    SCG.IEnumerator<T> getEnumerator(Node node, int origstamp)
     {
       if (node == null)
         yield break;
@@ -673,11 +652,11 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <exception cref="NoSuchItemException">If tree is empty</exception>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <exception cref="NoSuchItemException">If tree is empty</exception>
+    // <returns></returns>
     [Tested]
     public override T Choose()
     {
@@ -690,10 +669,10 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Create an enumerator for this tree
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for this tree
+    //
+    // <returns>The enumerator</returns>
     [Tested]
     public override SCG.IEnumerator<T> GetEnumerator()
     {
@@ -714,14 +693,14 @@ namespace RazorDB.C5
 
     #region ISink<T> Members
 
-    /// <summary>
-    /// Add item to tree. If already there, return the found item in the second argument.
-    /// </summary>
-    /// <param name="item">Item to add</param>
-    /// <param name="founditem">item found</param>
-    /// <param name="update">whether item in node should be updated</param>
-    /// <param name="wasfound">true if found in bag, false if not found or tre is a set</param>
-    /// <returns>True if item was added</returns>
+    //
+    // Add item to tree. If already there, return the found item in the second argument.
+    //
+    // <param name="item">Item to add</param>
+    // <param name="founditem">item found</param>
+    // <param name="update">whether item in node should be updated</param>
+    // <param name="wasfound">true if found in bag, false if not found or tre is a set</param>
+    // <returns>True if item was added</returns>
     bool addIterative(T item, ref T founditem, bool update, out bool wasfound)
     {
       wasfound = false;
@@ -1008,13 +987,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Add an item to this collection if possible. If this collection has set
-    /// semantics, the item will be added if not already in the collection. If
-    /// bag semantics, the item will always be added.
-    /// </summary>
-    /// <param name="item">The item to add.</param>
-    /// <returns>True if item was added.</returns>
+    //
+    // Add an item to this collection if possible. If this collection has set
+    // semantics, the item will be added if not already in the collection. If
+    // bag semantics, the item will always be added.
+    //
+    // <param name="item">The item to add.</param>
+    // <returns>True if item was added.</returns>
     [Tested]
     public bool Add(T item)
     {
@@ -1031,19 +1010,19 @@ namespace RazorDB.C5
       return true;
     }
 
-    /// <summary>
-    /// Add an item to this collection if possible. If this collection has set
-    /// semantics, the item will be added if not already in the collection. If
-    /// bag semantics, the item will always be added.
-    /// </summary>
-    /// <param name="item">The item to add.</param>
+    //
+    // Add an item to this collection if possible. If this collection has set
+    // semantics, the item will be added if not already in the collection. If
+    // bag semantics, the item will always be added.
+    //
+    // <param name="item">The item to add.</param>
     [Tested]
     void SCG.ICollection<T>.Add(T item)
     {
         Add(item);
     }
 
-    private bool add(T item, ref T j)
+    bool add(T item, ref T j)
     {
       bool wasFound;
 
@@ -1058,14 +1037,14 @@ namespace RazorDB.C5
         return false;
     }
 
-    /// <summary>
-    /// Add the elements from another collection with a more specialized item type 
-    /// to this collection. If this
-    /// collection has set semantics, only items not already in the collection
-    /// will be added.
-    /// </summary>
-    /// <typeparam name="U">The type of items to add</typeparam>
-    /// <param name="items">The items to add</param>
+    //
+    // Add the elements from another collection with a more specialized item type 
+    // to this collection. If this
+    // collection has set semantics, only items not already in the collection
+    // will be added.
+    //
+    // <typeparam name="U">The type of items to add</typeparam>
+    // <param name="items">The items to add</param>
     [Tested]
     public void AddAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1100,15 +1079,15 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Add all the items from another collection with an enumeration order that 
-    /// is increasing in the items. <para>The idea is that the implementation may use
-    /// a faster algorithm to merge the two collections.</para>
-    /// <exception cref="ArgumentException"/> if the enumerated items turns out
-    /// not to be in increasing order.
-    /// </summary>
-    /// <param name="items">The collection to add.</param>
-    /// <typeparam name="U"></typeparam>
+    //
+    // Add all the items from another collection with an enumeration order that 
+    // is increasing in the items. <para>The idea is that the implementation may use
+    // a faster algorithm to merge the two collections.</para>
+    // <exception cref="ArgumentException"/> if the enumerated items turns out
+    // not to be in increasing order.
+    //
+    // <param name="items">The collection to add.</param>
+    // <typeparam name="U"></typeparam>
     [Tested]
     public void AddSorted<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -1282,21 +1261,21 @@ namespace RazorDB.C5
     #endregion
 
 #if BAG
-    /// <summary></summary>
-    /// <value>True since this collection has bag semantics.</value>
+    //</summary>
+    // <value>True since this collection has bag semantics.</value>
     [Tested]
     public bool AllowsDuplicates { [Tested]get { return true; } }
 #else
-    /// <summary></summary>
-    /// <value>False since this tree has set semantics.</value>
+    //</summary>
+    // <value>False since this tree has set semantics.</value>
     [Tested]
     public bool AllowsDuplicates { [Tested]get { return false; } }
 #endif
-    /// <summary>
-    /// By convention this is true for any collection with set semantics.
-    /// </summary>
-    /// <value>True if only one representative of a group of equal items 
-    /// is kept in the collection together with the total count.</value>
+    //
+    // By convention this is true for any collection with set semantics.
+    //
+    // <value>True if only one representative of a group of equal items 
+    // is kept in the collection together with the total count.</value>
     public virtual bool DuplicatesByCounting { get { return true; } }
 
     #endregion
@@ -1304,21 +1283,21 @@ namespace RazorDB.C5
     #region IEditableCollection<T> Members
 
 
-    /// <summary>
-    /// The value is symbolic indicating the type of asymptotic complexity
-    /// in terms of the size of this collection (worst-case or amortized as
-    /// relevant).
-    /// </summary>
-    /// <value>Speed.Log</value>
+    //
+    // The value is symbolic indicating the type of asymptotic complexity
+    // in terms of the size of this collection (worst-case or amortized as
+    // relevant).
+    //
+    // <value>Speed.Log</value>
     [Tested]
     public Speed ContainsSpeed { [Tested]get { return Speed.Log; } }
 
-    /// <summary>
-    /// Check if this collection contains (an item equivalent to according to the
-    /// itemequalityComparer) a particular value.
-    /// </summary>
-    /// <param name="item">The value to check for.</param>
-    /// <returns>True if the items is in this collection.</returns>
+    //
+    // Check if this collection contains (an item equivalent to according to the
+    // itemequalityComparer) a particular value.
+    //
+    // <param name="item">The value to check for.</param>
+    // <returns>True if the items is in this collection.</returns>
     [Tested]
     public bool Contains(T item)
     {
@@ -1342,13 +1321,13 @@ namespace RazorDB.C5
 
     //Variant for dictionary use
     //Will return the actual matching item in the ref argument.
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, return in the ref argument (a
-    /// binary copy of) the actual value found.
-    /// </summary>
-    /// <param name="item">The value to look for.</param>
-    /// <returns>True if the items is in this collection.</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, return in the ref argument (a
+    // binary copy of) the actual value found.
+    //
+    // <param name="item">The value to look for.</param>
+    // <returns>True if the items is in this collection.</returns>
     [Tested]
     public bool Find(ref T item)
     {
@@ -1373,14 +1352,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find or add the item to the tree. If the tree does not contain
-    /// an item equivalent to this item add it, else return the exisiting
-    /// one in the ref argument. 
-    ///
-    /// </summary>
-    /// <param name="item"></param>
-    /// <returns>True if item was found</returns>
+    //
+    // Find or add the item to the tree. If the tree does not contain
+    // an item equivalent to this item add it, else return the exisiting
+    // one in the ref argument. 
+    //
+    //
+    // <param name="item"></param>
+    // <returns>True if item was found</returns>
     [Tested]
     public bool FindOrAdd(ref T item)
     {
@@ -1405,15 +1384,15 @@ namespace RazorDB.C5
 
     //For dictionary use. 
     //If found, the matching entry will be updated with the new item.
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, update the item in the collection 
-    /// to with a binary copy of the supplied value. If the collection has bag semantics,
-    /// this updates all equivalent copies in
-    /// the collection.
-    /// </summary>
-    /// <param name="item">Value to update.</param>
-    /// <returns>True if the item was found and hence updated.</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, update the item in the collection 
+    // to with a binary copy of the supplied value. If the collection has bag semantics,
+    // this updates all equivalent copies in
+    // the collection.
+    //
+    // <param name="item">Value to update.</param>
+    // <returns>True if the item was found and hence updated.</returns>
     [Tested]
     public bool Update(T item)
     {
@@ -1421,16 +1400,16 @@ namespace RazorDB.C5
       return Update(item, out olditem);
     }
 
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, update the item in the collection 
-    /// with a binary copy of the supplied value. If the collection has bag semantics,
-    /// this updates all equivalent copies in
-    /// the collection.
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="olditem"></param>
-    /// <returns></returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, update the item in the collection 
+    // with a binary copy of the supplied value. If the collection has bag semantics,
+    // this updates all equivalent copies in
+    // the collection.
+    //
+    // <param name="item"></param>
+    // <param name="olditem"></param>
+    // <returns></returns>
     public bool Update(T item, out T olditem)
     {
       if (!isValid)
@@ -1500,25 +1479,25 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check if this collection contains an item equivalent according to the
-    /// itemequalityComparer to a particular value. If so, update the item in the collection 
-    /// with a binary copy of the supplied value; else add the value to the collection. 
-    ///
-    /// <i>NOTE: the bag implementation is currently wrong! ?????</i>
-    /// </summary>
-    /// <param name="item">Value to add or update.</param>
-    /// <returns>True if the item was found and updated (hence not added).</returns>
+    //
+    // Check if this collection contains an item equivalent according to the
+    // itemequalityComparer to a particular value. If so, update the item in the collection 
+    // with a binary copy of the supplied value; else add the value to the collection. 
+    //
+    // <i>NOTE: the bag implementation is currently wrong! ?????</i>
+    //
+    // <param name="item">Value to add or update.</param>
+    // <returns>True if the item was found and updated (hence not added).</returns>
     [Tested]
     public bool UpdateOrAdd(T item)
     { T olditem; return UpdateOrAdd(item, out olditem); }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="olditem"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="item"></param>
+    // <param name="olditem"></param>
+    // <returns></returns>
     public bool UpdateOrAdd(T item, out T olditem)
     {
       if (!isValid)
@@ -1546,12 +1525,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove a particular item from this collection. If the collection has bag
-    /// semantics only one copy equivalent to the supplied item is removed. 
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
-    /// <returns>True if the item was found (and removed).</returns>
+    //
+    // Remove a particular item from this collection. If the collection has bag
+    // semantics only one copy equivalent to the supplied item is removed. 
+    //
+    // <param name="item">The value to remove.</param>
+    // <returns>True if the item was found (and removed).</returns>
     [Tested]
     public bool Remove(T item)
     {
@@ -1568,16 +1547,16 @@ namespace RazorDB.C5
       return retval;
     }
 
-    /// <summary>
-    /// Remove a particular item from this collection if found. If the collection
-    /// has bag semantics only one copy equivalent to the supplied item is removed,
-    /// which one is implementation dependent. 
-    /// If an item was removed, report a binary copy of the actual item removed in 
-    /// the argument.
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
-    /// <param name="removeditem">The removed value.</param>
-    /// <returns>True if the item was found (and removed).</returns>
+    //
+    // Remove a particular item from this collection if found. If the collection
+    // has bag semantics only one copy equivalent to the supplied item is removed,
+    // which one is implementation dependent. 
+    // If an item was removed, report a binary copy of the actual item removed in 
+    // the argument.
+    //
+    // <param name="item">The value to remove.</param>
+    // <param name="removeditem">The removed value.</param>
+    // <returns>True if the item was found (and removed).</returns>
     [Tested]
     public bool Remove(T item, out T removeditem)
     {
@@ -1595,14 +1574,14 @@ namespace RazorDB.C5
       return retval;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="item">input: item to remove; output: item actually removed</param>
-    /// <param name="all">If true, remove all copies</param>
-    /// <param name="wasRemoved"></param>
-    /// <returns></returns>
-    private bool removeIterative(ref T item, bool all, out int wasRemoved)
+    //
+    // 
+    //
+    // <param name="item">input: item to remove; output: item actually removed</param>
+    // <param name="all">If true, remove all copies</param>
+    // <param name="wasRemoved"></param>
+    // <returns></returns>
+    bool removeIterative(ref T item, bool all, out int wasRemoved)
     {
       wasRemoved = 0;
       //Stage 1: find item
@@ -1661,7 +1640,7 @@ namespace RazorDB.C5
     }
 
 
-private bool removeIterativePhase2(Node cursor, int level)
+bool removeIterativePhase2(Node cursor, int level)
     {
       if (size == 1)
       {
@@ -2070,9 +2049,9 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Remove all items from this collection.
-    /// </summary>
+    //
+    // Remove all items from this collection.
+    //
     [Tested]
     public void Clear()
     {
@@ -2090,7 +2069,7 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    private void clear()
+    void clear()
     {
       size = 0;
       root = null;
@@ -2098,12 +2077,12 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Remove all items in another collection from this one. If this collection
-    /// has bag semantics, take multiplicities into account.
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to remove.</param>
+    //
+    // Remove all items in another collection from this one. If this collection
+    // has bag semantics, take multiplicities into account.
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to remove.</param>
     [Tested]
     public void RemoveAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -2130,12 +2109,12 @@ private bool removeIterativePhase2(Node cursor, int level)
         raiseHandler.Raise();
     }
 
-    /// <summary>
-    /// Remove all items not in some other collection from this one. If this collection
-    /// has bag semantics, take multiplicities into account.
-    /// </summary>
-    /// <typeparam name="U"></typeparam>
-    /// <param name="items">The items to retain.</param>
+    //
+    // Remove all items not in some other collection from this one. If this collection
+    // has bag semantics, take multiplicities into account.
+    //
+    // <typeparam name="U"></typeparam>
+    // <param name="items">The items to retain.</param>
     [Tested]
     public void RetainAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -2143,7 +2122,7 @@ private bool removeIterativePhase2(Node cursor, int level)
         throw new ViewDisposedException("Snapshot has been disposed");
       updatecheck();
 
-      //A much more efficient version is possible if items is sorted like this.
+      //A much more efficient version is possible if items is sorted like 
       //Well, it is unclear how efficient it would be.
       //We could use a marking method!?
       // TODO: how does this work together with persistence?
@@ -2197,15 +2176,15 @@ private bool removeIterativePhase2(Node cursor, int level)
         raiseCollectionChanged();
     }
 
-    /// <summary>
-    /// Check if this collection contains all the values in another collection.
-    /// If this collection has bag semantics (<code>AllowsDuplicates==true</code>)
-    /// the check is made with respect to multiplicities, else multiplicities
-    /// are not taken into account.
-    /// </summary>
-    /// <param name="items">The </param>
-    /// <typeparam name="U"></typeparam>
-    /// <returns>True if all values in <code>items</code>is in this collection.</returns>
+    //
+    // Check if this collection contains all the values in another collection.
+    // If this collection has bag semantics (<code>AllowsDuplicates==true</code>)
+    // the check is made with respect to multiplicities, else multiplicities
+    // are not taken into account.
+    //
+    // <param name="items">The </param>
+    // <typeparam name="U"></typeparam>
+    // <returns>True if all values in <code>items</code>is in this collection.</returns>
     [Tested]
     public bool ContainsAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -2221,12 +2200,12 @@ private bool removeIterativePhase2(Node cursor, int level)
 
 
     //Higher order:
-    /// <summary>
-    /// Create a new indexed sorted collection consisting of the items of this
-    /// indexed sorted collection satisfying a certain predicate.
-    /// </summary>
-    /// <param name="filter">The filter delegate defining the predicate.</param>
-    /// <returns>The new indexed sorted collection.</returns>
+    //
+    // Create a new indexed sorted collection consisting of the items of this
+    // indexed sorted collection satisfying a certain predicate.
+    //
+    // <param name="filter">The filter delegate defining the predicate.</param>
+    // <returns>The new indexed sorted collection.</returns>
     [Tested]
     public IIndexedSorted<T> FindAll(Fun<T, bool> filter)
     {
@@ -2298,16 +2277,16 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Create a new indexed sorted collection consisting of the results of
-    /// mapping all items of this list.
-    /// <exception cref="ArgumentException"/> if the map is not increasing over 
-    /// the items of this collection (with respect to the two given comparison 
-    /// relations).
-    /// </summary>
-    /// <param name="mapper">The delegate definging the map.</param>
-    /// <param name="c">The comparion relation to use for the result.</param>
-    /// <returns>The new sorted collection.</returns>
+    //
+    // Create a new indexed sorted collection consisting of the results of
+    // mapping all items of this list.
+    // <exception cref="ArgumentException"/> if the map is not increasing over 
+    // the items of this collection (with respect to the two given comparison 
+    // relations).
+    //
+    // <param name="mapper">The delegate definging the map.</param>
+    // <param name="c">The comparion relation to use for the result.</param>
+    // <returns>The new sorted collection.</returns>
     [Tested]
     public IIndexedSorted<V> Map<V>(Fun<T, V> mapper, SCG.IComparer<V> c)
     {
@@ -2392,12 +2371,12 @@ private bool removeIterativePhase2(Node cursor, int level)
 
 
     //below is the bag utility stuff
-    /// <summary>
-    /// Count the number of items of the collection equal to a particular value.
-    /// Returns 0 if and only if the value is not in the collection.
-    /// </summary>
-    /// <param name="item">The value to count.</param>
-    /// <returns>The number of copies found.</returns>
+    //
+    // Count the number of items of the collection equal to a particular value.
+    // Returns 0 if and only if the value is not in the collection.
+    //
+    // <param name="item">The value to count.</param>
+    // <returns>The number of copies found.</returns>
     [Tested]
     public int ContainsCount(T item)
     {
@@ -2429,7 +2408,7 @@ private bool removeIterativePhase2(Node cursor, int level)
     {
       TreeBag<T> treebag;
       int origstamp;
-      internal Multiplicities(TreeBag<T> treebag) { this.treebag = treebag; this.origstamp = treebag.stamp; }
+      internal Multiplicities(TreeBag<T> tb) { treebag = tb; origstamp = treebag.stamp; }
       public override KeyValuePair<T, int> Choose() { return new KeyValuePair<T, int>(treebag.root.item, treebag.root.items); }
 
       public override SCG.IEnumerator<KeyValuePair<T, int>> GetEnumerator()
@@ -2437,7 +2416,7 @@ private bool removeIterativePhase2(Node cursor, int level)
         return getEnumerator(treebag.root, origstamp); //TODO: NBNBNB
       }
 
-      private SCG.IEnumerator<KeyValuePair<T, int>> getEnumerator(Node node, int origstamp)
+      SCG.IEnumerator<KeyValuePair<T, int>> getEnumerator(Node node, int origstamp)
       {
         if (node == null)
           yield break;
@@ -2471,10 +2450,10 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 #endif
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public virtual ICollectionValue<T> UniqueItems()
     {
       if (!isValid)
@@ -2487,10 +2466,10 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public virtual ICollectionValue<KeyValuePair<T, int>> ItemMultiplicities()
     {
       if (!isValid)
@@ -2502,10 +2481,10 @@ private bool removeIterativePhase2(Node cursor, int level)
 #endif
     }
 
-    /// <summary>
-    /// Remove all items equivalent to a given value.
-    /// </summary>
-    /// <param name="item">The value to remove.</param>
+    //
+    // Remove all items equivalent to a given value.
+    //
+    // <param name="item">The value to remove.</param>
     [Tested]
     public void RemoveAllCopies(T item)
     {
@@ -2528,7 +2507,7 @@ private bool removeIterativePhase2(Node cursor, int level)
 
     #region IIndexed<T> Members
 
-    private Node findNode(int i)
+    Node findNode(int i)
     {
 #if NCP
       if (isSnapShot)
@@ -2566,30 +2545,30 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// <exception cref="IndexOutOfRangeException"/> if i is negative or
-    /// &gt;= the size of the collection.
-    /// </summary>
-    /// <value>The i'th item of this list.</value>
-    /// <param name="i">the index to lookup</param>
+    //
+    // <exception cref="IndexOutOfRangeException"/> if i is negative or
+    // &gt;= the size of the collection.
+    //
+    // <value>The i'th item of this list.</value>
+    // <param name="i">the index to lookup</param>
     [Tested]
     public T this[int i] { [Tested]	get { return findNode(i).item; } }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public virtual Speed IndexingSpeed { get { return Speed.Log; } }
 
 
     //TODO: return -upper instead of -1 in case of not found
-    /// <summary>
-    /// Searches for an item in this indexed collection going forwards from the start.
-    /// </summary>
-    /// <param name="item">Item to search for.</param>
-    /// <returns>Index of first occurrence from start of the item
-    /// if found, else the two-complement 
-    /// (always negative) of the index at which the item would be put if it was added.</returns>
+    //
+    // Searches for an item in this indexed collection going forwards from the start.
+    //
+    // <param name="item">Item to search for.</param>
+    // <returns>Index of first occurrence from start of the item
+    // if found, else the two-complement 
+    // (always negative) of the index at which the item would be put if it was added.</returns>
     [Tested]
     public int IndexOf(T item)
     {
@@ -2600,7 +2579,7 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    private int indexOf(T item, out int upper)
+    int indexOf(T item, out int upper)
     {
 #if NCP
       if (isSnapShot)
@@ -2645,13 +2624,13 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Searches for an item in the tree going backwords from the end.
-    /// </summary>
-    /// <param name="item">Item to search for.</param>
-    /// <returns>Index of last occurrence from the end of item if found, 
-    /// else the two-complement (always negative) of the index at which 
-    /// the item would be put if it was added.</returns>
+    //
+    // Searches for an item in the tree going backwords from the end.
+    //
+    // <param name="item">Item to search for.</param>
+    // <returns>Index of last occurrence from the end of item if found, 
+    // else the two-complement (always negative) of the index at which 
+    // the item would be put if it was added.</returns>
     [Tested]
     public int LastIndexOf(T item)
     {
@@ -2668,13 +2647,13 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Remove the item at a specific position of the list.
-    /// <exception cref="IndexOutOfRangeException"/> if i is negative or
-    /// &gt;= the size of the collection.
-    /// </summary>
-    /// <param name="i">The index of the item to remove.</param>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the item at a specific position of the list.
+    // <exception cref="IndexOutOfRangeException"/> if i is negative or
+    // &gt;= the size of the collection.
+    //
+    // <param name="i">The index of the item to remove.</param>
+    // <returns>The removed item.</returns>
     [Tested]
     public T RemoveAt(int i)
     {
@@ -2751,7 +2730,7 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 #if BAG
-    private void resplicebag(int level, Node cursor)
+    void resplicebag(int level, Node cursor)
     {
 #if NCP
       Node.CopyNode(ref cursor, maxsnapid, generation);
@@ -2771,18 +2750,18 @@ private bool removeIterativePhase2(Node cursor, int level)
       }
     }
 #endif
-    /// <summary>
-    /// Remove all items in an index interval.
-    /// <exception cref="IndexOutOfRangeException"/>???. 
-    /// </summary>
-    /// <param name="start">The index of the first item to remove.</param>
-    /// <param name="count">The number of items to remove.</param>
+    //
+    // Remove all items in an index interval.
+    // <exception cref="IndexOutOfRangeException"/>???. 
+    //
+    // <param name="start">The index of the first item to remove.</param>
+    // <param name="count">The number of items to remove.</param>
     [Tested]
     public void RemoveInterval(int start, int count)
     {
       if (!isValid)
         throw new ViewDisposedException("Snapshot has been disposed");
-      if (start < 0 || count < 0 || start + count > this.size)
+      if (start < 0 || count < 0 || start + count > size)
         throw new ArgumentOutOfRangeException();
 
       updatecheck();
@@ -2804,12 +2783,12 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// <exception cref="IndexOutOfRangeException"/>.
-    /// </summary>
-    /// <value>The directed collection of items in a specific index interval.</value>
-    /// <param name="start">The starting index of the interval (inclusive).</param>
-    /// <param name="count">The length of the interval.</param>
+    //
+    // <exception cref="IndexOutOfRangeException"/>.
+    //
+    // <value>The directed collection of items in a specific index interval.</value>
+    // <param name="start">The starting index of the interval (inclusive).</param>
+    // <param name="count">The length of the interval.</param>
     [Tested]
     public IDirectedCollectionValue<T> this[int start, int count]
     {
@@ -2831,14 +2810,14 @@ private bool removeIterativePhase2(Node cursor, int level)
       readonly TreeBag<T> tree;
 
 
-      internal Interval(TreeBag<T> tree, int start, int count, bool forwards)
+      internal Interval(TreeBag<T> tb, int s, int c, bool b)
       {
 #if NCP
         if (tree.isSnapShot)
           throw new NotSupportedException("Indexing not supported for snapshots");
 #endif
-        this.start = start; this.length = count; this.forwards = forwards;
-        this.tree = tree; this.stamp = tree.stamp;
+        start = s; length = c; forwards = b;
+        tree = tb; stamp = tree.stamp;
       }
 
       public override bool IsEmpty { get { return length == 0; } }
@@ -3026,13 +3005,13 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
     #endregion
 
-    /// <summary>
-    /// Create a collection containing the same items as this collection, but
-    /// whose enumerator will enumerate the items backwards. The new collection
-    /// will become invalid if the original is modified. Method typicaly used as in
-    /// <code>foreach (T x in coll.Backwards()) {...}</code>
-    /// </summary>
-    /// <returns>The backwards collection.</returns>
+    //
+    // Create a collection containing the same items as this collection, but
+    // whose enumerator will enumerate the items backwards. The new collection
+    // will become invalid if the original is modified. Method typicaly used as in
+    // <code>foreach (T x in coll.Backwards()) {...}</code>
+    //
+    // <returns>The backwards collection.</returns>
     [Tested]
     public override IDirectedCollectionValue<T> Backwards() { return RangeAll().Backwards(); }
 
@@ -3044,17 +3023,17 @@ private bool removeIterativePhase2(Node cursor, int level)
 
     #region PriorityQueue Members
 
-    /// <summary>
-    /// The comparer object supplied at creation time for this collection
-    /// </summary>
-    /// <value>The comparer</value>
+    //
+    // The comparer object supplied at creation time for this collection
+    //
+    // <value>The comparer</value>
     public SCG.IComparer<T> Comparer { get { return comparer; } }
 
 
-    /// <summary>
-    /// Find the current least item of this priority queue.
-    /// </summary>
-    /// <returns>The least item.</returns>
+    //
+    // Find the current least item of this priority queue.
+    //
+    // <returns>The least item.</returns>
     [Tested]
     public T FindMin()
     {
@@ -3074,10 +3053,10 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Remove the least item from this  priority queue.
-    /// </summary>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the least item from this  priority queue.
+    //
+    // <returns>The removed item.</returns>
     [Tested]
     public T DeleteMin()
     {
@@ -3101,7 +3080,7 @@ private bool removeIterativePhase2(Node cursor, int level)
       return retval;
     }
 
-    private T deleteMin()
+    T deleteMin()
     {
       int level = 0;
       Node cursor = root;
@@ -3128,10 +3107,10 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Find the current largest item of this priority queue.
-    /// </summary>
-    /// <returns>The largest item.</returns>
+    //
+    // Find the current largest item of this priority queue.
+    //
+    // <returns>The largest item.</returns>
     [Tested]
     public T FindMax()
     {
@@ -3152,10 +3131,10 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Remove the largest item from this  priority queue.
-    /// </summary>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the largest item from this  priority queue.
+    //
+    // <returns>The removed item.</returns>
     [Tested]
     public T DeleteMax()
     {
@@ -3178,7 +3157,7 @@ private bool removeIterativePhase2(Node cursor, int level)
       return retval;
     }
 
-    private T deleteMax()
+    T deleteMax()
     {
       int level = 0;
       Node cursor = root;
@@ -3207,13 +3186,13 @@ private bool removeIterativePhase2(Node cursor, int level)
 
     #region ISorted<T> Members
 
-    /// <summary>
-    /// Find the strict predecessor of item in the sorted collection,
-    /// that is, the greatest item in the collection smaller than the item.
-    /// </summary>
-    /// <param name="item">The item to find the predecessor for.</param>
-    /// <param name="res">The predecessor, if any; otherwise the default value for T.</param>
-    /// <returns>True if item has a predecessor; otherwise false.</returns>
+    //
+    // Find the strict predecessor of item in the sorted collection,
+    // that is, the greatest item in the collection smaller than the item.
+    //
+    // <param name="item">The item to find the predecessor for.</param>
+    // <param name="res">The predecessor, if any; otherwise the default value for T.</param>
+    // <returns>True if item has a predecessor; otherwise false.</returns>
     public bool TryPredecessor(T item, out T res)
     {
         if (!isValid)
@@ -3254,13 +3233,13 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Find the strict successor of item in the sorted collection,
-    /// that is, the least item in the collection greater than the supplied value.
-    /// </summary>
-    /// <param name="item">The item to find the successor for.</param>
-    /// <param name="res">The successor, if any; otherwise the default value for T.</param>
-    /// <returns>True if item has a successor; otherwise false.</returns>
+    //
+    // Find the strict successor of item in the sorted collection,
+    // that is, the least item in the collection greater than the supplied value.
+    //
+    // <param name="item">The item to find the successor for.</param>
+    // <param name="res">The successor, if any; otherwise the default value for T.</param>
+    // <returns>True if item has a successor; otherwise false.</returns>
     public bool TrySuccessor(T item, out T res)
     {
         if (!isValid)
@@ -3302,13 +3281,13 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Find the weak predecessor of item in the sorted collection,
-    /// that is, the greatest item in the collection smaller than or equal to the item.
-    /// </summary>
-    /// <param name="item">The item to find the weak predecessor for.</param>
-    /// <param name="res">The weak predecessor, if any; otherwise the default value for T.</param>
-    /// <returns>True if item has a weak predecessor; otherwise false.</returns>
+    //
+    // Find the weak predecessor of item in the sorted collection,
+    // that is, the greatest item in the collection smaller than or equal to the item.
+    //
+    // <param name="item">The item to find the weak predecessor for.</param>
+    // <param name="res">The weak predecessor, if any; otherwise the default value for T.</param>
+    // <returns>True if item has a weak predecessor; otherwise false.</returns>
     public bool TryWeakPredecessor(T item, out T res)
     {
         if (!isValid)
@@ -3345,13 +3324,13 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Find the weak successor of item in the sorted collection,
-    /// that is, the least item in the collection greater than or equal to the supplied value.
-    /// </summary>
-    /// <param name="item">The item to find the weak successor for.</param>
-    /// <param name="res">The weak successor, if any; otherwise the default value for T.</param>
-    /// <returns>True if item has a weak successor; otherwise false.</returns>
+    //
+    // Find the weak successor of item in the sorted collection,
+    // that is, the least item in the collection greater than or equal to the supplied value.
+    //
+    // <param name="item">The item to find the weak successor for.</param>
+    // <param name="res">The weak successor, if any; otherwise the default value for T.</param>
+    // <returns>True if item has a weak successor; otherwise false.</returns>
     public bool TryWeakSuccessor(T item, out T res)
     {
         if (!isValid)
@@ -3389,14 +3368,14 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Find the strict predecessor in the sorted collection of a particular value,
-    /// i.e. the largest item in the collection less than the supplied value.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if no such element exists (the
-    /// supplied  value is less than or equal to the minimum of this collection.)</exception>
-    /// <param name="item">The item to find the predecessor for.</param>
-    /// <returns>The predecessor.</returns>
+    //
+    // Find the strict predecessor in the sorted collection of a particular value,
+    // i.e. the largest item in the collection less than the supplied value.
+    //
+    // <exception cref="NoSuchItemException"> if no such element exists (the
+    // supplied  value is less than or equal to the minimum of this collection.)</exception>
+    // <param name="item">The item to find the predecessor for.</param>
+    // <returns>The predecessor.</returns>
     [Tested]
     public T Predecessor(T item)
     {
@@ -3408,14 +3387,14 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Find the weak predecessor in the sorted collection of a particular value,
-    /// i.e. the largest item in the collection less than or equal to the supplied value.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if no such element exists (the
-    /// supplied  value is less than the minimum of this collection.)</exception>
-    /// <param name="item">The item to find the weak predecessor for.</param>
-    /// <returns>The weak predecessor.</returns>
+    //
+    // Find the weak predecessor in the sorted collection of a particular value,
+    // i.e. the largest item in the collection less than or equal to the supplied value.
+    //
+    // <exception cref="NoSuchItemException"> if no such element exists (the
+    // supplied  value is less than the minimum of this collection.)</exception>
+    // <param name="item">The item to find the weak predecessor for.</param>
+    // <returns>The weak predecessor.</returns>
     [Tested]
     public T WeakPredecessor(T item)
     {
@@ -3427,14 +3406,14 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Find the strict successor in the sorted collection of a particular value,
-    /// i.e. the least item in the collection greater than the supplied value.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> if no such element exists (the
-    /// supplied  value is greater than or equal to the maximum of this collection.)</exception>
-    /// <param name="item">The item to find the successor for.</param>
-    /// <returns>The successor.</returns>
+    //
+    // Find the strict successor in the sorted collection of a particular value,
+    // i.e. the least item in the collection greater than the supplied value.
+    //
+    // <exception cref="NoSuchItemException"> if no such element exists (the
+    // supplied  value is greater than or equal to the maximum of this collection.)</exception>
+    // <param name="item">The item to find the successor for.</param>
+    // <returns>The successor.</returns>
     [Tested]
     public T Successor(T item)
     {
@@ -3446,14 +3425,14 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Find the weak successor in the sorted collection of a particular value,
-    /// i.e. the least item in the collection greater than or equal to the supplied value.
-    /// <exception cref="NoSuchItemException"> if no such element exists (the
-    /// supplied  value is greater than the maximum of this collection.)</exception>
-    /// </summary>
-    /// <param name="item">The item to find the weak successor for.</param>
-    /// <returns>The weak successor.</returns>
+    //
+    // Find the weak successor in the sorted collection of a particular value,
+    // i.e. the least item in the collection greater than or equal to the supplied value.
+    // <exception cref="NoSuchItemException"> if no such element exists (the
+    // supplied  value is greater than the maximum of this collection.)</exception>
+    //
+    // <param name="item">The item to find the weak successor for.</param>
+    // <returns>The weak successor.</returns>
     [Tested]
     public T WeakSuccessor(T item)
     {
@@ -3465,11 +3444,11 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
    
-    /// <summary>
-    /// Query this sorted collection for items greater than or equal to a supplied value.
-    /// </summary>
-    /// <param name="bot">The lower bound (inclusive).</param>
-    /// <returns>The result directed collection.</returns>
+    //
+    // Query this sorted collection for items greater than or equal to a supplied value.
+    //
+    // <param name="bot">The lower bound (inclusive).</param>
+    // <returns>The result directed collection.</returns>
     [Tested]
     public IDirectedCollectionValue<T> RangeFrom(T bot)
     {
@@ -3479,12 +3458,12 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Query this sorted collection for items between two supplied values.
-    /// </summary>
-    /// <param name="bot">The lower bound (inclusive).</param>
-    /// <param name="top">The upper bound (exclusive).</param>
-    /// <returns>The result directed collection.</returns>
+    //
+    // Query this sorted collection for items between two supplied values.
+    //
+    // <param name="bot">The lower bound (inclusive).</param>
+    // <param name="top">The upper bound (exclusive).</param>
+    // <returns>The result directed collection.</returns>
     [Tested]
     public IDirectedCollectionValue<T> RangeFromTo(T bot, T top)
     {
@@ -3494,11 +3473,11 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Query this sorted collection for items less than a supplied value.
-    /// </summary>
-    /// <param name="top">The upper bound (exclusive).</param>
-    /// <returns>The result directed collection.</returns>
+    //
+    // Query this sorted collection for items less than a supplied value.
+    //
+    // <param name="top">The upper bound (exclusive).</param>
+    // <returns>The result directed collection.</returns>
     [Tested]
     public IDirectedCollectionValue<T> RangeTo(T top)
     {
@@ -3508,10 +3487,10 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Create a directed collection with the same items as this collection.
-    /// </summary>
-    /// <returns>The result directed collection.</returns>
+    //
+    // Create a directed collection with the same items as this collection.
+    //
+    // <returns>The result directed collection.</returns>
     [Tested]
     public IDirectedCollectionValue<T> RangeAll()
     {
@@ -3534,7 +3513,7 @@ private bool removeIterativePhase2(Node cursor, int level)
 
 
     //Utility for CountXxxx. Actually always called with strict = true.
-    private int countTo(T item, bool strict)
+    int countTo(T item, bool strict)
     {
 #if NCP
       if (isSnapShot)
@@ -3579,25 +3558,25 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Perform a search in the sorted collection for the ranges in which a
-    /// non-increasing (i.e. weakly decrerasing) function from the item type to 
-    /// <code>int</code> is
-    /// negative, zero respectively positive. If the supplied cut function is
-    /// not non-increasing, the result of this call is undefined.
-    /// </summary>
-    /// <param name="c">The cut function <code>T</code> to <code>int</code>, given
-    /// as an <code>IComparable&lt;T&gt;</code> object, where the cut function is
-    /// the <code>c.CompareTo(T that)</code> method.</param>
-    /// <param name="low">Returns the largest item in the collection, where the
-    /// cut function is positive (if any).</param>
-    /// <param name="lowIsValid">True if the cut function is positive somewhere
-    /// on this collection.</param>
-    /// <param name="high">Returns the least item in the collection, where the
-    /// cut function is negative (if any).</param>
-    /// <param name="highIsValid">True if the cut function is negative somewhere
-    /// on this collection.</param>
-    /// <returns></returns>
+    //
+    // Perform a search in the sorted collection for the ranges in which a
+    // non-increasing (i.e. weakly decrerasing) function from the item type to 
+    // <code>int</code> is
+    // negative, zero respectively positive. If the supplied cut function is
+    // not non-increasing, the result of this call is undefined.
+    //
+    // <param name="c">The cut function <code>T</code> to <code>int</code>, given
+    // as an <code>IComparable&lt;T&gt;</code> object, where the cut function is
+    // the <code>c.CompareTo(T that)</code> method.</param>
+    // <param name="low">Returns the largest item in the collection, where the
+    // cut function is positive (if any).</param>
+    // <param name="lowIsValid">True if the cut function is positive somewhere
+    // on this collection.</param>
+    // <param name="high">Returns the least item in the collection, where the
+    // cut function is negative (if any).</param>
+    // <param name="highIsValid">True if the cut function is negative somewhere
+    // on this collection.</param>
+    // <returns></returns>
     [Tested]
     public bool Cut(IComparable<T> c, out T low, out bool lowIsValid, out T high, out bool highIsValid)
     {
@@ -3683,11 +3662,11 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Determine the number of items at or above a supplied threshold.
-    /// </summary>
-    /// <param name="bot">The lower bound (inclusive)</param>
-    /// <returns>The number of matcing items.</returns>
+    //
+    // Determine the number of items at or above a supplied threshold.
+    //
+    // <param name="bot">The lower bound (inclusive)</param>
+    // <returns>The number of matcing items.</returns>
     [Tested]
     public int CountFrom(T bot)
     {
@@ -3697,12 +3676,12 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Determine the number of items between two supplied thresholds.
-    /// </summary>
-    /// <param name="bot">The lower bound (inclusive)</param>
-    /// <param name="top">The upper bound (exclusive)</param>
-    /// <returns>The number of matcing items.</returns>
+    //
+    // Determine the number of items between two supplied thresholds.
+    //
+    // <param name="bot">The lower bound (inclusive)</param>
+    // <param name="top">The upper bound (exclusive)</param>
+    // <returns>The number of matcing items.</returns>
     [Tested]
     public int CountFromTo(T bot, T top)
     {
@@ -3715,11 +3694,11 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Determine the number of items below a supplied threshold.
-    /// </summary>
-    /// <param name="top">The upper bound (exclusive)</param>
-    /// <returns>The number of matcing items.</returns>
+    //
+    // Determine the number of items below a supplied threshold.
+    //
+    // <param name="top">The upper bound (exclusive)</param>
+    // <returns>The number of matcing items.</returns>
     [Tested]
     public int CountTo(T top)
     {
@@ -3729,10 +3708,10 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Remove all items of this collection above or at a supplied threshold.
-    /// </summary>
-    /// <param name="low">The lower threshold (inclusive).</param>
+    //
+    // Remove all items of this collection above or at a supplied threshold.
+    //
+    // <param name="low">The lower threshold (inclusive).</param>
     [Tested]
     public void RemoveRangeFrom(T low)
     {
@@ -3761,11 +3740,11 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Remove all items of this collection between two supplied thresholds.
-    /// </summary>
-    /// <param name="low">The lower threshold (inclusive).</param>
-    /// <param name="hi">The upper threshold (exclusive).</param>
+    //
+    // Remove all items of this collection between two supplied thresholds.
+    //
+    // <param name="low">The lower threshold (inclusive).</param>
+    // <param name="hi">The upper threshold (exclusive).</param>
     [Tested]
     public void RemoveRangeFromTo(T low, T hi)
     {
@@ -3794,10 +3773,10 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Remove all items of this collection below a supplied threshold.
-    /// </summary>
-    /// <param name="hi">The upper threshold (exclusive).</param>
+    //
+    // Remove all items of this collection below a supplied threshold.
+    //
+    // <param name="hi">The upper threshold (exclusive).</param>
     [Tested]
     public void RemoveRangeTo(T hi)
     {
@@ -3868,9 +3847,9 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 #endif
 
-    /// <summary>
-    /// If this tree is a snapshot, remove registration in base tree
-    /// </summary>
+    //
+    // If this tree is a snapshot, remove registration in base tree
+    //
     [Tested]
     public void Dispose()
     {
@@ -3903,7 +3882,7 @@ private bool removeIterativePhase2(Node cursor, int level)
 #endif
     }
 
-    private void snapDispose()
+    void snapDispose()
     {
       root = null;
       dirs = null;
@@ -3913,10 +3892,10 @@ private bool removeIterativePhase2(Node cursor, int level)
       snapList = null;
     }
 
-    /// <summary>
-    /// Make a (read-only) snapshot of this collection.
-    /// </summary>
-    /// <returns>The snapshot.</returns>
+    //
+    // Make a (read-only) snapshot of this collection.
+    //
+    // <returns>The snapshot.</returns>
     [Tested]
     public ISorted<T> Snapshot()
     {
@@ -3955,29 +3934,29 @@ private bool removeIterativePhase2(Node cursor, int level)
     {
       //We actually need exclusive upper and lower bounds, and flags to 
       //indicate whether the bound is present (we canot rely on default(T))
-      private int stamp, size;
+      int stamp, size;
 
-      private TreeBag<T> basis;
+      TreeBag<T> basis;
 
-      private T lowend, highend;
+      T lowend, highend;
 
-      private bool haslowend, hashighend;
+      bool haslowend, hashighend;
 
       EnumerationDirection direction;
 
 
       [Tested]
-      public Range(TreeBag<T> basis, bool haslowend, T lowend, bool hashighend, T highend, EnumerationDirection direction)
+      public Range(TreeBag<T> b, bool hl, T l, bool hh, T h, EnumerationDirection d)
       {
-        this.basis = basis;
+        basis = b;
         stamp = basis.stamp;
 
         //lowind will be const; should we cache highind?
-        this.lowend = lowend; //Inclusive
-        this.highend = highend;//Exclusive
-        this.haslowend = haslowend;
-        this.hashighend = hashighend;
-        this.direction = direction;
+        lowend = l; //Inclusive
+        highend = h;//Exclusive
+        haslowend = hl;
+        hashighend = hh;
+        direction = d;
         if (!basis.isSnapShot)
           size = haslowend ?
               (hashighend ? basis.CountFromTo(lowend, highend) : basis.CountFrom(lowend)) :
@@ -3991,33 +3970,33 @@ private bool removeIterativePhase2(Node cursor, int level)
 
       internal class Enumerator : SCG.IEnumerator<T>
       {
-        #region Private Fields
-        private bool valid = false, ready = true;
+        #region Fields
+        bool valid = false, ready = true;
 
-        private SCG.IComparer<T> comparer;
+        SCG.IComparer<T> comparer;
 
-        private T current;
+        T current;
 #if BAG
         int togo;
 #endif
 
-        private Node cursor;
+        Node cursor;
 
-        private Node[] path; // stack of nodes
+        Node[] path; // stack of nodes
 
-        private int level = 0;
+        int level = 0;
 
-        private Range range;
+        Range range;
 
-        private bool forwards;
+        bool forwards;
 
         #endregion
         [Tested]
-        public Enumerator(Range range)
+        public Enumerator(Range r)
         {
           comparer = range.basis.comparer;
           path = new Node[2 * range.basis.blackdepth];
-          this.range = range;
+          range = r;
           forwards = range.direction == EnumerationDirection.Forwards;
           cursor = new Node();
           if (forwards)
@@ -4031,10 +4010,10 @@ private bool removeIterativePhase2(Node cursor, int level)
         int compare(T i1, T i2) { return comparer.Compare(i1, i2); }
 
 
-        /// <summary>
-        /// Undefined if enumerator is not valid (MoveNext hash been called returning true)
-        /// </summary>
-        /// <value>The current value of the enumerator.</value>
+        //
+        // Undefined if enumerator is not valid (MoveNext hash been called returning true)
+        //
+        // <value>The current value of the enumerator.</value>
         [Tested]
         public T Current
         {
@@ -4054,12 +4033,12 @@ private bool removeIterativePhase2(Node cursor, int level)
         //The stack nodes together with their right subtrees
         //consists of exactly the items we have not passed
         //yet (the top of the stack holds current item).
-        /// <summary>
-        /// Move enumerator to next item in tree, or the first item if
-        /// this is the first call to MoveNext. 
-        /// <exception cref="CollectionModifiedException"/> if underlying tree was modified.
-        /// </summary>
-        /// <returns>True if enumerator is valid now</returns>
+        //
+        // Move enumerator to next item in tree, or the first item if
+        // this is the first call to MoveNext. 
+        // <exception cref="CollectionModifiedException"/> if underlying tree was modified.
+        //
+        // <returns>True if enumerator is valid now</returns>
         [Tested]
         public bool MoveNext()
         {
@@ -4315,12 +4294,12 @@ private bool removeIterativePhase2(Node cursor, int level)
     #endregion
 
     #region Diagnostics
-    /// <summary>
-    /// Display this node on the console, and recursively its subnodes.
-    /// </summary>
-    /// <param name="n">Node to display</param>
-    /// <param name="space">Indentation</param>
-    private void minidump(Node n, string space)
+    //
+    // Display this node on the console, and recursively its subnodes.
+    //
+    // <param name="n">Node to display</param>
+    // <param name="space">Indentation</param>
+    void minidump(Node n, string space)
     {
       if (n == null)
       {
@@ -4362,16 +4341,16 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Print the tree structure to the console stdout.
-    /// </summary>
+    //
+    // Print the tree structure to the console stdout.
+    //
     [Tested(via = "Sawtooth")]
     public void dump() { dump(""); }
 
 
-    /// <summary>
-    /// Print the tree structure to the console stdout.
-    /// </summary>
+    //
+    // Print the tree structure to the console stdout.
+    //
     [Tested(via = "Sawtooth")]
     public void dump(string msg)
     {
@@ -4387,11 +4366,11 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Display this tree on the console.
-    /// </summary>
-    /// <param name="msg">Identifying string of this call to dump</param>
-    /// <param name="err">Extra (error)message to include</param>
+    //
+    // Display this tree on the console.
+    //
+    // <param name="msg">Identifying string of this call to dump</param>
+    // <param name="err">Extra (error)message to include</param>
     void dump(string msg, string err)
     {
       Console.WriteLine(String.Format(">>>>>>>>>>>>>>>>>>> dump {0} (count={1}, blackdepth={2}, depth={3}, gen={4})", msg, size, blackdepth,
@@ -4406,14 +4385,14 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Print warning m on o if b is false.
-    /// </summary>
-    /// <param name="b">Condition that should hold</param>
-    /// <param name="n">Place (used for id display)</param>
-    /// <param name="m">Message</param>
-    /// <param name="o">Output stream</param>
-    /// <returns>b</returns>
+    //
+    // Print warning m on o if b is false.
+    //
+    // <param name="b">Condition that should hold</param>
+    // <param name="n">Place (used for id display)</param>
+    // <param name="m">Message</param>
+    // <param name="o">Output stream</param>
+    // <returns>b</returns>
     bool massert(bool b, Node n, string m, System.IO.TextWriter o)
     {
       if (!b) o.WriteLine("*** Node (item={0}, id={1}): {2}", n.item,
@@ -4506,11 +4485,11 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 #endif
 
-    /// <summary>
-    /// Checks red-black invariant. Dumps tree to console if bad
-    /// </summary>
-    /// <param name="name">Title of dump</param>
-    /// <returns>false if invariant violation</returns>
+    //
+    // Checks red-black invariant. Dumps tree to console if bad
+    //
+    // <param name="name">Title of dump</param>
+    // <returns>false if invariant violation</returns>
     [Tested(via = "Sawtooth")]
     public bool Check(string name)
     {
@@ -4527,10 +4506,10 @@ private bool removeIterativePhase2(Node cursor, int level)
     }
 
 
-    /// <summary>
-    /// Checks red-black invariant. Dumps tree to console if bad
-    /// </summary>
-    /// <returns>false if invariant violation</returns>
+    //
+    // Checks red-black invariant. Dumps tree to console if bad
+    //
+    // <returns>false if invariant violation</returns>
     [Tested]
     public bool Check()
     {
@@ -4574,10 +4553,10 @@ private bool removeIterativePhase2(Node cursor, int level)
 
     #region ICloneable Members
 
-    /// <summary>
-    /// Make a shallow copy of this TreeBag.
-    /// </summary>
-    /// <returns></returns>
+    //
+    // Make a shallow copy of this TreeBag.
+    //
+    // <returns></returns>
     public virtual object Clone()
     {
       TreeBag<T> clone = new TreeBag<T>(comparer, EqualityComparer);
@@ -4590,4 +4569,3 @@ private bool removeIterativePhase2(Node cursor, int level)
 
   }
 }
-

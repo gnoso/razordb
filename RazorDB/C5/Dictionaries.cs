@@ -1,73 +1,52 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// An entry in a dictionary from K to V.
-  /// </summary>
+  //
+  // An entry in a dictionary from K to V.
+  //
   [Serializable]
   public struct KeyValuePair<K, V> : IEquatable<KeyValuePair<K, V>>, IShowable
   {
-    /// <summary>
-    /// The key field of the entry
-    /// </summary>
+    //
+    // The key field of the entry
+    //
     public K Key;
 
-    /// <summary>
-    /// The value field of the entry
-    /// </summary>
+    //
+    // The value field of the entry
+    //
     public V Value;
 
-    /// <summary>
-    /// Create an entry with specified key and value
-    /// </summary>
-    /// <param name="key">The key</param>
-    /// <param name="value">The value</param>
+    //
+    // Create an entry with specified key and value
+    //
+    // <param name="key">The key</param>
+    // <param name="value">The value</param>
     public KeyValuePair(K key, V value) { Key = key; Value = value; }
 
 
-    /// <summary>
-    /// Create an entry with a specified key. The value will be the default value of type <code>V</code>.
-    /// </summary>
-    /// <param name="key">The key</param>
+    //
+    // Create an entry with a specified key. The value will be the default value of type <code>V</code>.
+    //
+    // <param name="key">The key</param>
     public KeyValuePair(K key) { Key = key; Value = default(V); }
 
 
-    /// <summary>
-    /// Pretty print an entry
-    /// </summary>
-    /// <returns>(key, value)</returns>
+    //
+    // Pretty print an entry
+    //
+    // <returns>(key, value)</returns>
     [Tested]
     public override string ToString() { return "(" + Key + ", " + Value + ")"; }
 
 
-    /// <summary>
-    /// Check equality of entries. 
-    /// </summary>
-    /// <param name="obj">The other object</param>
-    /// <returns>True if obj is an entry of the same type and has the same key and value</returns>
+    //
+    // Check equality of entries. 
+    //
+    // <param name="obj">The other object</param>
+    // <returns>True if obj is an entry of the same type and has the same key and value</returns>
     [Tested]
     public override bool Equals(object obj)
     {
@@ -78,48 +57,48 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Get the hash code of the pair.
-    /// </summary>
-    /// <returns>The hash code</returns>
+    //
+    // Get the hash code of the pair.
+    //
+    // <returns>The hash code</returns>
     [Tested]
     public override int GetHashCode() { return EqualityComparer<K>.Default.GetHashCode(Key) + 13984681 * EqualityComparer<V>.Default.GetHashCode(Value); }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="other"></param>
+    // <returns></returns>
     public bool Equals(KeyValuePair<K, V> other)
     {
       return EqualityComparer<K>.Default.Equals(Key, other.Key) && EqualityComparer<V>.Default.Equals(Value, other.Value);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="pair1"></param>
-    /// <param name="pair2"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="pair1"></param>
+    // <param name="pair2"></param>
+    // <returns></returns>
     public static bool operator ==(KeyValuePair<K, V> pair1, KeyValuePair<K, V> pair2) { return pair1.Equals(pair2); }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="pair1"></param>
-    /// <param name="pair2"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="pair1"></param>
+    // <param name="pair2"></param>
+    // <returns></returns>
     public static bool operator !=(KeyValuePair<K, V> pair1, KeyValuePair<K, V> pair2) { return !pair1.Equals(pair2); }
 
     #region IShowable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="stringbuilder"></param>
-    /// <param name="formatProvider"></param>
-    /// <param name="rest"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="stringbuilder"></param>
+    // <param name="formatProvider"></param>
+    // <param name="rest"></param>
+    // <returns></returns>
     public bool Show(System.Text.StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       if (rest < 0)
@@ -136,12 +115,12 @@ namespace RazorDB.C5
 
     #region IFormattable Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="format"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="format"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public string ToString(string format, IFormatProvider formatProvider)
     {
       return Showing.ShowString(this, format, formatProvider);
@@ -152,34 +131,34 @@ namespace RazorDB.C5
 
 
 
-  /// <summary>
-  /// Default comparer for dictionary entries in a sorted dictionary.
-  /// Entry comparisons only look at keys and uses an externally defined comparer for that.
-  /// </summary>
+  //
+  // Default comparer for dictionary entries in a sorted dictionary.
+  // Entry comparisons only look at keys and uses an externally defined comparer for that.
+  //
   [Serializable]
   public class KeyValuePairComparer<K, V> : SCG.IComparer<KeyValuePair<K, V>>
   {
     SCG.IComparer<K> comparer;
 
 
-    /// <summary>
-    /// Create an entry comparer for a item comparer of the keys
-    /// </summary>
-    /// <param name="comparer">Comparer of keys</param>
-    public KeyValuePairComparer(SCG.IComparer<K> comparer)
+    //
+    // Create an entry comparer for a item comparer of the keys
+    //
+    // <param name="comparer">Comparer of keys</param>
+    public KeyValuePairComparer(SCG.IComparer<K> c)
     {
       if (comparer == null)
         throw new NullReferenceException();
-      this.comparer = comparer;
+      comparer = c;
     }
 
 
-    /// <summary>
-    /// Compare two entries
-    /// </summary>
-    /// <param name="entry1">First entry</param>
-    /// <param name="entry2">Second entry</param>
-    /// <returns>The result of comparing the keys</returns>
+    //
+    // Compare two entries
+    //
+    // <param name="entry1">First entry</param>
+    // <param name="entry2">Second entry</param>
+    // <returns>The result of comparing the keys</returns>
     [Tested]
     public int Compare(KeyValuePair<K, V> entry1, KeyValuePair<K, V> entry2)
     { return comparer.Compare(entry1.Key, entry2.Key); }
@@ -187,49 +166,49 @@ namespace RazorDB.C5
 
 
 
-  /// <summary>
-  /// Default equalityComparer for dictionary entries.
-  /// Operations only look at keys and uses an externaly defined equalityComparer for that.
-  /// </summary>
+  //
+  // Default equalityComparer for dictionary entries.
+  // Operations only look at keys and uses an externaly defined equalityComparer for that.
+  //
   [Serializable]
   public sealed class KeyValuePairEqualityComparer<K, V> : SCG.IEqualityComparer<KeyValuePair<K, V>>
   {
     SCG.IEqualityComparer<K> keyequalityComparer;
 
 
-    /// <summary>
-    /// Create an entry equalityComparer using the default equalityComparer for keys
-    /// </summary>
+    //
+    // Create an entry equalityComparer using the default equalityComparer for keys
+    //
     public KeyValuePairEqualityComparer() { keyequalityComparer = EqualityComparer<K>.Default; }
 
 
-    /// <summary>
-    /// Create an entry equalityComparer from a specified item equalityComparer for the keys
-    /// </summary>
-    /// <param name="keyequalityComparer">The key equalityComparer</param>
-    public KeyValuePairEqualityComparer(SCG.IEqualityComparer<K> keyequalityComparer)
+    //
+    // Create an entry equalityComparer from a specified item equalityComparer for the keys
+    //
+    // <param name="keyequalityComparer">The key equalityComparer</param>
+    public KeyValuePairEqualityComparer(SCG.IEqualityComparer<K> k)
     {
       if (keyequalityComparer == null)
         throw new NullReferenceException("Key equality comparer cannot be null");
-      this.keyequalityComparer = keyequalityComparer;
+      keyequalityComparer = k;
     }
 
 
-    /// <summary>
-    /// Get the hash code of the entry
-    /// </summary>
-    /// <param name="entry">The entry</param>
-    /// <returns>The hash code of the key</returns>
+    //
+    // Get the hash code of the entry
+    //
+    // <param name="entry">The entry</param>
+    // <returns>The hash code of the key</returns>
     [Tested]
     public int GetHashCode(KeyValuePair<K, V> entry) { return keyequalityComparer.GetHashCode(entry.Key); }
 
 
-    /// <summary>
-    /// Test two entries for equality
-    /// </summary>
-    /// <param name="entry1">First entry</param>
-    /// <param name="entry2">Second entry</param>
-    /// <returns>True if keys are equal</returns>
+    //
+    // Test two entries for equality
+    //
+    // <param name="entry1">First entry</param>
+    // <param name="entry2">Second entry</param>
+    // <returns>True if keys are equal</returns>
     [Tested]
     public bool Equals(KeyValuePair<K, V> entry1, KeyValuePair<K, V> entry2)
     { return keyequalityComparer.Equals(entry1.Key, entry2.Key); }
@@ -237,17 +216,17 @@ namespace RazorDB.C5
 
 
 
-  /// <summary>
-  /// A base class for implementing a dictionary based on a set collection implementation.
-  /// <i>See the source code for <see cref="T:C5.HashDictionary`2"/> for an example</i>
-  /// 
-  /// </summary>
+  //
+  // A base class for implementing a dictionary based on a set collection implementation.
+  // <i>See the source code for <see cref="T:C5.HashDictionary`2"/> for an example</i>
+  // 
+  //
   [Serializable]
   public abstract class DictionaryBase<K, V> : CollectionValueBase<KeyValuePair<K, V>>, IDictionary<K, V>
   {
-    /// <summary>
-    /// The set collection of entries underlying this dictionary implementation
-    /// </summary>
+    //
+    // The set collection of entries underlying this dictionary implementation
+    //
     protected ICollection<KeyValuePair<K, V>> pairs;
 
     SCG.IEqualityComparer<K> keyequalityComparer;
@@ -255,45 +234,45 @@ namespace RazorDB.C5
     #region Events
     ProxyEventBlock<KeyValuePair<K, V>> eventBlock;
 
-    /// <summary>
-    /// The change event. Will be raised for every change operation on the collection.
-    /// </summary>
+    //
+    // The change event. Will be raised for every change operation on the collection.
+    //
     public override event CollectionChangedHandler<KeyValuePair<K, V>> CollectionChanged
     {
       add { (eventBlock ?? (eventBlock = new ProxyEventBlock<KeyValuePair<K, V>>(this, pairs))).CollectionChanged += value; }
       remove { if (eventBlock != null) eventBlock.CollectionChanged -= value; }
     }
 
-    /// <summary>
-    /// The change event. Will be raised for every change operation on the collection.
-    /// </summary>
+    //
+    // The change event. Will be raised for every change operation on the collection.
+    //
     public override event CollectionClearedHandler<KeyValuePair<K, V>> CollectionCleared
     {
       add { (eventBlock ?? (eventBlock = new ProxyEventBlock<KeyValuePair<K, V>>(this, pairs))).CollectionCleared += value; }
       remove { if (eventBlock != null) eventBlock.CollectionCleared -= value; }
     }
 
-    /// <summary>
-    /// The item added  event. Will be raised for every individual addition to the collection.
-    /// </summary>
+    //
+    // The item added  event. Will be raised for every individual addition to the collection.
+    //
     public override event ItemsAddedHandler<KeyValuePair<K, V>> ItemsAdded
     {
       add { (eventBlock ?? (eventBlock = new ProxyEventBlock<KeyValuePair<K, V>>(this, pairs))).ItemsAdded += value; }
       remove { if (eventBlock != null) eventBlock.ItemsAdded -= value; }
     }
 
-    /// <summary>
-    /// The item added  event. Will be raised for every individual removal from the collection.
-    /// </summary>
+    //
+    // The item added  event. Will be raised for every individual removal from the collection.
+    //
     public override event ItemsRemovedHandler<KeyValuePair<K, V>> ItemsRemoved
     {
       add { (eventBlock ?? (eventBlock = new ProxyEventBlock<KeyValuePair<K, V>>(this, pairs))).ItemsRemoved += value; }
       remove { if (eventBlock != null) eventBlock.ItemsRemoved -= value; }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public override EventTypeEnum ListenableEvents
     {
       get
@@ -302,9 +281,9 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public override EventTypeEnum ActiveEvents
     {
       get
@@ -315,32 +294,32 @@ namespace RazorDB.C5
 
     #endregion
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="keyequalityComparer"></param>
-    protected DictionaryBase(SCG.IEqualityComparer<K> keyequalityComparer)
+    //
+    // 
+    //
+    // <param name="keyequalityComparer"></param>
+    protected DictionaryBase(SCG.IEqualityComparer<K> k)
     {
       if (keyequalityComparer == null)
         throw new NullReferenceException("Key equality comparer cannot be null");
-      this.keyequalityComparer = keyequalityComparer;
+      keyequalityComparer = k;
     }
 
     #region IDictionary<K,V> Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public virtual SCG.IEqualityComparer<K> EqualityComparer { get { return keyequalityComparer; } }
 
 
-    /// <summary>
-    /// Add a new (key, value) pair (a mapping) to the dictionary.
-    /// </summary>
-    /// <exception cref="DuplicateNotAllowedException"> if there already is an entry with the same key. </exception>
-    /// <param name="key">Key to add</param>
-    /// <param name="value">Value to add</param>
+    //
+    // Add a new (key, value) pair (a mapping) to the dictionary.
+    //
+    // <exception cref="DuplicateNotAllowedException"> if there already is an entry with the same key. </exception>
+    // <param name="key">Key to add</param>
+    // <param name="value">Value to add</param>
     [Tested]
     public virtual void Add(K key, V value)
     {
@@ -350,13 +329,13 @@ namespace RazorDB.C5
         throw new DuplicateNotAllowedException("Key being added: '" + key + "'");
     }
 
-    /// <summary>
-    /// Add the entries from a collection of <see cref="T:C5.KeyValuePair`2"/> pairs to this dictionary.
-    /// <para><b>TODO: add restrictions L:K and W:V when the .Net SDK allows it </b></para>
-    /// </summary>
-    /// <exception cref="DuplicateNotAllowedException"> 
-    /// If the input contains duplicate keys or a key already present in this dictionary.</exception>
-    /// <param name="entries"></param>
+    //
+    // Add the entries from a collection of <see cref="T:C5.KeyValuePair`2"/> pairs to this dictionary.
+    // <para><b>TODO: add restrictions L:K and W:V when the .Net SDK allows it </b></para>
+    //
+    // <exception cref="DuplicateNotAllowedException"> 
+    // If the input contains duplicate keys or a key already present in this dictionary.</exception>
+    // <param name="entries"></param>
     public virtual void AddAll<L, W>(SCG.IEnumerable<KeyValuePair<L, W>> entries)
       where L : K
       where W : V
@@ -369,11 +348,11 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// Remove an entry with a given key from the dictionary
-    /// </summary>
-    /// <param name="key">The key of the entry to remove</param>
-    /// <returns>True if an entry was found (and removed)</returns>
+    //
+    // Remove an entry with a given key from the dictionary
+    //
+    // <param name="key">The key of the entry to remove</param>
+    // <returns>True if an entry was found (and removed)</returns>
     [Tested]
     public virtual bool Remove(K key)
     {
@@ -383,12 +362,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove an entry with a given key from the dictionary and report its value.
-    /// </summary>
-    /// <param name="key">The key of the entry to remove</param>
-    /// <param name="value">On exit, the value of the removed entry</param>
-    /// <returns>True if an entry was found (and removed)</returns>
+    //
+    // Remove an entry with a given key from the dictionary and report its value.
+    //
+    // <param name="key">The key of the entry to remove</param>
+    // <param name="value">On exit, the value of the removed entry</param>
+    // <returns>True if an entry was found (and removed)</returns>
     [Tested]
     public virtual bool Remove(K key, out V value)
     {
@@ -407,23 +386,23 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove all entries from the dictionary
-    /// </summary>
+    //
+    // Remove all entries from the dictionary
+    //
     [Tested]
     public virtual void Clear() { pairs.Clear(); }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public virtual Speed ContainsSpeed { get { return pairs.ContainsSpeed; } }
 
-    /// <summary>
-    /// Check if there is an entry with a specified key
-    /// </summary>
-    /// <param name="key">The key to look for</param>
-    /// <returns>True if key was found</returns>
+    //
+    // Check if there is an entry with a specified key
+    //
+    // <param name="key">The key to look for</param>
+    // <returns>True if key was found</returns>
     [Tested]
     public virtual bool Contains(K key)
     {
@@ -436,7 +415,7 @@ namespace RazorDB.C5
     class LiftedEnumerable<H> : SCG.IEnumerable<KeyValuePair<K, V>> where H : K
     {
       SCG.IEnumerable<H> keys;
-      public LiftedEnumerable(SCG.IEnumerable<H> keys) { this.keys = keys; }
+      public LiftedEnumerable(SCG.IEnumerable<H> k) { keys = k; }
       public SCG.IEnumerator<KeyValuePair<K, V>> GetEnumerator() { foreach (H key in keys) yield return new KeyValuePair<K, V>(key); }
 
       #region IEnumerable Members
@@ -449,35 +428,35 @@ namespace RazorDB.C5
       #endregion
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="keys"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="keys"></param>
+    // <returns></returns>
     public virtual bool ContainsAll<H>(SCG.IEnumerable<H> keys) where H : K
     {
       return pairs.ContainsAll(new LiftedEnumerable<H>(keys));
     }
 
-    /// <summary>
-    /// Check if there is an entry with a specified key and report the corresponding
-    /// value if found. This can be seen as a safe form of "val = this[key]".
-    /// </summary>
-    /// <param name="key">The key to look for</param>
-    /// <param name="value">On exit, the value of the entry</param>
-    /// <returns>True if key was found</returns>
+    //
+    // Check if there is an entry with a specified key and report the corresponding
+    // value if found. This can be seen as a safe form of "val = this[key]".
+    //
+    // <param name="key">The key to look for</param>
+    // <param name="value">On exit, the value of the entry</param>
+    // <returns>True if key was found</returns>
     [Tested]
     public virtual bool Find(K key, out V value)
     {
       return Find(ref key, out value);
     }
-    /// <summary>
-    /// Check if there is an entry with a specified key and report the corresponding
-    /// value if found. This can be seen as a safe form of "val = this[key]".
-    /// </summary>
-    /// <param name="key">The key to look for</param>
-    /// <param name="value">On exit, the value of the entry</param>
-    /// <returns>True if key was found</returns>
+    //
+    // Check if there is an entry with a specified key and report the corresponding
+    // value if found. This can be seen as a safe form of "val = this[key]".
+    //
+    // <param name="key">The key to look for</param>
+    // <param name="value">On exit, the value of the entry</param>
+    // <returns>True if key was found</returns>
     public virtual bool Find(ref K key, out V value)
     {
       KeyValuePair<K, V> p = new KeyValuePair<K, V>(key);
@@ -496,13 +475,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Look for a specific key in the dictionary and if found replace the value with a new one.
-    /// This can be seen as a non-adding version of "this[key] = val".
-    /// </summary>
-    /// <param name="key">The key to look for</param>
-    /// <param name="value">The new value</param>
-    /// <returns>True if key was found</returns>
+    //
+    // Look for a specific key in the dictionary and if found replace the value with a new one.
+    // This can be seen as a non-adding version of "this[key] = val".
+    //
+    // <param name="key">The key to look for</param>
+    // <param name="value">The new value</param>
+    // <returns>True if key was found</returns>
     [Tested]
     public virtual bool Update(K key, V value)
     {
@@ -512,13 +491,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="key"></param>
-    /// <param name="value"></param>
-    /// <param name="oldvalue"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="key"></param>
+    // <param name="value"></param>
+    // <param name="oldvalue"></param>
+    // <returns></returns>
     public virtual bool Update(K key, V value, out V oldvalue)
     {
       KeyValuePair<K, V> p = new KeyValuePair<K, V>(key, value);
@@ -529,14 +508,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Look for a specific key in the dictionary. If found, report the corresponding value,
-    /// else add an entry with the key and the supplied value.
-    /// </summary>
-    /// <param name="key">On entry the key to look for</param>
-    /// <param name="value">On entry the value to add if the key is not found.
-    /// On exit the value found if any.</param>
-    /// <returns>True if key was found</returns>
+    //
+    // Look for a specific key in the dictionary. If found, report the corresponding value,
+    // else add an entry with the key and the supplied value.
+    //
+    // <param name="key">On entry the key to look for</param>
+    // <param name="value">On entry the value to add if the key is not found.
+    // On exit the value found if any.</param>
+    // <returns>True if key was found</returns>
     [Tested]
     public virtual bool FindOrAdd(K key, ref V value)
     {
@@ -553,13 +532,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Update value in dictionary corresponding to key if found, else add new entry.
-    /// More general than "this[key] = val;" by reporting if key was found.
-    /// </summary>
-    /// <param name="key">The key to look for</param>
-    /// <param name="value">The value to add or replace with.</param>
-    /// <returns>True if entry was updated.</returns>
+    //
+    // Update value in dictionary corresponding to key if found, else add new entry.
+    // More general than "this[key] = val;" by reporting if key was found.
+    //
+    // <param name="key">The key to look for</param>
+    // <param name="value">The value to add or replace with.</param>
+    // <returns>True if entry was updated.</returns>
     [Tested]
     public virtual bool UpdateOrAdd(K key, V value)
     {
@@ -567,14 +546,14 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Update value in dictionary corresponding to key if found, else add new entry.
-    /// More general than "this[key] = val;" by reporting if key was found and the old value if any.
-    /// </summary>
-    /// <param name="key"></param>
-    /// <param name="value"></param>
-    /// <param name="oldvalue"></param>
-    /// <returns></returns>
+    //
+    // Update value in dictionary corresponding to key if found, else add new entry.
+    // More general than "this[key] = val;" by reporting if key was found and the old value if any.
+    //
+    // <param name="key"></param>
+    // <param name="value"></param>
+    // <param name="oldvalue"></param>
+    // <returns></returns>
     public virtual bool UpdateOrAdd(K key, V value, out V oldvalue)
     {
       KeyValuePair<K, V> p = new KeyValuePair<K, V>(key, value);
@@ -592,8 +571,8 @@ namespace RazorDB.C5
       ICollection<KeyValuePair<K, V>> pairs;
 
 
-      internal ValuesCollection(ICollection<KeyValuePair<K, V>> pairs)
-      { this.pairs = pairs; }
+      internal ValuesCollection(ICollection<KeyValuePair<K, V>> p)
+      { pairs = p; }
 
 
       public override V Choose() { return pairs.Choose().Value; }
@@ -622,8 +601,8 @@ namespace RazorDB.C5
       ICollection<KeyValuePair<K, V>> pairs;
 
 
-      internal KeysCollection(ICollection<KeyValuePair<K, V>> pairs)
-      { this.pairs = pairs; }
+      internal KeysCollection(ICollection<KeyValuePair<K, V>> p)
+      { pairs = p; }
 
       public override K Choose() { return pairs.Choose().Key; }
 
@@ -643,33 +622,33 @@ namespace RazorDB.C5
     }
     #endregion
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>A collection containg the all the keys of the dictionary</value>
+    //
+    // 
+    //
+    // <value>A collection containg the all the keys of the dictionary</value>
     [Tested]
     public virtual ICollectionValue<K> Keys { [Tested]get { return new KeysCollection(pairs); } }
 
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>A collection containing all the values of the dictionary</value>
+    //
+    // 
+    //
+    // <value>A collection containing all the values of the dictionary</value>
     [Tested]
     public virtual ICollectionValue<V> Values { [Tested]get { return new ValuesCollection(pairs); } }
 
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     public virtual Fun<K, V> Fun { get { return delegate(K k) { return this[k]; }; } }
 
-    /// <summary>
-    /// Indexer by key for dictionary. 
-    /// <para>The get method will throw an exception if no entry is found. </para>
-    /// <para>The set method behaves like <see cref="M:C5.DictionaryBase`2.UpdateOrAdd(`0,`1)"/>.</para>
-    /// </summary>
-    /// <exception cref="NoSuchItemException"> On get if no entry is found. </exception>
-    /// <value>The value corresponding to the key</value>
+    //
+    // Indexer by key for dictionary. 
+    // <para>The get method will throw an exception if no entry is found. </para>
+    // <para>The set method behaves like <see cref="M:C5.DictionaryBase`2.UpdateOrAdd(`0,`1)"/>.</para>
+    //
+    // <exception cref="NoSuchItemException"> On get if no entry is found. </exception>
+    // <value>The value corresponding to the key</value>
     [Tested]
     public virtual V this[K key]
     {
@@ -689,18 +668,18 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>True if dictionary is read  only</value>
+    //
+    // 
+    //
+    // <value>True if dictionary is read  only</value>
     [Tested]
     public virtual bool IsReadOnly { [Tested]get { return pairs.IsReadOnly; } }
 
 
-    /// <summary>
-    /// Check the integrity of the internal data structures of this dictionary.
-    /// </summary>
-    /// <returns>True if check does not fail.</returns>
+    //
+    // Check the integrity of the internal data structures of this dictionary.
+    //
+    // <returns>True if check does not fail.</returns>
     [Tested]
     public virtual bool Check() { return pairs.Check(); }
 
@@ -708,38 +687,38 @@ namespace RazorDB.C5
 
     #region ICollectionValue<KeyValuePair<K,V>> Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>True if this collection is empty.</value>
+    //
+    // 
+    //
+    // <value>True if this collection is empty.</value>
     public override bool IsEmpty { get { return pairs.IsEmpty; } }
 
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>The number of entrues in the dictionary</value>
+    //
+    // 
+    //
+    // <value>The number of entrues in the dictionary</value>
     [Tested]
     public override int Count { [Tested]get { return pairs.Count; } }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>The number of entrues in the dictionary</value>
+    //
+    // 
+    //
+    // <value>The number of entrues in the dictionary</value>
     [Tested]
     public override Speed CountSpeed { [Tested]get { return pairs.CountSpeed; } }
 
-    /// <summary>
-    /// Choose some entry in this Dictionary. 
-    /// </summary>
-    /// <exception cref="NoSuchItemException">if collection is empty.</exception>
-    /// <returns></returns>
+    //
+    // Choose some entry in this Dictionary. 
+    //
+    // <exception cref="NoSuchItemException">if collection is empty.</exception>
+    // <returns></returns>
     public override KeyValuePair<K, V> Choose() { return pairs.Choose(); }
 
-    /// <summary>
-    /// Create an enumerator for the collection of entries of the dictionary
-    /// </summary>
-    /// <returns>The enumerator</returns>
+    //
+    // Create an enumerator for the collection of entries of the dictionary
+    //
+    // <returns>The enumerator</returns>
     [Tested]
     public override SCG.IEnumerator<KeyValuePair<K, V>> GetEnumerator()
     {
@@ -748,163 +727,163 @@ namespace RazorDB.C5
 
     #endregion
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="stringbuilder"></param>
-    /// <param name="rest"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="stringbuilder"></param>
+    // <param name="rest"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public override bool Show(System.Text.StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       return Showing.ShowDictionary<K, V>(this, stringbuilder, ref rest, formatProvider);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public abstract object Clone();
 
   }
 
-  /// <summary>
-  /// A base class for implementing a sorted dictionary based on a sorted set collection implementation.
-  /// <i>See the source code for <see cref="T:C5.TreeDictionary`2"/> for an example</i>
-  /// 
-  /// </summary>
+  //
+  // A base class for implementing a sorted dictionary based on a sorted set collection implementation.
+  // <i>See the source code for <see cref="T:C5.TreeDictionary`2"/> for an example</i>
+  // 
+  //
   [Serializable]
   public abstract class SortedDictionaryBase<K, V> : DictionaryBase<K, V>, ISortedDictionary<K, V>
   {
     #region Fields
 
-    /// <summary>
-    /// 
-    /// </summary>
+    //
+    // 
+    //
     protected ISorted<KeyValuePair<K, V>> sortedpairs;
     SCG.IComparer<K> keycomparer;
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="keycomparer"></param>
-    /// <param name="keyequalityComparer"></param>
-    protected SortedDictionaryBase(SCG.IComparer<K> keycomparer, SCG.IEqualityComparer<K> keyequalityComparer) : base(keyequalityComparer) { this.keycomparer = keycomparer; }
+    //
+    // 
+    //
+    // <param name="keycomparer"></param>
+    // <param name="keyequalityComparer"></param>
+    protected SortedDictionaryBase(SCG.IComparer<K> k, SCG.IEqualityComparer<K> keyequalityComparer) : base(keyequalityComparer) { keycomparer = k; }
 
     #endregion
 
     #region ISortedDictionary<K,V> Members
 
-    /// <summary>
-    /// The key comparer used by this dictionary.
-    /// </summary>
-    /// <value></value>
+    //
+    // The key comparer used by this dictionary.
+    //
+    // <value></value>
     public SCG.IComparer<K> Comparer { get { return keycomparer; } }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public new ISorted<K> Keys { get { return new SortedKeysCollection(this, sortedpairs, keycomparer, EqualityComparer); } }
 
-    /// <summary>
-    /// Find the entry in the dictionary whose key is the
-    /// predecessor of the specified key.
-    /// </summary>
-    /// <param name="key">The key</param>
-    /// <param name="res">The predecessor, if any</param>
-    /// <returns>True if key has a predecessor</returns>
+    //
+    // Find the entry in the dictionary whose key is the
+    // predecessor of the specified key.
+    //
+    // <param name="key">The key</param>
+    // <param name="res">The predecessor, if any</param>
+    // <returns>True if key has a predecessor</returns>
     [Tested]
     public bool TryPredecessor(K key, out KeyValuePair<K, V> res)
     {
       return sortedpairs.TryPredecessor(new KeyValuePair<K, V>(key), out res);
     }
 
-    /// <summary>
-    /// Find the entry in the dictionary whose key is the
-    /// successor of the specified key.
-    /// </summary>
-    /// <param name="key">The key</param>
-    /// <param name="res">The successor, if any</param>
-    /// <returns>True if the key has a successor</returns>
+    //
+    // Find the entry in the dictionary whose key is the
+    // successor of the specified key.
+    //
+    // <param name="key">The key</param>
+    // <param name="res">The successor, if any</param>
+    // <returns>True if the key has a successor</returns>
     [Tested]
     public bool TrySuccessor(K key, out KeyValuePair<K, V> res)
     {
       return sortedpairs.TrySuccessor(new KeyValuePair<K, V>(key), out res);
     }
 
-    /// <summary>
-    /// Find the entry in the dictionary whose key is the
-    /// weak predecessor of the specified key.
-    /// </summary>
-    /// <param name="key">The key</param>
-    /// <param name="res">The predecessor, if any</param>
-    /// <returns>True if key has a weak predecessor</returns>
+    //
+    // Find the entry in the dictionary whose key is the
+    // weak predecessor of the specified key.
+    //
+    // <param name="key">The key</param>
+    // <param name="res">The predecessor, if any</param>
+    // <returns>True if key has a weak predecessor</returns>
     [Tested]
     public bool TryWeakPredecessor(K key, out KeyValuePair<K, V> res)
     {
       return sortedpairs.TryWeakPredecessor(new KeyValuePair<K, V>(key), out res);
     }
 
-    /// <summary>
-    /// Find the entry in the dictionary whose key is the
-    /// weak successor of the specified key.
-    /// </summary>
-    /// <param name="key">The key</param>
-    /// <param name="res">The weak successor, if any</param>
-    /// <returns>True if the key has a weak successor</returns>
+    //
+    // Find the entry in the dictionary whose key is the
+    // weak successor of the specified key.
+    //
+    // <param name="key">The key</param>
+    // <param name="res">The weak successor, if any</param>
+    // <returns>True if the key has a weak successor</returns>
     [Tested]
     public bool TryWeakSuccessor(K key, out KeyValuePair<K, V> res)
     {
       return sortedpairs.TryWeakSuccessor(new KeyValuePair<K, V>(key), out res);
     }
 
-    /// <summary>
-    /// Get the entry in the dictionary whose key is the
-    /// predecessor of the specified key.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"></exception>
-    /// <param name="key">The key</param>
-    /// <returns>The entry</returns>
+    //
+    // Get the entry in the dictionary whose key is the
+    // predecessor of the specified key.
+    //
+    // <exception cref="NoSuchItemException"></exception>
+    // <param name="key">The key</param>
+    // <returns>The entry</returns>
     [Tested]
     public KeyValuePair<K, V> Predecessor(K key)
     {
       return sortedpairs.Predecessor(new KeyValuePair<K, V>(key));
     }
 
-    /// <summary>
-    /// Get the entry in the dictionary whose key is the
-    /// successor of the specified key.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"></exception>
-    /// <param name="key">The key</param>
-    /// <returns>The entry</returns>
+    //
+    // Get the entry in the dictionary whose key is the
+    // successor of the specified key.
+    //
+    // <exception cref="NoSuchItemException"></exception>
+    // <param name="key">The key</param>
+    // <returns>The entry</returns>
     [Tested]
     public KeyValuePair<K, V> Successor(K key)
     {
       return sortedpairs.Successor(new KeyValuePair<K, V>(key));
     }
 
-    /// <summary>
-    /// Get the entry in the dictionary whose key is the
-    /// weak predecessor of the specified key.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"></exception>
-    /// <param name="key">The key</param>
-    /// <returns>The entry</returns>
+    //
+    // Get the entry in the dictionary whose key is the
+    // weak predecessor of the specified key.
+    //
+    // <exception cref="NoSuchItemException"></exception>
+    // <param name="key">The key</param>
+    // <returns>The entry</returns>
     [Tested]
     public KeyValuePair<K, V> WeakPredecessor(K key)
     {
       return sortedpairs.WeakPredecessor(new KeyValuePair<K, V>(key));
     }
 
-    /// <summary>
-    /// Get the entry in the dictionary whose key is the
-    /// weak successor of the specified key.
-    /// </summary>
-    /// <exception cref="NoSuchItemException"></exception>
-    /// <param name="key">The key</param>
-    /// <returns>The entry</returns>
+    //
+    // Get the entry in the dictionary whose key is the
+    // weak successor of the specified key.
+    //
+    // <exception cref="NoSuchItemException"></exception>
+    // <param name="key">The key</param>
+    // <returns>The entry</returns>
     [Tested]
     public KeyValuePair<K, V> WeakSuccessor(K key)
     {
@@ -915,128 +894,128 @@ namespace RazorDB.C5
 
     #region ISortedDictionary<K,V> Members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public KeyValuePair<K, V> FindMin()
     {
       return sortedpairs.FindMin();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public KeyValuePair<K, V> DeleteMin()
     {
       return sortedpairs.DeleteMin();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public KeyValuePair<K, V> FindMax()
     {
       return sortedpairs.FindMax();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public KeyValuePair<K, V> DeleteMax()
     {
       return sortedpairs.DeleteMax();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="cutter"></param>
-    /// <param name="lowEntry"></param>
-    /// <param name="lowIsValid"></param>
-    /// <param name="highEntry"></param>
-    /// <param name="highIsValid"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="cutter"></param>
+    // <param name="lowEntry"></param>
+    // <param name="lowIsValid"></param>
+    // <param name="highEntry"></param>
+    // <param name="highIsValid"></param>
+    // <returns></returns>
     public bool Cut(IComparable<K> cutter, out KeyValuePair<K, V> lowEntry, out bool lowIsValid, out KeyValuePair<K, V> highEntry, out bool highIsValid)
     {
       return sortedpairs.Cut(new KeyValuePairComparable(cutter), out lowEntry, out lowIsValid, out highEntry, out highIsValid);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="bot"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="bot"></param>
+    // <returns></returns>
     public IDirectedEnumerable<KeyValuePair<K, V>> RangeFrom(K bot)
     {
       return sortedpairs.RangeFrom(new KeyValuePair<K, V>(bot));
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="bot"></param>
-    /// <param name="top"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="bot"></param>
+    // <param name="top"></param>
+    // <returns></returns>
     public IDirectedEnumerable<KeyValuePair<K, V>> RangeFromTo(K bot, K top)
     {
       return sortedpairs.RangeFromTo(new KeyValuePair<K, V>(bot), new KeyValuePair<K, V>(top));
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="top"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="top"></param>
+    // <returns></returns>
     public IDirectedEnumerable<KeyValuePair<K, V>> RangeTo(K top)
     {
       return sortedpairs.RangeTo(new KeyValuePair<K, V>(top));
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public IDirectedCollectionValue<KeyValuePair<K, V>> RangeAll()
     {
       return sortedpairs.RangeAll();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="items"></param>
+    //
+    // 
+    //
+    // <param name="items"></param>
     public void AddSorted(SCG.IEnumerable<KeyValuePair<K, V>> items)
     {
       sortedpairs.AddSorted(items);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="lowKey"></param>
+    //
+    // 
+    //
+    // <param name="lowKey"></param>
     public void RemoveRangeFrom(K lowKey)
     {
       sortedpairs.RemoveRangeFrom(new KeyValuePair<K, V>(lowKey));
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="lowKey"></param>
-    /// <param name="highKey"></param>
+    //
+    // 
+    //
+    // <param name="lowKey"></param>
+    // <param name="highKey"></param>
     public void RemoveRangeFromTo(K lowKey, K highKey)
     {
       sortedpairs.RemoveRangeFromTo(new KeyValuePair<K, V>(lowKey), new KeyValuePair<K, V>(highKey));
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="highKey"></param>
+    //
+    // 
+    //
+    // <param name="highKey"></param>
     public void RemoveRangeTo(K highKey)
     {
       sortedpairs.RemoveRangeTo(new KeyValuePair<K, V>(highKey));
@@ -1048,7 +1027,7 @@ namespace RazorDB.C5
     {
       IComparable<K> cutter;
 
-      internal KeyValuePairComparable(IComparable<K> cutter) { this.cutter = cutter; }
+      internal KeyValuePairComparable(IComparable<K> c) { cutter = c; }
 
       public int CompareTo(KeyValuePair<K, V> other) { return cutter.CompareTo(other.Key); }
 
@@ -1077,17 +1056,17 @@ namespace RazorDB.C5
     class SortedKeysCollection : SequencedBase<K>, ISorted<K>
     {
       ISortedDictionary<K, V> sorteddict;
-      //TODO: eliminate this. Only problem is the Find method because we lack method on dictionary that also 
+      //TODO: eliminate  Only problem is the Find method because we lack method on dictionary that also 
       //      returns the actual key.
       ISorted<KeyValuePair<K, V>> sortedpairs;
       SCG.IComparer<K> comparer;
 
-      internal SortedKeysCollection(ISortedDictionary<K, V> sorteddict, ISorted<KeyValuePair<K, V>> sortedpairs, SCG.IComparer<K> comparer, SCG.IEqualityComparer<K> itemequalityComparer)
+      internal SortedKeysCollection(ISortedDictionary<K, V> d, ISorted<KeyValuePair<K, V>> p, SCG.IComparer<K> c, SCG.IEqualityComparer<K> itemequalityComparer)
         : base(itemequalityComparer)
       {
-        this.sorteddict = sorteddict;
-        this.sortedpairs = sortedpairs;
-        this.comparer = comparer;
+        sorteddict = d;
+        sortedpairs = p;
+        comparer = c;
       }
 
       public override K Choose() { return sorteddict.Choose().Key; }
@@ -1201,19 +1180,19 @@ namespace RazorDB.C5
 
       public int ContainsCount(K item) { return sorteddict.Contains(item) ? 1 : 0; }
 
-      /// <summary>
-      /// 
-      /// </summary>
-      /// <returns></returns>
+      //
+      // 
+      //
+      // <returns></returns>
       public virtual ICollectionValue<K> UniqueItems()
       {
         return this;
       }
 
-      /// <summary>
-      /// 
-      /// </summary>
-      /// <returns></returns>
+      //
+      // 
+      //
+      // <returns></returns>
       public virtual ICollectionValue<KeyValuePair<K, int>> ItemMultiplicities()
       {
         return new MultiplicityOne<K>(this);
@@ -1297,10 +1276,10 @@ namespace RazorDB.C5
       #region ICloneable Members
 
       //TODO: test
-      /// <summary>
-      /// Make a shallow copy of this SortedKeysCollection.
-      /// </summary>
-      /// <returns></returns>
+      //
+      // Make a shallow copy of this SortedKeysCollection.
+      //
+      // <returns></returns>
       public virtual object Clone()
       {
         //
@@ -1317,13 +1296,13 @@ namespace RazorDB.C5
 
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="stringbuilder"></param>
-    /// <param name="rest"></param>
-    /// <param name="formatProvider"></param>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <param name="stringbuilder"></param>
+    // <param name="rest"></param>
+    // <param name="formatProvider"></param>
+    // <returns></returns>
     public override bool Show(System.Text.StringBuilder stringbuilder, ref int rest, IFormatProvider formatProvider)
     {
       return Showing.ShowDictionary<K, V>(this, stringbuilder, ref rest, formatProvider);
@@ -1338,29 +1317,29 @@ namespace RazorDB.C5
 
     public SortedArrayDictionary() : this(Comparer<K>.Default, EqualityComparer<K>.Default) { }
 
-    /// <summary>
-    /// Create a red-black tree dictionary using an external comparer for keys.
-    /// </summary>
-    /// <param name="comparer">The external comparer</param>
+    //
+    // Create a red-black tree dictionary using an external comparer for keys.
+    //
+    // <param name="comparer">The external comparer</param>
     public SortedArrayDictionary(SCG.IComparer<K> comparer) : this(comparer, new ComparerZeroHashCodeEqualityComparer<K>(comparer)) { }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="comparer"></param>
-    /// <param name="equalityComparer"></param>
+    //
+    // 
+    //
+    // <param name="comparer"></param>
+    // <param name="equalityComparer"></param>
     public SortedArrayDictionary(SCG.IComparer<K> comparer, SCG.IEqualityComparer<K> equalityComparer)
       : base(comparer, equalityComparer)
     {
       pairs = sortedpairs = new SortedArray<KeyValuePair<K, V>>(new KeyValuePairComparer<K, V>(comparer));
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="comparer"></param>
-    /// <param name="equalityComparer"></param>
-    /// <param name="capacity"></param>
+    //
+    // 
+    //
+    // <param name="comparer"></param>
+    // <param name="equalityComparer"></param>
+    // <param name="capacity"></param>
     public SortedArrayDictionary(int capacity, SCG.IComparer<K> comparer, SCG.IEqualityComparer<K> equalityComparer)
       : base(comparer, equalityComparer)
     {
@@ -1368,10 +1347,10 @@ namespace RazorDB.C5
     }
     #endregion
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
+    //
+    // 
+    //
+    // <returns></returns>
     public override object Clone()
     {
       SortedArrayDictionary<K, V> clone = new SortedArrayDictionary<K, V>(Comparer, EqualityComparer);

@@ -1,44 +1,20 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// A utility class with functions for sorting arrays with respect to an IComparer&lt;T&gt;
-  /// </summary>
+  // A utility class with functions for sorting arrays with respect to an IComparer&lt;T&gt;
   public class Sorting
   {
     Sorting() { }
 
-    /// <summary>
-    /// Sort part of array in place using IntroSort
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
-    /// and <code>count</code> arguments does not describe a valid range.</exception>
-    /// <param name="array">Array to sort</param>
-    /// <param name="start">Index of first position to sort</param>
-    /// <param name="count">Number of elements to sort</param>
-    /// <param name="comparer">IComparer&lt;T&gt; to sort by</param>
+    // Sort part of array in place using IntroSort
+    // <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
+    // and <code>count</code> arguments does not describe a valid range.</exception>
+    // <param name="array">Array to sort</param>
+    // <param name="start">Index of first position to sort</param>
+    // <param name="count">Number of elements to sort</param>
+    // <param name="comparer">IComparer&lt;T&gt; to sort by</param>
     [Tested]
     public static void IntroSort<T>(T[] array, int start, int count, SCG.IComparer<T> comparer)
     {
@@ -47,27 +23,22 @@ namespace RazorDB.C5
       new Sorter<T>(array, comparer).IntroSort(start, start + count);
     }
 
-    /// <summary>
-    /// Sort an array in place using IntroSort and default comparer
-    /// </summary>
-    /// <exception cref="NotComparableException">If T is not comparable</exception>
-    /// <param name="array">Array to sort</param>
+    // Sort an array in place using IntroSort and default comparer
+    // <exception cref="NotComparableException">If T is not comparable</exception>
+    // <param name="array">Array to sort</param>
     [Tested]
     public static void IntroSort<T>(T[] array)
     {
       new Sorter<T>(array, Comparer<T>.Default).IntroSort(0, array.Length);
     }
 
-
-    /// <summary>
-    /// Sort part of array in place using Insertion Sort
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
-    /// and <code>count</code> arguments does not describe a valid range.</exception>
-    /// <param name="array">Array to sort</param>
-    /// <param name="start">Index of first position to sort</param>
-    /// <param name="count">Number of elements to sort</param>
-    /// <param name="comparer">IComparer&lt;T&gt; to sort by</param>
+    // Sort part of array in place using Insertion Sort
+    // <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
+    // and <code>count</code> arguments does not describe a valid range.</exception>
+    // <param name="array">Array to sort</param>
+    // <param name="start">Index of first position to sort</param>
+    // <param name="count">Number of elements to sort</param>
+    // <param name="comparer">IComparer&lt;T&gt; to sort by</param>
     [Tested]
     public static void InsertionSort<T>(T[] array, int start, int count, SCG.IComparer<T> comparer)
     {
@@ -76,16 +47,13 @@ namespace RazorDB.C5
       new Sorter<T>(array, comparer).InsertionSort(start, start + count);
     }
 
-
-    /// <summary>
-    /// Sort part of array in place using Heap Sort
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
-    /// and <code>count</code> arguments does not describe a valid range.</exception>
-    /// <param name="array">Array to sort</param>
-    /// <param name="start">Index of first position to sort</param>
-    /// <param name="count">Number of elements to sort</param>
-    /// <param name="comparer">IComparer&lt;T&gt; to sort by</param>
+    // Sort part of array in place using Heap Sort
+    // <exception cref="ArgumentOutOfRangeException">If the <code>start</code>
+    // and <code>count</code> arguments does not describe a valid range.</exception>
+    // <param name="array">Array to sort</param>
+    // <param name="start">Index of first position to sort</param>
+    // <param name="count">Number of elements to sort</param>
+    // <param name="comparer">IComparer&lt;T&gt; to sort by</param>
     [Tested]
     public static void HeapSort<T>(T[] array, int start, int count, SCG.IComparer<T> comparer)
     {
@@ -102,7 +70,7 @@ namespace RazorDB.C5
       SCG.IComparer<T> c;
 
 
-      internal Sorter(T[] a, SCG.IComparer<T> c) { this.a = a; this.c = c; }
+      internal Sorter(T[] t, SCG.IComparer<T> ct) { a = t; c = ct; }
 
 
       internal void IntroSort(int f, int b)
@@ -118,7 +86,7 @@ namespace RazorDB.C5
       }
 
 
-      private void introSort(int f, int b, int depth_limit)
+      void introSort(int f, int b, int depth_limit)
       {
         const int size_threshold = 14;//24;
 
@@ -136,10 +104,10 @@ namespace RazorDB.C5
       }
 
 
-      private int compare(T i1, T i2) { return c.Compare(i1, i2); }
+      int compare(T i1, T i2) { return c.Compare(i1, i2); }
 
 
-      private int partition(int f, int b)
+      int partition(int f, int b)
       {
         int bot = f, mid = (b + f) / 2, top = b - 1;
         T abot = a[bot], amid = a[mid], atop = a[top];
@@ -210,7 +178,7 @@ namespace RazorDB.C5
       }
 
 
-      private void heapify(int f, int b, int i)
+      void heapify(int f, int b, int i)
       {
         T pv = a[i], lv, rv, max = pv;
         int j = i, maxpt = j;

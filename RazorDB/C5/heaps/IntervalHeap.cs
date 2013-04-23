@@ -1,43 +1,22 @@
-/*
- Copyright (c) 2003-2006 Niels Kokholm and Peter Sestoft
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-*/
-
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
 
 namespace RazorDB.C5
 {
-  /// <summary>
-  /// A priority queue class based on an interval heap data structure.
-  /// </summary>
-  /// <typeparam name="T">The item type</typeparam>
+  //
+  // A priority queue class based on an interval heap data structure.
+  //
+  // <typeparam name="T">The item type</typeparam>
   [Serializable]
   public class IntervalHeap<T> : CollectionValueBase<T>, IPriorityQueue<T>
   {
     #region Events
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value></value>
+    //
+    // 
+    //
+    // <value></value>
     public override EventTypeEnum ListenableEvents { get { return EventTypeEnum.Basic; } }
 
     #endregion
@@ -239,42 +218,42 @@ namespace RazorDB.C5
     #endregion
 
     #region Constructors
-    /// <summary>
-    /// Create an interval heap with natural item comparer and default initial capacity (16)
-    /// </summary>
+    //
+    // Create an interval heap with natural item comparer and default initial capacity (16)
+    //
     public IntervalHeap() : this(16) { }
 
 
-    /// <summary>
-    /// Create an interval heap with external item comparer and default initial capacity (16)
-    /// </summary>
-    /// <param name="comparer">The external comparer</param>
+    //
+    // Create an interval heap with external item comparer and default initial capacity (16)
+    //
+    // <param name="comparer">The external comparer</param>
     public IntervalHeap(SCG.IComparer<T> comparer) : this(16, comparer) { }
 
 
     //TODO: maybe remove
-    /// <summary>
-    /// Create an interval heap with natural item comparer and prescribed initial capacity
-    /// </summary>
-    /// <param name="capacity">The initial capacity</param>
+    //
+    // Create an interval heap with natural item comparer and prescribed initial capacity
+    //
+    // <param name="capacity">The initial capacity</param>
     public IntervalHeap(int capacity) : this(capacity, Comparer<T>.Default, EqualityComparer<T>.Default) { }
 
 
-    /// <summary>
-    /// Create an interval heap with external item comparer and prescribed initial capacity
-    /// </summary>
-    /// <param name="comparer">The external comparer</param>
-    /// <param name="capacity">The initial capacity</param>
+    //
+    // Create an interval heap with external item comparer and prescribed initial capacity
+    //
+    // <param name="comparer">The external comparer</param>
+    // <param name="capacity">The initial capacity</param>
     public IntervalHeap(int capacity, SCG.IComparer<T> comparer) : this(capacity, comparer, new ComparerZeroHashCodeEqualityComparer<T>(comparer)) { }
 
-    IntervalHeap(int capacity, SCG.IComparer<T> comparer, SCG.IEqualityComparer<T> itemequalityComparer)
+    IntervalHeap(int capacity, SCG.IComparer<T> c, SCG.IEqualityComparer<T> i)
     {
       if (comparer == null)
         throw new NullReferenceException("Item comparer cannot be null");
       if (itemequalityComparer == null)
         throw new NullReferenceException("Item equality comparer cannot be null");
-      this.comparer = comparer;
-      this.itemequalityComparer = itemequalityComparer;
+      comparer = c;
+      itemequalityComparer = i;
       int length = 1;
       while (length < capacity) length <<= 1;
       heap = new Interval[length];
@@ -284,11 +263,11 @@ namespace RazorDB.C5
 
     #region IPriorityQueue<T> Members
 
-    /// <summary>
-    /// Find the current least item of this priority queue.
-    /// <exception cref="NoSuchItemException"/> if queue is empty
-    /// </summary>
-    /// <returns>The least item.</returns>
+    //
+    // Find the current least item of this priority queue.
+    // <exception cref="NoSuchItemException"/> if queue is empty
+    //
+    // <returns>The least item.</returns>
     [Tested]
     public T FindMin()
     {
@@ -299,11 +278,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove the least item from this  priority queue.
-    /// <exception cref="NoSuchItemException"/> if queue is empty
-    /// </summary>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the least item from this  priority queue.
+    // <exception cref="NoSuchItemException"/> if queue is empty
+    //
+    // <returns>The removed item.</returns>
     [Tested]
     public T DeleteMin()
     {
@@ -312,11 +291,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Find the current largest item of this priority queue.
-    /// <exception cref="NoSuchItemException"/> if queue is empty
-    /// </summary>
-    /// <returns>The largest item.</returns>
+    //
+    // Find the current largest item of this priority queue.
+    // <exception cref="NoSuchItemException"/> if queue is empty
+    //
+    // <returns>The largest item.</returns>
     [Tested]
     public T FindMax()
     {
@@ -329,11 +308,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Remove the largest item from this  priority queue.
-    /// <exception cref="NoSuchItemException"/> if queue is empty
-    /// </summary>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the largest item from this  priority queue.
+    // <exception cref="NoSuchItemException"/> if queue is empty
+    //
+    // <returns>The removed item.</returns>
     [Tested]
     public T DeleteMax()
     {
@@ -342,50 +321,50 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// The comparer object supplied at creation time for this collection
-    /// </summary>
-    /// <value>The comparer</value>
+    //
+    // The comparer object supplied at creation time for this collection
+    //
+    // <value>The comparer</value>
     public SCG.IComparer<T> Comparer { get { return comparer; } }
 
     #endregion
 
     #region IExtensible<T> Members
 
-    /// <summary>
-    /// If true any call of an updating operation will throw an
-    /// <code>ReadOnlyCollectionException</code>
-    /// </summary>
-    /// <value>True if this collection is read-only.</value>
+    //
+    // If true any call of an updating operation will throw an
+    // <code>ReadOnlyCollectionException</code>
+    //
+    // <value>True if this collection is read-only.</value>
     public bool IsReadOnly { get { return false; } }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>True since this collection has bag semantics</value>
+    //
+    // 
+    //
+    // <value>True since this collection has bag semantics</value>
     [Tested]
     public bool AllowsDuplicates { [Tested]get { return true; } }
 
-    /// <summary>
-    /// Value is null since this collection has no equality concept for its items. 
-    /// </summary>
-    /// <value></value>
+    //
+    // Value is null since this collection has no equality concept for its items. 
+    //
+    // <value></value>
     public virtual SCG.IEqualityComparer<T> EqualityComparer { get { return itemequalityComparer; } }
 
-    /// <summary>
-    /// By convention this is true for any collection with set semantics.
-    /// </summary>
-    /// <value>True if only one representative of a group of equal items 
-    /// is kept in the collection together with the total count.</value>
+    //
+    // By convention this is true for any collection with set semantics.
+    //
+    // <value>True if only one representative of a group of equal items 
+    // is kept in the collection together with the total count.</value>
     public virtual bool DuplicatesByCounting { get { return false; } }
 
 
 
-    /// <summary>
-    /// Add an item to this priority queue.
-    /// </summary>
-    /// <param name="item">The item to add.</param>
-    /// <returns>True</returns>
+    //
+    // Add an item to this priority queue.
+    //
+    // <param name="item">The item to add.</param>
+    // <returns>True</returns>
     [Tested]
     public bool Add(T item)
     {
@@ -399,7 +378,7 @@ namespace RazorDB.C5
       return false;
     }
 
-    private bool add(Handle itemhandle, T item)
+    bool add(Handle itemhandle, T item)
     {
       if (size == 0)
       {
@@ -457,7 +436,7 @@ namespace RazorDB.C5
       return true;
     }
 
-    private void updateLast(int cell, T item, Handle handle)
+    void updateLast(int cell, T item, Handle handle)
     {
       heap[cell].last = item;
       if (handle != null)
@@ -465,7 +444,7 @@ namespace RazorDB.C5
       heap[cell].lasthandle = handle;
     }
 
-    private void updateFirst(int cell, T item, Handle handle)
+    void updateFirst(int cell, T item, Handle handle)
     {
       heap[cell].first = item;
       if (handle != null)
@@ -474,12 +453,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Add the elements from another collection with a more specialized item type 
-    /// to this collection. 
-    /// </summary>
-    /// <typeparam name="U">The type of items to add</typeparam>
-    /// <param name="items">The items to add</param>
+    //
+    // Add the elements from another collection with a more specialized item type 
+    // to this collection. 
+    //
+    // <typeparam name="U">The type of items to add</typeparam>
+    // <param name="items">The items to add</param>
     [Tested]
     public void AddAll<U>(SCG.IEnumerable<U> items) where U : T
     {
@@ -500,35 +479,35 @@ namespace RazorDB.C5
 
     #region ICollection<T> members
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>True if this collection is empty.</value>
+    //
+    // 
+    //
+    // <value>True if this collection is empty.</value>
     [Tested]
     public override bool IsEmpty { [Tested]get { return size == 0; } }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <value>The size of this collection</value>
+    //
+    // 
+    //
+    // <value>The size of this collection</value>
     [Tested]
     public override int Count { [Tested]get { return size; } }
 
 
-    /// <summary>
-    /// The value is symbolic indicating the type of asymptotic complexity
-    /// in terms of the size of this collection (worst-case or amortized as
-    /// relevant).
-    /// </summary>
-    /// <value>A characterization of the speed of the 
-    /// <code>Count</code> property in this collection.</value>
+    //
+    // The value is symbolic indicating the type of asymptotic complexity
+    // in terms of the size of this collection (worst-case or amortized as
+    // relevant).
+    //
+    // <value>A characterization of the speed of the 
+    // <code>Count</code> property in this collection.</value>
     public override Speed CountSpeed { get { return Speed.Constant; } }
 
-    /// <summary>
-    /// Choose some item of this collection. 
-    /// </summary>
-    /// <exception cref="NoSuchItemException">if collection is empty.</exception>
-    /// <returns></returns>
+    //
+    // Choose some item of this collection. 
+    //
+    // <exception cref="NoSuchItemException">if collection is empty.</exception>
+    // <returns></returns>
     public override T Choose()
     {
       if (size == 0)
@@ -537,12 +516,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Create an enumerator for the collection
-    /// <para>Note: the enumerator does *not* enumerate the items in sorted order, 
-    /// but in the internal table order.</para>
-    /// </summary>
-    /// <returns>The enumerator(SIC)</returns>
+    //
+    // Create an enumerator for the collection
+    // <para>Note: the enumerator does *not* enumerate the items in sorted order, 
+    // but in the internal table order.</para>
+    //
+    // <returns>The enumerator(SIC)</returns>
     [Tested]
     public override SCG.IEnumerator<T> GetEnumerator()
     {
@@ -559,7 +538,7 @@ namespace RazorDB.C5
     #endregion
 
     #region Diagnostics
-    private bool check(int i, T min, T max)
+    bool check(int i, T min, T max)
     {
       bool retval = true;
       Interval interval = heap[i];
@@ -629,11 +608,11 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check the integrity of the internal data structures of this collection.
-    /// Only avaliable in DEBUG builds???
-    /// </summary>
-    /// <returns>True if check does not fail.</returns>
+    //
+    // Check the integrity of the internal data structures of this collection.
+    // Only avaliable in DEBUG builds???
+    //
+    // <returns>True if check does not fail.</returns>
     [Tested]
     public bool Check()
     {
@@ -653,9 +632,9 @@ namespace RazorDB.C5
     [Serializable]
     class Handle : IPriorityQueueHandle<T>
     {
-      /// <summary>
-      /// To save space, the index is 2*cell for heap[cell].first, and 2*cell+1 for heap[cell].last
-      /// </summary>
+      //
+      // To save space, the index is 2*cell for heap[cell].first, and 2*cell+1 for heap[cell].last
+      //
       internal int index = -1;
 
       public override string ToString()
@@ -665,12 +644,12 @@ namespace RazorDB.C5
 
     }
 
-    /// <summary>
-    /// Get or set the item corresponding to a handle. 
-    /// </summary>
-    /// <exception cref="InvalidPriorityQueueHandleException">if the handle is invalid for this queue</exception>
-    /// <param name="handle">The reference into the heap</param>
-    /// <returns></returns>
+    //
+    // Get or set the item corresponding to a handle. 
+    //
+    // <exception cref="InvalidPriorityQueueHandleException">if the handle is invalid for this queue</exception>
+    // <param name="handle">The reference into the heap</param>
+    // <returns></returns>
     [Tested]
     public T this[IPriorityQueueHandle<T> handle]
     {
@@ -689,12 +668,12 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Check safely if a handle is valid for this queue and if so, report the corresponding queue item.
-    /// </summary>
-    /// <param name="handle">The handle to check</param>
-    /// <param name="item">If the handle is valid this will contain the corresponding item on output.</param>
-    /// <returns>True if the handle is valid.</returns>
+    //
+    // Check safely if a handle is valid for this queue and if so, report the corresponding queue item.
+    //
+    // <param name="handle">The handle to check</param>
+    // <param name="item">If the handle is valid this will contain the corresponding item on output.</param>
+    // <returns>True if the handle is valid.</returns>
     public bool Find(IPriorityQueueHandle<T> handle, out T item)
     {
       Handle myhandle = handle as Handle;
@@ -724,18 +703,18 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Add an item to the priority queue, receiving a 
-    /// handle for the item in the queue, 
-    /// or reusing an already existing handle.
-    /// </summary>
-    /// <param name="handle">On output: a handle for the added item. 
-    /// On input: null for allocating a new handle, an invalid handle for reuse. 
-    /// A handle for reuse must be compatible with this priority queue, 
-    /// by being created by a priority queue of the same runtime type, but not 
-    /// necessarily the same priority queue object.</param>
-    /// <param name="item">The item to add.</param>
-    /// <returns>True since item will always be added unless the call throws an exception.</returns>
+    //
+    // Add an item to the priority queue, receiving a 
+    // handle for the item in the queue, 
+    // or reusing an already existing handle.
+    //
+    // <param name="handle">On output: a handle for the added item. 
+    // On input: null for allocating a new handle, an invalid handle for reuse. 
+    // A handle for reuse must be compatible with this priority queue, 
+    // by being created by a priority queue of the same runtime type, but not 
+    // necessarily the same priority queue object.</param>
+    // <param name="item">The item to add.</param>
+    // <returns>True since item will always be added unless the call throws an exception.</returns>
     [Tested]
     public bool Add(ref IPriorityQueueHandle<T> handle, T item)
     {
@@ -755,12 +734,12 @@ namespace RazorDB.C5
       return false;
     }
 
-    /// <summary>
-    /// Delete an item with a handle from a priority queue.
-    /// </summary>
-    /// <exception cref="InvalidPriorityQueueHandleException">if the handle is invalid</exception>
-    /// <param name="handle">The handle for the item. The handle will be invalidated, but reusable.</param>
-    /// <returns>The deleted item</returns>
+    //
+    // Delete an item with a handle from a priority queue.
+    //
+    // <exception cref="InvalidPriorityQueueHandleException">if the handle is invalid</exception>
+    // <param name="handle">The handle for the item. The handle will be invalidated, but reusable.</param>
+    // <returns>The deleted item</returns>
     [Tested]
     public T Delete(IPriorityQueueHandle<T> handle)
     {
@@ -851,7 +830,7 @@ namespace RazorDB.C5
       return retval;
     }
 
-    private Handle checkHandle(IPriorityQueueHandle<T> handle, out int cell, out bool isfirst)
+    Handle checkHandle(IPriorityQueueHandle<T> handle, out int cell, out bool isfirst)
     {
       Handle myhandle = (Handle)handle;
       int toremove = myhandle.index;
@@ -868,13 +847,13 @@ namespace RazorDB.C5
     }
 
 
-    /// <summary>
-    /// Replace an item with a handle in a priority queue with a new item. 
-    /// Typically used for changing the priority of some queued object.
-    /// </summary>
-    /// <param name="handle">The handle for the old item</param>
-    /// <param name="item">The new item</param>
-    /// <returns>The old item</returns>
+    //
+    // Replace an item with a handle in a priority queue with a new item. 
+    // Typically used for changing the priority of some queued object.
+    //
+    // <param name="handle">The handle for the old item</param>
+    // <param name="item">The new item</param>
+    // <returns>The old item</returns>
     [Tested]
     public T Replace(IPriorityQueueHandle<T> handle, T item)
     {
@@ -929,11 +908,11 @@ namespace RazorDB.C5
       return retval;
     }
 
-    /// <summary>
-    /// Find the current least item of this priority queue.
-    /// </summary>
-    /// <param name="handle">On return: the handle of the item.</param>
-    /// <returns>The least item.</returns>
+    //
+    // Find the current least item of this priority queue.
+    //
+    // <param name="handle">On return: the handle of the item.</param>
+    // <returns>The least item.</returns>
     public T FindMin(out IPriorityQueueHandle<T> handle)
     {
       if (size == 0)
@@ -943,11 +922,11 @@ namespace RazorDB.C5
       return heap[0].first;
     }
 
-    /// <summary>
-    /// Find the current largest item of this priority queue.
-    /// </summary>
-    /// <param name="handle">On return: the handle of the item.</param>
-    /// <returns>The largest item.</returns>
+    //
+    // Find the current largest item of this priority queue.
+    //
+    // <param name="handle">On return: the handle of the item.</param>
+    // <returns>The largest item.</returns>
     public T FindMax(out IPriorityQueueHandle<T> handle)
     {
       if (size == 0)
@@ -964,11 +943,11 @@ namespace RazorDB.C5
       }
     }
 
-    /// <summary>
-    /// Remove the least item from this priority queue.
-    /// </summary>
-    /// <param name="handle">On return: the handle of the removed item.</param>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the least item from this priority queue.
+    //
+    // <param name="handle">On return: the handle of the removed item.</param>
+    // <returns>The removed item.</returns>
     public T DeleteMin(out IPriorityQueueHandle<T> handle)
     {
       stamp++;
@@ -1014,11 +993,11 @@ namespace RazorDB.C5
 
     }
 
-    /// <summary>
-    /// Remove the largest item from this priority queue.
-    /// </summary>
-    /// <param name="handle">On return: the handle of the removed item.</param>
-    /// <returns>The removed item.</returns>
+    //
+    // Remove the largest item from this priority queue.
+    //
+    // <param name="handle">On return: the handle of the removed item.</param>
+    // <returns>The removed item.</returns>
     public T DeleteMax(out IPriorityQueueHandle<T> handle)
     {
       stamp++;
@@ -1073,10 +1052,10 @@ namespace RazorDB.C5
 
     #region ICloneable Members
 
-    /// <summary>
-    /// Make a shallow copy of this IntervalHeap.
-    /// </summary>
-    /// <returns></returns>
+    //
+    // Make a shallow copy of this IntervalHeap.
+    //
+    // <returns></returns>
     public virtual object Clone()
     {
       IntervalHeap<T> clone = new IntervalHeap<T>(size, comparer, itemequalityComparer);
