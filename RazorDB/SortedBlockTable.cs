@@ -241,8 +241,6 @@ namespace RazorDB {
         private int _totalBlocks;
         private RazorCache _cache;
 
-        private static Dictionary<string, FileStream> _blockTables = new Dictionary<string, FileStream>();
-
         private void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
             current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
             Array.Clear(current, 0, current.Length);
