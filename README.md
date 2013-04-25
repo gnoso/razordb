@@ -1,7 +1,7 @@
 razordb
 =======
 
-RazorDB is a lightweight, fast, and embedded key value store database written in C#.
+RazorDB is a lightweight, fast, and embedded key value storage database written in C#.
 
 Libraries
 --------------
