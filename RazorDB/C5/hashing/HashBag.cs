@@ -634,7 +634,7 @@ namespace RazorDB.C5
 
             if (count != size)
             {
-                Logger.Log(string.Format("count({0}) != size({1})", count, size));
+				ArrayLogger.Log(string.Format("count({0}) != size({1})", count, size));
                 retval = false;
             }
 

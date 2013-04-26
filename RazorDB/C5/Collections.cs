@@ -1301,7 +1301,7 @@ namespace RazorDB.C5
 
             if (size > array.Length)
             {
-                Logger.Log(string.Format("Bad size ({0}) > array.Length ({1})", size, array.Length));
+				ArrayLogger.Log(string.Format("Bad size ({0}) > array.Length ({1})", size, array.Length));
                 return false;
             }
 
@@ -1309,7 +1309,7 @@ namespace RazorDB.C5
             {
                 if ((object)(array[i]) == null)
                 {
-                    Logger.Log(string.Format("Bad element: null at index {0}", i));
+					ArrayLogger.Log(string.Format("Bad element: null at index {0}", i));
                     return false;
                 }
             }

@@ -3563,7 +3563,7 @@ namespace RazorDB.C5
             else
             {
                 minidump(n.right, space + "  ");
-                Logger.Log(string.Format("{0} {4} (size={1}, items={8}, h={2}, gen={3}, id={6}){7}", space + n.item,
+				ArrayLogger.Log(string.Format("{0} {4} (size={1}, items={8}, h={2}, gen={3}, id={6}){7}", space + n.item,
  n.size,
 
  0,
@@ -3594,13 +3594,13 @@ namespace RazorDB.C5
         /// </summary>
         public void dump(string msg)
         {
-            Logger.Log(string.Format(">>>>>>>>>>>>>>>>>>> dump {0} (count={1}, blackdepth={2}, depth={3}, gen={4})", msg, size, blackdepth,
+			ArrayLogger.Log(string.Format(">>>>>>>>>>>>>>>>>>> dump {0} (count={1}, blackdepth={2}, depth={3}, gen={4})", msg, size, blackdepth,
             0
             ,
  generation
 ));
             minidump(root, "");
-            check(""); Logger.Log("<<<<<<<<<<<<<<<<<<<");
+			check(""); ArrayLogger.Log("<<<<<<<<<<<<<<<<<<<");
         }
 
 
@@ -3611,13 +3611,13 @@ namespace RazorDB.C5
         /// <param name="err">Extra (error)message to include</param>
         void dump(string msg, string err)
         {
-            Logger.Log(string.Format(">>>>>>>>>>>>>>>>>>> dump {0} (count={1}, blackdepth={2}, depth={3}, gen={4})", msg, size, blackdepth,
+			ArrayLogger.Log(string.Format(">>>>>>>>>>>>>>>>>>> dump {0} (count={1}, blackdepth={2}, depth={3}, gen={4})", msg, size, blackdepth,
             0
             ,
  generation
 ));
-            minidump(root, ""); Logger.Log(err);
-            Logger.Log("<<<<<<<<<<<<<<<<<<<");
+			minidump(root, ""); ArrayLogger.Log(err);
+			ArrayLogger.Log("<<<<<<<<<<<<<<<<<<<");
         }
 
 
@@ -3630,7 +3630,7 @@ namespace RazorDB.C5
         /// <returns>b</returns>
         bool massert(bool b, Node n, string m)
         {
-            if (!b) Logger.Log(string.Format("*** Node (item={0}, id={1}): {2}", n.item,
+			if (!b) ArrayLogger.Log(string.Format("*** Node (item={0}, id={1}): {2}", n.item,
               0
               , m));
 

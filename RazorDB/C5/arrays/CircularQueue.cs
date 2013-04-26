@@ -322,7 +322,7 @@ namespace RazorDB.C5
             if (front < 0 || front >= array.Length || back < 0 || back >= array.Length ||
                 (front <= back && size != back - front) || (front > back && size != array.Length + back - front))
             {
-                Logger.Log(string.Format("Bad combination of (front,back,size,array.Length): ({0},{1},{2},{3})",
+				ArrayLogger.Log(string.Format("Bad combination of (front,back,size,array.Length): ({0},{1},{2},{3})",
                     front, back, size, array.Length));
                 return false;
             }

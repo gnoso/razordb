@@ -1895,19 +1895,19 @@ namespace RazorDB.C5
 
             if (underlyingsize > array.Length)
             {
-                Logger.Log(string.Format("underlyingsize ({0}) > array.Length ({1})", size, array.Length));
+				ArrayLogger.Log(string.Format("underlyingsize ({0}) > array.Length ({1})", size, array.Length));
                 return false;
             }
 
             if (offset + size > underlyingsize)
             {
-                Logger.Log(string.Format("offset({0})+size({1}) > underlyingsize ({2})", offset, size, underlyingsize));
+				ArrayLogger.Log(string.Format("offset({0})+size({1}) > underlyingsize ({2})", offset, size, underlyingsize));
                 return false;
             }
 
             if (offset < 0)
             {
-                Logger.Log(string.Format("offset({0}) < 0", offset));
+				ArrayLogger.Log(string.Format("offset({0}) < 0", offset));
                 return false;
             }
 
@@ -1915,7 +1915,7 @@ namespace RazorDB.C5
             {
                 if ((object)(array[i]) == null)
                 {
-                    Logger.Log(string.Format("Bad element: null at (base)index {0}", i));
+					ArrayLogger.Log(string.Format("Bad element: null at (base)index {0}", i));
                     retval = false;
                 }
             }
@@ -1924,7 +1924,7 @@ namespace RazorDB.C5
             {
                 if (!equals(array[i], default(T)))
                 {
-                    Logger.Log(string.Format("Bad element: != default(T) at (base)index {0}", i));
+					ArrayLogger.Log(string.Format("Bad element: != default(T) at (base)index {0}", i));
                     retval = false;
                 }
             }
@@ -1936,8 +1936,8 @@ namespace RazorDB.C5
                     {
                         if (u.array != v.array)
                         {
-                            Logger.Log(string.Format("View from {0} of length has different base array than the underlying list", v.offset, v.size));
-                            retval = false;
+						ArrayLogger.Log(string.Format("View from {0} of length has different base array than the underlying list", v.offset, v.size));
+						retval = false;
                         }
                     }
             }
@@ -1945,7 +1945,7 @@ namespace RazorDB.C5
 
             if (underlyingsize != itemIndex.Count)
             {
-                Logger.Log(string.Format("size ({0})!= index.Count ({1})", size, itemIndex.Count));
+				ArrayLogger.Log(string.Format("size ({0})!= index.Count ({1})", size, itemIndex.Count));
                 retval = false;
             }
 
@@ -1955,13 +1955,13 @@ namespace RazorDB.C5
 
                 if (!itemIndex.Find(ref p))
                 {
-                    Logger.Log(string.Format("Item {1} at {0} not in hashindex", i, array[i]));
+					ArrayLogger.Log(string.Format("Item {1} at {0} not in hashindex", i, array[i]));
                     retval = false;
                 }
 
                 if (p.Value != i)
                 {
-                    Logger.Log(string.Format("Item {1} at {0} has hashindex {2}", i, array[i], p.Value));
+					ArrayLogger.Log(string.Format("Item {1} at {0} has hashindex {2}", i, array[i], p.Value));
                     retval = false;
                 }
             }
