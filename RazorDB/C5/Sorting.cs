@@ -20,7 +20,8 @@
 */
 using System;
 using SCG = System.Collections.Generic;
-namespace C5
+
+namespace RazorDB.C5
 {
     /// <summary>
     /// A utility class with functions for sorting arrays with respect to an IComparer&lt;T&gt;

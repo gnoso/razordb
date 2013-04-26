@@ -24,7 +24,7 @@ using System.Linq;
 using System.Reflection;
 using SCG = System.Collections.Generic;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// Utility class for building default generic equality comparers.

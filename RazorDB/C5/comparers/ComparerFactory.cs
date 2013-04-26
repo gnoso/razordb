@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// Factory class to create comparers and equality comparers using Func delegates

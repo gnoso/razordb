@@ -21,7 +21,8 @@
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
-namespace C5
+
+namespace RazorDB.C5
 {
   /// <summary>
   /// A modern random number generator based on G. Marsaglia: 

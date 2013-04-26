@@ -21,7 +21,7 @@
 
 using System;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// An exception to throw from library code when an internal inconsistency is encountered.

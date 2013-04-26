@@ -21,7 +21,8 @@
 
 using System;
 using SCG = System.Collections.Generic;
-namespace C5
+
+namespace RazorDB.C5
 {
     /// <summary>
     /// An entry in a dictionary from K to V.

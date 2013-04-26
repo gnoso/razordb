@@ -22,7 +22,8 @@
 using System;
 using System.Text;
 using SCG = System.Collections.Generic;
-namespace C5
+
+namespace RazorDB.C5
 {
     /// <summary>
     /// An advanced interface to operations on an array. The array is viewed as an 

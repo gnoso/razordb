@@ -21,7 +21,7 @@
 
 using SCG = System.Collections.Generic;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// A generic dictionary class based on a hash set class <see cref="T:C5.HashSet`1"/>. 

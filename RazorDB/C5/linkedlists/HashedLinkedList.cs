@@ -23,7 +23,7 @@
 using System;
 using SCG = System.Collections.Generic;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// A list collection class based on a doubly linked list data structure.

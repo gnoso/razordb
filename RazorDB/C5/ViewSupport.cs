@@ -22,7 +22,7 @@
 using System;
 using SCG = System.Collections.Generic;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// Characterize the mutual position of some view B (other) relative to view A (this)

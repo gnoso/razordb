@@ -1,6 +1,6 @@
 using System;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// Logging module

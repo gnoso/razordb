@@ -22,7 +22,7 @@
 using System;
 using System.Text;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// <i>(Describe usage of "L:300" format string.)</i>

@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// Defines methods to support the comparison of objects for equality.

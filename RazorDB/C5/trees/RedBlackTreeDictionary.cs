@@ -22,7 +22,7 @@
 using System;
 using SCG = System.Collections.Generic;
 
-namespace C5
+namespace RazorDB.C5
 {
     /// <summary>
     /// A sorted generic dictionary based on a red-black tree set.

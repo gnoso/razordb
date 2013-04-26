@@ -21,7 +21,8 @@
 
 using System;
 using SCG = System.Collections.Generic;
-namespace C5
+
+namespace RazorDB.C5
 {
     /// <summary>
     /// A base class for implementing an IEnumerable&lt;T&gt;
