@@ -21,7 +21,7 @@
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
-namespace RazorDB.C5
+namespace C5
 {
   /// <summary>
   /// A modern random number generator based on G. Marsaglia: 
@@ -162,6 +162,7 @@ namespace RazorDB.C5
     /// </summary>
     /// <exception cref="ArgumentException">If Q is not of length exactly 16</exception>
     /// <param name="Q">The start state. Must be a collection of random bits given by an array of exactly 16 uints.</param>
+    [CLSCompliant(false)]
     public C5Random(uint[] Q)
     {
       if (Q.Length != 16)
