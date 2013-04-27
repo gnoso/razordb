@@ -24,10 +24,11 @@ using SCG = System.Collections.Generic;
 namespace RazorDB.C5
 {
 	/// <summary>
-	/// A set collection class based on linear hashing
+	/// Class containing debugging symbols - to eliminate preprocessor directives
 	/// </summary>
 	public class HashDebug
 	{
+		/// Flag used to test hashing. Set to true when unit testing hash functions.
+		internal static bool UseDeterministicHashing { get; set; }
 	}
-
 }

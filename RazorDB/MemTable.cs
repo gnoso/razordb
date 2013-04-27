@@ -38,7 +38,7 @@ namespace RazorDB {
 
         public bool Lookup(Key key, out Value value) {
             lock (_tableLock) {
-                return _internalTable.Find(key, out value);
+                return _internalTable.Find(ref key, out value);
             }
         }
 
