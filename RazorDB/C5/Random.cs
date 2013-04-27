@@ -21,6 +21,7 @@
 using System;
 using System.Diagnostics;
 using SCG = System.Collections.Generic;
+
 namespace RazorDB.C5
 {
   /// <summary>
