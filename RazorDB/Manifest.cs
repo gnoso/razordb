@@ -472,9 +472,9 @@ namespace RazorDB {
                 do {
                     var m = new ManifestImmutable(null);
                     m.ReadManifestContents(reader);
-                    yield return m;                    
-                    
-                    int size = reader.ReadInt32();
+                    yield return m;
+
+                    reader.ReadInt32();  // Consume the size encoded at the end of each manifest
                 } while (true);
             } finally {
                 reader.Close();
