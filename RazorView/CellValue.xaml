@@ -6,7 +6,7 @@
              mc:Ignorable="d">
     <DockPanel>
         <Button Name="ExpandButton" DockPanel.Dock="Right" Height="30" Click="Button_Click" Content="???"/>
-        <TextBox IsReadOnly="True" Name="TextBox" MinWidth="50" Text="{Binding Path=Value, Mode=OneWay}">
+        <TextBox IsReadOnly="False" Name="TextBox" MinWidth="50" Text="{Binding Path=Value, Mode=OneWay}" FontSize="10">
             <TextBox.BorderBrush>
                 <SolidColorBrush />
             </TextBox.BorderBrush>
