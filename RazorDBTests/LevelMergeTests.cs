@@ -157,7 +157,7 @@ namespace RazorDBTests {
             Key key = new Key(new ByteArray(new byte[] { 0 }));
             var timer = new Stopwatch();
             timer.Start();
-            foreach (var pair in SortedBlockTable.EnumerateMergedTables(cache, "TestData\\LevelMergeReadTest2", 
+            foreach (var pair in SortedBlockTable.EnumerateMergedTablesPreCached(cache, "TestData\\LevelMergeReadTest2", 
                 new List<PageRef>{
                                                               new PageRef { Level = 0, Version = 0},
                                                               new PageRef { Level = 0, Version = 1},

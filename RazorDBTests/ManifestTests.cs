@@ -245,7 +245,7 @@ namespace RazorDBTests {
 
             var manifestSize = new FileInfo(filename).Length;
 
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 30; i++) {
                 var level = mf.NextVersion(1);
             }
 

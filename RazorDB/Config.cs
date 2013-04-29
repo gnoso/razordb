@@ -31,6 +31,7 @@ namespace RazorDB {
         public static int ManifestVersionCount = 100;                           // Number of manifests to append before rolling the file over
         public static int MaxSmallValueSize = SortedBlockSize / 4;              // The maximum size of the value that we store contiguously. Anything larger than this is split into multiple parts.
         public static int MaxLargeValueSize = MaxSmallValueSize * (0xFF - 1);   // The largest size of the value that we can store (in multiple parts) using the current configuration.
+        public static int MaxPageSpan = 10;                                     // The maximum number of pages in level L+1 that a level L page can span (w.r.t the key distribution).
 
         public static string SortedBlockTableFile(string baseName, int level, int version) {
             return baseName + "\\" + level.ToString() + "-" + version.ToString() + ".sbt";
@@ -40,6 +41,9 @@ namespace RazorDB {
         }
         public static string ManifestFile(string baseName) {
             return baseName + "\\0.mf";
+        }
+        public static string AltManifestFile(string baseName) {
+            return baseName + "\\1.mf";
         }
         public static string IndexBaseName(string baseName, string indexName) {
             return baseName + "\\" + indexName;

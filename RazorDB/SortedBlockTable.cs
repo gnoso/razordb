@@ -550,14 +550,14 @@ namespace RazorDB {
             return new KeyValuePair<Key, Value>(key, val);
         }
 
-        public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTables(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
+        public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
              var tables = tableSpecs
                .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
                .ToList();
              try {
-                 foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate()), t => t.Key)) {
-                     yield return pair;
-                 }
+                foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate().ToList().AsEnumerable()), t => t.Key)) {
+                    yield return pair;
+                }
              } finally {
                  tables.ForEach(t => t.Close());
              }
@@ -571,23 +571,36 @@ namespace RazorDB {
 
             Key firstKey = new Key();
             Key lastKey = new Key();
+            Key maxKey = new Key(); // Maximum key we can span with this table to avoid covering more than 10 pages in the destination
 
-            foreach (var pair in EnumerateMergedTables(cache, mf.BaseFileName, orderedTableSpecs)) {
+            Action<KeyValuePair<Key, Value>> OpenPage = (pair) => {
+                writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
+                firstKey = pair.Key;
+                using (var m = mf.GetLatestManifest()) {
+                    maxKey = m.FindSpanningLimit(destinationLevel + 1, firstKey);
+                }
+            };
+            Action ClosePage = () => {
+                writer.Close();
+                outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
+                writer = null;
+            };
+
+            foreach (var pair in EnumerateMergedTablesPreCached(cache, mf.BaseFileName, orderedTableSpecs)) {
                 if (writer == null) {
-                    writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
-                    firstKey = pair.Key;
+                    OpenPage(pair);
+                }
+                if (writer.WrittenSize >= Config.MaxSortedBlockTableSize || (!maxKey.IsEmpty && pair.Key.CompareTo(maxKey) >= 0)) {
+                    ClosePage();
+                }
+                if (writer == null) {
+                    OpenPage(pair);
                 }
                 writer.WritePair(pair.Key, pair.Value);
                 lastKey = pair.Key;
-                if (writer.WrittenSize >= Config.MaxSortedBlockTableSize) {
-                    writer.Close();
-                    outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
-                    writer = null;
-                }
             }
             if (writer != null) {
-                writer.Close();
-                outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
+                ClosePage();
             }
 
             return outputTables;

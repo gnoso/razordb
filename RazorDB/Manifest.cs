@@ -51,6 +51,7 @@ namespace RazorDB {
             return clone;
         }
 
+        private Key[] _mergeKeys;
         private List<PageRecord>[] _pages;
 
         private int[] _versions = new int[MaxLevels];
@@ -69,8 +70,7 @@ namespace RazorDB {
             return _pages[level].Count;
         }
 
-        private Key[] _mergeKeys;
-        public PageRecord FindPageForKey(int level, Key key) {
+        public int FindPageIndexForKey(int level, Key key) {
             if (level >= MaxLevels)
                 throw new IndexOutOfRangeException();
             var levelKeys = _pages[level].Select(p => p.FirstKey).ToList();
@@ -78,10 +78,15 @@ namespace RazorDB {
             if (startingPage < 0) { startingPage = ~startingPage - 1; }
 
             if (startingPage >= 0 && startingPage < _pages[level].Count) {
-                return _pages[level][startingPage];
+                return startingPage;
             } else {
-                return null;
+                return -1;
             }
+        }
+
+        public PageRecord FindPageForKey(int level, Key key) {
+            int index = FindPageIndexForKey(level, key);
+            return index < 0 ? null : _pages[level][index];
         }
 
         public PageRecord[] FindPagesForKeyRange(int level, Key startKey, Key endKey) {
@@ -93,6 +98,40 @@ namespace RazorDB {
             int endingPage = levelKeys.BinarySearch(endKey);
             if (endingPage < 0) { endingPage = ~endingPage - 1; }
             return _pages[level].Skip(startingPage).Take(endingPage - startingPage + 1).ToArray();
+        }
+
+        // find the maximum key that we can span to avoid covering too much upper level data.
+        public Key FindSpanningLimit(int level, Key startingKey) {
+
+            // not a valid level
+            if (level >= NumLevels)
+                return Key.Empty;
+
+            // there are no pages, don't limit
+            if (_pages[level].Count == 0) {
+                return Key.Empty;
+            }
+
+            // Find the page for the starting key
+            var index = FindPageIndexForKey(level, startingKey);
+            if (index < 0) {
+                // startingKey is not included in any of the pages
+                if (startingKey.CompareTo(_pages[level][0].FirstKey) < 0) {
+                    // startingKey is before the first page, so treat it as if the first page contains the key
+                    index = 0;
+                } else {
+                    // starting Key is after the last page, so don't limit the span
+                    return Key.Empty;
+                }
+            }
+            var maxIndex = index + Config.MaxPageSpan - 1;
+
+            if (_pages[level].Count > maxIndex) {
+                // The last key in that page is the furthest we can span at the lower level
+                return _pages[level][maxIndex].LastKey;
+            }
+            // There aren't enough pages to trigger the limit.
+            return Key.Empty;
         }
 
         public PageRecord[] GetPagesAtLevel(int level) {
@@ -163,7 +202,7 @@ namespace RazorDB {
 
 
         // Read/Write manifest data
-        internal void WriteManifestContents(BinaryWriter writer) {
+        public void WriteManifestContents(BinaryWriter writer) {
             long startPos = writer.BaseStream.Position;
 
             writer.Write7BitEncodedInt(_versions.Length);
@@ -223,9 +262,10 @@ namespace RazorDB {
                 manifest.LogMessage("Level: {0} NumPages: {1} MaxPages: {2}", level, GetNumPagesAtLevel(level), Config.MaxPagesOnLevel(level));
                 manifest.LogMessage("MergeKey: {0}", _mergeKeys[level]);
                 manifest.LogMessage("Version: {0}", _versions[level]);
-                var pages = GetPagesAtLevel(level).OrderBy(p=>p.Version);
+                var pages = GetPagesAtLevel(level);
                 foreach (var page in pages) {
-                    manifest.LogMessage("Page {0}-{1} [{2} -> {3}] Ref({4})", page.Level, page.Version, page.FirstKey, page.LastKey, page.RefCount);
+                    var mergePages = FindPagesForKeyRange(level + 1, page.FirstKey, page.LastKey).Count();
+                    manifest.LogMessage("Page {0}-{1} [{2} -> {3}] Ref({4}) Overlap({5})", page.Level, page.Version, page.FirstKey, page.LastKey, page.RefCount, mergePages);
                 }
             }
         }
@@ -272,6 +312,11 @@ namespace RazorDB {
         private int _manifestVersion = 0;
         public int ManifestVersion {
             get { return _manifestVersion; }
+        }
+
+        private int _altManifestVersion = Config.ManifestVersionCount / 4;
+        public int AltManifestVersion {
+            get { return _altManifestVersion; }
         }
 
         public int CurrentVersion(int level) {
@@ -350,32 +395,38 @@ namespace RazorDB {
 
         private void Write(ManifestImmutable m) {
 
-            string manifestFile = Config.ManifestFile(BaseFileName);
-            string tempManifestFile = manifestFile + "~";
+            // Get an in-memory copy of the all the bytes that will be written to the manifest
+            var ms = new MemoryStream();
+            var writer = new BinaryWriter(ms);
+            m.WriteManifestContents(writer);
+            writer.Close();
+            var manifestBytes = ms.ToArray();
 
+            // Increment manifest versions, we're getting ready to write another copy
             _manifestVersion++;
+            _altManifestVersion++;
 
-            if (ManifestVersion > Config.ManifestVersionCount) {
+            // Write primary manifest
+            FileMode fileMode = FileMode.Append;
+            if (_manifestVersion > Config.ManifestVersionCount) {
+                fileMode = FileMode.Create;
+                _manifestVersion = 0;
+            }
+            using (FileStream mfs = new FileStream(Config.ManifestFile(BaseFileName), fileMode, FileAccess.Write, FileShare.None, 8, FileOptions.WriteThrough)) {
+                IAsyncResult manifestWrite = mfs.BeginWrite(manifestBytes, 0, manifestBytes.Length, null, null);
 
-                FileStream fs = new FileStream(tempManifestFile, FileMode.Create, FileAccess.Write, FileShare.None, 1024, false);
-                BinaryWriter writer = new BinaryWriter(fs);
-
-                try {
-                    m.WriteManifestContents(writer);
-                } finally {
-                    writer.Close();
+                // Write alternative manifest
+                fileMode = FileMode.Append;
+                if (_altManifestVersion > Config.ManifestVersionCount) {
+                    fileMode = FileMode.Create;
+                    _altManifestVersion = 0;
                 }
+                using (FileStream afs = new FileStream(Config.AltManifestFile(BaseFileName), fileMode, FileAccess.Write, FileShare.None, 8, FileOptions.WriteThrough)) {
+                    IAsyncResult altManifestWrite = afs.BeginWrite(manifestBytes, 0, manifestBytes.Length, null, null);
 
-                // Swap new file into position
-                File.Delete(manifestFile);
-                File.Move(tempManifestFile, manifestFile);
-            } else {
-                FileStream fs = new FileStream(manifestFile, FileMode.Append, FileAccess.Write, FileShare.None, 1024, false);
-                BinaryWriter writer = new BinaryWriter(fs);
-                try {
-                    m.WriteManifestContents(writer);
-                } finally {
-                    writer.Close();
+                    // Wait for i/o's to complete
+                    mfs.EndWrite(manifestWrite);
+                    afs.EndWrite(altManifestWrite);
                 }
             }
         }

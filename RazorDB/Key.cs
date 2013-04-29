@@ -79,6 +79,9 @@ namespace RazorDB {
         public static Key Empty {
             get { return new Key(new byte[0], 0); }
         }
+        public bool IsEmpty {
+            get { return _bytes.Length == 1 && _bytes.InternalBytes[0] == 0; }
+        }
         public Key WithSequence(byte seqNum) {
             return new Key(KeyBytes, seqNum);
         }

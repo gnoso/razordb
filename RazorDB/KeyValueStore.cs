@@ -56,8 +56,11 @@ namespace RazorDB {
         // For Table Manager 
         internal long ticksTillNextMerge = 0;
         internal object mergeLock = new object();
+        internal int mergeCount = 0;
 
         public Manifest Manifest { get { return _manifest; } }
+
+        public Action<int, IEnumerable<PageRecord>, IEnumerable<PageRecord>> MergeCallback { get; set; }
 
         internal RazorCache Cache { get { return _cache; } }
 
@@ -74,7 +77,7 @@ namespace RazorDB {
             _currentJournaledMemTable.Close();
             TableManager.Default.Close(this);
             foreach (var pair in _secondaryIndexes) {
-                pair.Value.Close();
+                pair.Value.Close(FastClose);
             }
 
             string basePath = Path.GetFullPath(Manifest.BaseFileName);
@@ -423,17 +426,23 @@ namespace RazorDB {
         }
 
         public void Dispose() {
-            Close();
+            Close(FastClose);
         }
 
-        public void Close() {
+        private bool _fastClose = false;
+        public bool FastClose {
+            get { return _fastClose; }
+            set { _fastClose = value; }
+        }
+
+        public void Close(bool fast = false) {
             // Make sure any inflight rotations have occurred before shutting down.
             if (!_rotationSemaphore.WaitOne(30000))
                 throw new TimeoutException("Timed out waiting for table rotation to complete.");
             // Release again in case another thread tries to close it again.
             _rotationSemaphore.Release();
 
-            if (!finalizing) {
+            if (!finalizing && !fast) {
                 TableManager.Default.Close(this);
             }
             if (_currentJournaledMemTable != null) {
@@ -443,7 +452,7 @@ namespace RazorDB {
 
             if (_secondaryIndexes != null) {
                 foreach (var idx in _secondaryIndexes) {
-                    idx.Value.Close();
+                    idx.Value.Close(fast);
                 }
             }
 
@@ -525,7 +534,6 @@ namespace RazorDB {
             
             using (var manifestInst = this.Manifest.GetLatestManifest()) {
 
-                int maxVersion = 0;
                 // find all the sbt files in the data directory
                 var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary( f => Path.GetFileNameWithoutExtension(f.ToLower()) );
                 for (int level = 0; level < manifestInst.NumLevels - 1; level++) {
@@ -537,8 +545,6 @@ namespace RazorDB {
                         string fileForPage = Path.GetFileNameWithoutExtension( Config.SortedBlockTableFile(this.Manifest.BaseFileName, page.Level, page.Version) );
                         // Remove the page from the file list because it's in the manifest and we've accounted for it.
                         files.Remove(fileForPage);
-
-                        maxVersion = Math.Max(page.Version, maxVersion);
                     }
                 }
 
@@ -550,7 +556,7 @@ namespace RazorDB {
                         int version = int.Parse(parts[1]);
                         
                         // First let's check the version number, we don't want to remove any new files that are being created while this is happening
-                        if (version < maxVersion && level < manifestInst.NumLevels) {
+                        if (level < manifestInst.NumLevels && version < manifestInst.CurrentVersion(level)) {
 
                             string orphanedFile = Config.SortedBlockTableFile(Manifest.BaseFileName, level, version);
 

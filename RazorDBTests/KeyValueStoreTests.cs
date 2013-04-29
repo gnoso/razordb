@@ -124,6 +124,74 @@ namespace RazorDBTests {
             }
         }
 
+        [Test]
+        public void WriteSpeedTests() {
+
+            Action<KeyValueStore, int, int, int> InsertDenseBlock = (KeyValueStore db, int key, int density, int count) => {
+                byte[] value = ByteArray.Random(Config.MaxSmallValueSize - 12).InternalBytes;
+                for (int i = 0; i < count; i++) {
+                    byte[] keyBytes = BitConverter.GetBytes(key + density * i);
+                    Array.Reverse(keyBytes); // make sure they are in lexicographical order so they sort closely together.
+
+                    db.Set(keyBytes, value);
+                }
+            };
+
+            // Make sure that when we have high key density, pages don't start to overlap with more than 10 pages at the level higher than the current one.
+            string path = Path.GetFullPath("TestData\\WriteSpeedTests");
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                InsertDenseBlock(db, 0, 1, 10000);
+                InsertDenseBlock(db, 20000, 1, 10000);
+                InsertDenseBlock(db, 15000, 1, 10000);
+            }
+        }
+
+        [Test]
+        public void KeyDensityMaximumPageOverlapTest() {
+
+            Action<KeyValueStore, int,int, int> InsertDenseBlock = (KeyValueStore db, int key, int density, int count) => {
+                byte[] value = ByteArray.Random(Config.MaxSmallValueSize - 12).InternalBytes;
+                for (int i = 0; i < count; i++) {
+                    byte[] keyBytes = BitConverter.GetBytes(key + density * i);
+                    Array.Reverse(keyBytes); // make sure they are in lexicographical order so they sort closely together.
+
+                    db.Set(keyBytes, value);
+                }
+            };
+
+            // Make sure that when we have high key density, pages don't start to overlap with more than 10 pages at the level higher than the current one.
+            string path = Path.GetFullPath("TestData\\KeyDensityMaximumPageOverlapTest");
+            using (var db = new KeyValueStore(path)) {
+                db.Truncate();
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                InsertDenseBlock(db, 100, 1, 10000);
+            }
+            Console.WriteLine("Database is densely seeded.");
+            // Close out the db to sync up all pending merge operations
+            using (var db = new KeyValueStore(path)) {
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+
+                // Insert a spanning block that will cover all of the area already covered
+                InsertDenseBlock(db, 0, 10000, 2);
+            }
+            Console.WriteLine("Spanning block inserted.");
+            // Close out the db to sync up all pending merge operations
+            using (var db = new KeyValueStore(path)) {
+                db.Manifest.Logger = (msg) => Console.WriteLine(msg);
+                db.MergeCallback = (level, input, output) => {
+                    // We should not have more than 12 pages on the input side or else our page overlap throttle isn't working properly.
+                    Assert.LessOrEqual(input.Count(), 12);
+                };
+
+                // Now insert a bunch of data into a non-overlapping portion of the space in order to force the spanning block to rise through the levels.
+                InsertDenseBlock(db, 100000, 1, 1000);
+            }
+        }
+
         [Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")]
         public void RotationShutdownRaceTest() {
 
