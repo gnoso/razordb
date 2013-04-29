@@ -1,0 +1,2 @@
+# Unset the text attribute to prevent git from changing the line endings on checkout/checkin.
+*	-text
