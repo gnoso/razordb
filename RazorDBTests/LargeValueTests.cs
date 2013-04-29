@@ -94,7 +94,6 @@ namespace RazorDBTests {
 
                 timer.Start();
                 for (int i = 0; i < num_items; i++) {
-                    var key = BitConverter.GetBytes(i);
                     var items = db.Find("Index", BitConverter.GetBytes(i + 10));
                     var val = items.First();
                     Assert.AreEqual(value.InternalBytes, val.Value);
