@@ -1,0 +1,12 @@
+## Include these at all costs
+
+# Directories
+Externals/*
+RazorDB/*
+RazorDBTests/*
+RazorTest/*
+RazorUtil/*
+RazorView/*
+
+# Files
+RazorDB.sln
