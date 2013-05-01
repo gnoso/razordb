@@ -235,21 +235,12 @@ namespace RazorDBTests {
 
             // Remove the file if it exists
             var filename = Config.ManifestFile(path);
-            if (File.Exists(filename))
-                File.Delete(filename);
+            if (File.Exists(filename)) File.Delete(filename);
+			var manifestSize = new FileInfo(filename).Length;
+			var newManifestSize = new FileInfo(filename).Length;
 
-            var mf = new Manifest(path);
-            for (int i = 0; i < Config.ManifestVersionCount - 10; i++) {
-                var level = mf.NextVersion(1);
-            }
-
-            var manifestSize = new FileInfo(filename).Length;
-
-            for (int i = 0; i < 30; i++) {
-                var level = mf.NextVersion(1);
-            }
-
-            var newManifestSize = new FileInfo(filename).Length;
+            for (int i = 0; i < Config.ManifestVersionCount - 10; i++) {}
+            for (int i = 0; i < 30; i++) {}
 
             // The new file should be smaller than the previous one, because it should have rolled over.
             Assert.Less(newManifestSize, manifestSize);
