@@ -195,17 +195,16 @@ namespace RazorDBTests {
             }
 
             var cache = new RazorCache();
-            ByteArray key = new ByteArray(new byte[] { 0 });
             var timer = new Stopwatch();
             timer.Start();
 
             Manifest mf = new Manifest("TestData\\LevelMergeOutputTest");
-            var outputTables = SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
-                                                                                                new PageRef { Level = 0, Version = 0},
-                                                                                                new PageRef { Level = 0, Version = 1},
-                                                                                                new PageRef { Level = 0, Version = 2},
-                                                                                                new PageRef { Level = 0, Version = 3}
-                                                                                            });
+            SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
+                                                                            new PageRef { Level = 0, Version = 0},
+                                                                            new PageRef { Level = 0, Version = 1},
+                                                                            new PageRef { Level = 0, Version = 2},
+                                                                            new PageRef { Level = 0, Version = 3}
+                                                                        });
             timer.Stop();
 
             Console.WriteLine("Wrote a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
@@ -241,12 +240,12 @@ namespace RazorDBTests {
             timer.Start();
 
             Manifest mf = new Manifest("TestData\\LevelMergeDuplicateValuesTest");
-            var outputTables = SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
-                                                                                                new PageRef { Level = 0, Version = 0},
-                                                                                                new PageRef { Level = 0, Version = 1},
-                                                                                                new PageRef { Level = 0, Version = 2},
-                                                                                                new PageRef { Level = 0, Version = 3}
-                                                                                            });
+            SortedBlockTable.MergeTables(cache, mf, 1, new List<PageRef>{
+                                                                            new PageRef { Level = 0, Version = 0},
+                                                                            new PageRef { Level = 0, Version = 1},
+                                                                            new PageRef { Level = 0, Version = 2},
+                                                                            new PageRef { Level = 0, Version = 3}
+                                                                        });
             timer.Stop();
 
             // Open the block table and scan it to check the stored values

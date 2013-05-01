@@ -28,7 +28,6 @@ namespace RazorDBTests {
         public void Comparison() {
 
             var a0 = new ByteArray(new byte[] { 0 });
-            var a1 = new ByteArray(new byte[] { 0, 1, 2, 3 });
             var a2 = new ByteArray(new byte[] { 0, 1, 2, 4 });
             var a2B = new ByteArray(new byte[] { 0, 1, 2, 4 });
             var a3 = new ByteArray(new byte[] { 0, 1, 2, 5 });
