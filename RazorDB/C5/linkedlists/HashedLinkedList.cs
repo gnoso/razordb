@@ -1009,9 +1009,9 @@ namespace RazorDB.C5
 #if HASHINDEX
       internal void skipEndpoints(int removed, Node n)
       {
+		Position endpoint;
         if (viewCount > 0)
         {
-          Position endpoint;
           while (leftEndIndex < viewCount && ((endpoint = leftEnds[leftEndIndex]).Endpoint.prev.precedes(n)))
           {
             HashedLinkedList<T> view = endpoint.View;
@@ -1027,8 +1027,7 @@ namespace RazorDB.C5
           }
         }
         if (viewCount > 0)
-        {
-          Position endpoint;
+		{
           while (leftEndIndex2 < viewCount && (endpoint = leftEnds[leftEndIndex2]).Endpoint.prev.precedes(n))
             leftEndIndex2++;
           while (rightEndIndex2 < viewCount && (endpoint = rightEnds[rightEndIndex2]).Endpoint.next.precedes(n))
@@ -1189,10 +1188,10 @@ namespace RazorDB.C5
       bool forwards;
 
 
-      internal Range(HashedLinkedList<T> list, int start, int count, bool forwards)
+      internal Range(HashedLinkedList<T> l, int s, int c, bool b)
       {
-        this.list = list; this.rangestamp = list.underlying != null ? list.underlying.stamp : list.stamp;
-        this.start = start; this.count = count; this.forwards = forwards;
+        this.list = l; this.rangestamp = list.underlying != null ? list.underlying.stamp : list.stamp;
+		this.start = s; this.count = c; this.forwards = b;
         if (count > 0)
         {
           startnode = list.get(start);
