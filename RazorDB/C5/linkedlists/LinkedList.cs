@@ -1886,10 +1886,10 @@ namespace RazorDB.C5
         throw new NotAViewException("List not a view");
 
 #pragma warning disable 472
+#pragma warning disable 162
       if (this.offset == null) //Note: only possible with HASHINDEX
 #pragma warning restore 472
       {
-#pragma warning disable 162
         try
         {
           getPair(offset - 1, offset + size, out startsentinel, out endsentinel,
