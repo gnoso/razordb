@@ -1,0 +1,3 @@
+# predeclares external modules used by RazorDB
+[submodule "C5"]
+        path = RazorDB/C5
