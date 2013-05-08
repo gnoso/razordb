@@ -23,11 +23,21 @@ using RazorDB;
 namespace RazorUtil {
 
     public class Program {
-        
+
         static void Main(string[] args) {
             Console.WriteLine("RazorDB Utility\n");
 
-            if (args.Length > 0) {
+            if (args.Length == 0) {
+                Console.WriteLine("Commands:");
+                Console.WriteLine("\tdump-journal  <basedir> <version>");
+                Console.WriteLine("\tdump-table <basedir> <level> <version>");
+                Console.WriteLine("\tdump-manifest <manifest file> ");
+                Console.WriteLine("\tdump-manifest-all <basedir>");
+                Console.WriteLine("\tsplit-manifest <basedir>");
+                Console.WriteLine("\tcheck-each-table <basedir>");
+                Console.WriteLine("\tcheck-database <basedir>");
+                Console.WriteLine("\tremove-orphans <basedir>");
+            } else {
                 switch (args[0].ToLower()) {
                     case "dump-journal":
                         if (args.Length < 3) {
@@ -100,8 +110,8 @@ namespace RazorUtil {
                         }
                         break;
                     default:
-                        Console.WriteLine("Unknown command: {0}",args[0]);
-                    break;
+                        Console.WriteLine("Unknown command: {0}", args[0]);
+                        break;
                 }
             }
 
@@ -117,7 +127,7 @@ namespace RazorUtil {
                 int version = int.Parse(fileparts[1]);
 
                 Console.WriteLine("Level: {0} Version: {1}", level, version);
-                
+
                 var tablefile = new SortedBlockTable(cache, baseDir, level, version);
                 try {
                     tablefile.ScanCheck();
