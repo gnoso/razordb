@@ -37,6 +37,7 @@ namespace RazorUtil {
                 Console.WriteLine("\tcheck-each-table <basedir>");
                 Console.WriteLine("\tcheck-database <basedir>");
                 Console.WriteLine("\tremove-orphans <basedir>");
+                Console.WriteLine("\tremove-page <basedir> <level> <version>");
             } else {
                 switch (args[0].ToLower()) {
                     case "dump-journal":
@@ -107,6 +108,15 @@ namespace RazorUtil {
                             Console.WriteLine("Invalid parameters");
                         } else {
                             RemoveOrphanedTables(args[1]);
+                        }
+                        break;
+                    case "remove-page":
+                        if (args.Length < 4) {
+                            Console.WriteLine("Invalid parameters");
+                        } else {
+                            var pageRef = new PageRef { Level = int.Parse(args[2]), Version = int.Parse(args[3]) };
+                            var mf = new Manifest(args[1]);
+                            mf.ModifyPages(new List<PageRecord>(), new List<PageRef> { { pageRef } });
                         }
                         break;
                     default:
