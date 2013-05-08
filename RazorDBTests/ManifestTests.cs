@@ -241,12 +241,14 @@ namespace RazorDBTests {
             var mf = new Manifest(path);
             for (int i = 0; i < Config.ManifestVersionCount - 10; i++) {
                 var level = mf.NextVersion(1);
+				level.GetType();
             }
 
             var manifestSize = new FileInfo(filename).Length;
 
             for (int i = 0; i < 30; i++) {
                 var level = mf.NextVersion(1);
+				level.GetType();
             }
 
             var newManifestSize = new FileInfo(filename).Length;
