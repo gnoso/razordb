@@ -1108,9 +1108,9 @@ namespace RazorDB.C5
       /// <param name="realindex"></param>
       internal void skipEndpoints(int removed, int realindex)
       {
+		Position endpoint;
         if (viewCount > 0)
         {
-          Position endpoint;
           while (leftEndIndex < viewCount && (endpoint = leftEnds[leftEndIndex]).Index <= realindex)
           {
             LinkedList<T> view = endpoint.View;
@@ -1127,7 +1127,6 @@ namespace RazorDB.C5
         }
         if (viewCount > 0)
         {
-          Position endpoint;
           while (leftEndIndex2 < viewCount && (endpoint = leftEnds[leftEndIndex2]).Index <= realindex)
             leftEndIndex2++;
           while (rightEndIndex2 < viewCount && (endpoint = rightEnds[rightEndIndex2]).Index < realindex - 1)
@@ -1189,10 +1188,10 @@ namespace RazorDB.C5
       bool forwards;
 
 
-      internal Range(LinkedList<T> list, int start, int count, bool forwards)
+      internal Range(LinkedList<T> l, int s, int c, bool b)
       {
-        this.list = list; this.rangestamp = list.underlying != null ? list.underlying.stamp : list.stamp;
-        this.start = start; this.count = count; this.forwards = forwards;
+        this.list = l; this.rangestamp = list.underlying != null ? list.underlying.stamp : list.stamp;
+        this.start = s; this.count = c; this.forwards = b;
         if (count > 0)
         {
           startnode = list.get(start);
@@ -1887,10 +1886,10 @@ namespace RazorDB.C5
         throw new NotAViewException("List not a view");
 
 #pragma warning disable 472
+#pragma warning disable 162
       if (this.offset == null) //Note: only possible with HASHINDEX
 #pragma warning restore 472
       {
-#pragma warning disable 162
         try
         {
           getPair(offset - 1, offset + size, out startsentinel, out endsentinel,

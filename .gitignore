@@ -1,14 +1,17 @@
 # Directories
-.nuget/*
-Debug/*
-External/*
-packages/*
-Release/*
-*/obj/*
-*/test-results/*
+.nuget
+[Bb]in
+[Dd]ebug
+[Ee]xternal
+[Oo]bj
+[Pp]ackages
+[Rr]elease
+[Tt]est-[Rr]esults
 
 # Files
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.pdb
 *.suo
 *.csproj.user
