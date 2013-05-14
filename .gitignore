@@ -1,11 +1,11 @@
 # Directories
 .nuget/*
-Debug/*
-External/*
-packages/*
-Release/*
-*/obj/*
-*/test-results/*
+[Dd]ebug/*
+[Ee]xternal/*
+[Pp]ackages/*
+[Rr]elease/*
+*/[Oo]bj/*
+*/[Tt]est-[Rr]esults/*
 
 # Files
 .DS_Store
