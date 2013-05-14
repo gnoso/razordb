@@ -21,125 +21,124 @@ using System.Text;
 using NUnit.Framework;
 using RazorDB;
 
-namespace RazorDBTests {
+namespace RazorDBTests
+{
+	[TestFixture]
+    public class CacheTests
+	{
+		[Test]
+        public void BasicAdd ()
+		{
+			var cache = new Cache<ByteArray> (500 * 1024, ba => ba.Length);
+			var items = new List<KeyValuePair<string, ByteArray>> ();
 
-    [TestFixture]
-    public class CacheTests {
+			for (int i = 0; i < 100; i++) {
+				var key = ByteArray.Random (40).ToString ();
+				var val = ByteArray.Random (256);
+				cache.Set (key, val);
+				items.Add (new KeyValuePair<string, ByteArray>(key, val));
+			}
 
-        [Test]
-        public void BasicAdd() {
+			ByteArray oval;
+			for (int i = 0; i < 100; i++) {
+				var data = items [i];
+				Assert.IsTrue (cache.TryGetValue(data.Key, out oval));
+				Assert.AreEqual (data.Value, oval);
+			}
+			Assert.IsFalse (cache.TryGetValue(ByteArray.Random(40).ToString(), out oval));
+		}
 
-            var cache = new Cache<ByteArray>(500 * 1024, ba => ba.Length );
-            var items = new List<KeyValuePair<string, ByteArray>>();
+		[Test]
+        public void CheckAddWithSize ()
+		{
+			var cache = new Cache<ByteArray> (500 * 1024, ba => ba.Length);
 
-            for (int i = 0; i < 100; i++) {
-                var key = ByteArray.Random(40).ToString();
-                var val = ByteArray.Random(256);
-                cache.Set(key, val);
-                items.Add(new KeyValuePair<string, ByteArray>(key, val));
-            }
+			int size = 0;
+			for (int i = 0; i < 100; i++) {
+				var key = ByteArray.Random (40).ToString ();
+				var val = ByteArray.Random (256);
+				cache.Set (key, val);
+				size += val.Length;
+				Assert.AreEqual (size, cache.CurrentSize);
+			}
+		}
 
-            ByteArray oval;
-            for (int i = 0; i < 100; i++) {
-                var data = items[i];
-                Assert.IsTrue(cache.TryGetValue(data.Key, out oval));
-                Assert.AreEqual(data.Value, oval);
-            }
-            Assert.IsFalse(cache.TryGetValue(ByteArray.Random(40).ToString(), out oval));
-        }
+		[Test]
+        public void CheckOverSizeLimit ()
+		{
+			int limit = 100 * 256;
+			var cache = new Cache<ByteArray> (limit, ba => ba.Length);
+			var items = new List<string> ();
 
-        [Test]
-        public void CheckAddWithSize() {
+			int size = 0;
+			for (int i = 0; i < 200; i++) {
+				var key = ByteArray.Random (40).ToString ();
+				var val = ByteArray.Random (256);
+				cache.Set (key, val);
+				size += val.Length;
 
-            var cache = new Cache<ByteArray>(500 * 1024, ba => ba.Length);
+				items.Add (key);
+			}
 
-            int size = 0;
-            for (int i = 0; i < 100; i++) {
-                var key = ByteArray.Random(40).ToString();
-                var val = ByteArray.Random(256);
-                cache.Set(key, val);
-                size += val.Length;
-                Assert.AreEqual(size, cache.CurrentSize);
-            }
-        }
+			Assert.GreaterOrEqual (limit, cache.CurrentSize);
+			ByteArray output;
+			// First 100 items should have been evicted
+			for (int i = 0; i < 100; i++) {
+				Assert.IsFalse (cache.TryGetValue(items[i], out output));
+			}
 
-        [Test]
-        public void CheckOverSizeLimit() {
+			// Next 100 items should still be there
+			for (int i = 100; i < 200; i++) {
+				Assert.IsTrue (cache.TryGetValue(items[i], out output));
+			}
+		}
 
-            int limit = 100 * 256;
-            var cache = new Cache<ByteArray>(limit, ba => ba.Length);
-            var items = new List<string>();
+		[Test]
+        public void CheckLRU ()
+		{
+			int limit = 100 * 256;
+			var cache = new Cache<ByteArray> (limit, ba => ba.Length);
+			var items = new List<string> ();
 
-            int size = 0;
-            for (int i = 0; i < 200; i++) {
-                var key = ByteArray.Random(40).ToString();
-                var val = ByteArray.Random(256);
-                cache.Set(key, val);
-                size += val.Length;
+			for (int i = 0; i < 100; i++) {
+				var key = ByteArray.Random (40).ToString ();
+				var val = ByteArray.Random (256);
+				cache.Set (key, val);
 
-                items.Add(key);
-            }
+				items.Add (key);
+			}
 
-            Assert.GreaterOrEqual(limit, cache.CurrentSize);
-            ByteArray output;
-            // First 100 items should have been evicted
-            for (int i = 0; i < 100; i++) {
-                Assert.IsFalse(cache.TryGetValue(items[i], out output));
-            }
+			ByteArray output;
+			// Touch the first 50 items again
+			for (int i = 0; i < 50; i++) {
+				Assert.IsTrue (cache.TryGetValue(items[i], out output));
+			}
 
-            // Next 100 items should still be there
-            for (int i = 100; i < 200; i++) {
-                Assert.IsTrue(cache.TryGetValue(items[i], out output));
-            }
-        }
+			// Add 10 more items
+			for (int i = 0; i < 10; i++) {
+				var key = ByteArray.Random (40).ToString ();
+				var val = ByteArray.Random (256);
+				cache.Set (key, val);
 
-        [Test]
-        public void CheckLRU() {
+				items.Add (key);
+			}
 
-            int limit = 100 * 256;
-            var cache = new Cache<ByteArray>(limit, ba => ba.Length);
-            var items = new List<string>();
+			// First 50 items should still be there
+			for (int i = 0; i < 50; i++) {
+				Assert.IsTrue (cache.TryGetValue(items[i], out output));
+			}
 
-            for (int i = 0; i < 100; i++) {
-                var key = ByteArray.Random(40).ToString();
-                var val = ByteArray.Random(256);
-                cache.Set(key, val);
+			// Next 10 items should be evicted
+			for (int i = 50; i < 60; i++) {
+				Assert.IsFalse (cache.TryGetValue(items[i], out output));
+			}
 
-                items.Add(key);
-            }
+			// Next 50 items should still be there
+			for (int i = 60; i < 110; i++) {
+				Assert.IsTrue (cache.TryGetValue(items[i], out output));
+			}
 
-            ByteArray output;
-            // Touch the first 50 items again
-            for (int i = 0; i < 50; i++) {
-                Assert.IsTrue(cache.TryGetValue(items[i], out output));
-            }
-
-            // Add 10 more items
-            for (int i = 0; i < 10; i++) {
-                var key = ByteArray.Random(40).ToString();
-                var val = ByteArray.Random(256);
-                cache.Set(key, val);
-
-                items.Add(key);
-            }
-
-            // First 50 items should still be there
-            for (int i = 0; i < 50; i++) {
-                Assert.IsTrue(cache.TryGetValue(items[i], out output));
-            }
-
-            // Next 10 items should be evicted
-            for (int i = 50; i < 60; i++) {
-                Assert.IsFalse(cache.TryGetValue(items[i], out output));
-            }
-
-            // Next 50 items should still be there
-            for (int i = 60; i < 110; i++) {
-                Assert.IsTrue(cache.TryGetValue(items[i], out output));
-            }
-
-            Assert.GreaterOrEqual(limit, cache.CurrentSize);
-       }
-
-    }
+			Assert.GreaterOrEqual (limit, cache.CurrentSize);
+		}
+	}
 }

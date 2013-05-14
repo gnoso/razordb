@@ -24,143 +24,142 @@ using RazorDB;
 using System.Diagnostics;
 using System.Threading;
 
-namespace RazorDBTests {
+namespace RazorDBTests
+{
+	[TestFixture]
+    public class MemTableTests
+	{
+		[Test]
+        public void AddAndLookupItems ()
+		{
+			MemTable mt = new MemTable ();
 
-    [TestFixture]
-    public class MemTableTests {
+			List<KeyValuePair<Key, Value>> values = new List<KeyValuePair<Key, Value>> ();
 
-        [Test]
-        public void AddAndLookupItems() {
+			for (int i = 0; i < 10000; i++) {
+				var randomKey = Key.Random (40);
+				var randomValue = Value.Random (256);
 
-            MemTable mt = new MemTable();
+				values.Add (new KeyValuePair<Key, Value>(randomKey, randomValue));
+				mt.Add (randomKey, randomValue);
+			}
 
-            List<KeyValuePair<Key, Value>> values = new List<KeyValuePair<Key, Value>>();
+			Value value;
+			foreach (var pair in values) {
+				Assert.IsTrue (mt.Lookup(pair.Key, out value));
+				Assert.AreEqual (pair.Value, value);
+			}
+			Assert.IsFalse (mt.Lookup(Key.Random(40), out value));
 
-            for (int i = 0; i < 10000; i++) {
-                var randomKey = Key.Random(40);
-                var randomValue = Value.Random(256);
+			Assert.AreEqual (10000 * (40 + 256), mt.Size);
+			Assert.IsTrue (mt.Full);
+		}
 
-                values.Add(new KeyValuePair<Key, Value>(randomKey, randomValue));
-                mt.Add(randomKey, randomValue);
-            }
+		[Test]
+        public void SetItemsMultipleTimes ()
+		{
+			MemTable mt = new MemTable ();
 
-            Value value;
-            foreach (var pair in values) {
-                Assert.IsTrue(mt.Lookup(pair.Key, out value));
-                Assert.AreEqual(pair.Value, value);
-            }
-            Assert.IsFalse(mt.Lookup(Key.Random(40), out value));
+			Dictionary<Key, Value> values = new Dictionary<Key, Value> ();
 
-            Assert.AreEqual(10000 * (40 + 256), mt.Size);
-            Assert.IsTrue(mt.Full);
-        }
+			for (int i = 0; i < 10000; i++) {
+				var randomKey = new Key (new ByteArray(BitConverter.GetBytes(i % 10)));
+				var randomValue = Value.Random (256);
 
-        [Test]
-        public void SetItemsMultipleTimes() {
+				values [randomKey] = randomValue;
+				mt.Add (randomKey, randomValue);
+			}
 
-            MemTable mt = new MemTable();
+			Value value;
+			foreach (var pair in values) {
+				Assert.IsTrue (mt.Lookup(pair.Key, out value));
+				Assert.AreEqual (pair.Value, value);
+			}
+			Assert.IsFalse (mt.Lookup(Key.Random(4), out value));
+			Assert.AreEqual (10, mt.Enumerate ().Count ());
+			Assert.AreEqual (10, values.Count);
+		}
 
-            Dictionary<Key, Value> values = new Dictionary<Key, Value>();
+		[Test]
+        public void WriteMemTableToSsTable ()
+		{
+			string path = Path.GetFullPath ("TestData\\WriteMemTableToSsTable");
+			if (!Directory.Exists (path))
+				Directory.CreateDirectory (path);
 
-            for (int i = 0; i < 10000; i++) {
-                var randomKey = new Key(new ByteArray(BitConverter.GetBytes(i % 10)));
-                var randomValue = Value.Random(256);
+			MemTable mt = new MemTable ();
 
-                values[randomKey] = randomValue;
-                mt.Add(randomKey, randomValue);
-            }
+			for (int i = 0; i < 10000; i++) {
+				var randomKey = Key.Random (40);
+				var randomValue = Value.Random (256);
 
-            Value value;
-            foreach (var pair in values) {
-                Assert.IsTrue(mt.Lookup(pair.Key, out value));
-                Assert.AreEqual(pair.Value, value);
-            }
-            Assert.IsFalse(mt.Lookup(Key.Random(4), out value));
-            Assert.AreEqual(10, mt.Enumerate().Count());
-            Assert.AreEqual(10, values.Count);
-        }
+				mt.Add (randomKey, randomValue);
+			}
 
-        [Test]
-        public void WriteMemTableToSsTable() {
-
-            string path = Path.GetFullPath("TestData\\WriteMemTableToSsTable");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
-
-            MemTable mt = new MemTable();
-
-            for (int i = 0; i < 10000; i++) {
-                var randomKey = Key.Random(40);
-                var randomValue = Value.Random(256);
-
-                mt.Add(randomKey, randomValue);
-            }
-
-            var timer = new Stopwatch();
-            timer.Start();
-            mt.WriteToSortedBlockTable("TestData\\WriteMemTableToSsTable", 0, 1);
-            timer.Stop();
+			var timer = new Stopwatch ();
+			timer.Start ();
+			mt.WriteToSortedBlockTable ("TestData\\WriteMemTableToSsTable", 0, 1);
+			timer.Stop ();
             
-            Console.WriteLine("Wrote sorted table at a throughput of {0} MB/s", (double) mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0) );
-        }
+			Console.WriteLine ("Wrote sorted table at a throughput of {0} MB/s", (double)mt.Size / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
+		}
 
-        [Test]
-        public void AddAndLookupItemsPersisted() {
+		[Test]
+        public void AddAndLookupItemsPersisted ()
+		{
+			string path = Path.GetFullPath ("TestData\\AddAndLookupItemsPersisted");
+			if (!Directory.Exists (path))
+				Directory.CreateDirectory (path);
 
-            string path = Path.GetFullPath("TestData\\AddAndLookupItemsPersisted");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+			JournalWriter jw = new JournalWriter ("TestData\\AddAndLookupItemsPersisted", 523, false);
 
-            JournalWriter jw = new JournalWriter("TestData\\AddAndLookupItemsPersisted", 523, false);
+			List<KeyValuePair<Key, Value>> values = new List<KeyValuePair<Key, Value>> ();
 
-            List<KeyValuePair<Key, Value>> values = new List<KeyValuePair<Key, Value>>();
+			for (int i = 0; i < 10000; i++) {
+				var randomKey = Key.Random (40);
+				var randomValue = Value.Random (256);
 
-            for (int i = 0; i < 10000; i++) {
-                var randomKey = Key.Random(40);
-                var randomValue = Value.Random(256);
+				values.Add (new KeyValuePair<Key, Value>(randomKey, randomValue));
+				jw.Add (randomKey, randomValue);
+			}
+			jw.Close ();
 
-                values.Add(new KeyValuePair<Key, Value>(randomKey, randomValue));
-                jw.Add(randomKey, randomValue);
-            }
-            jw.Close();
+			MemTable mtl = new MemTable ();
+			mtl.ReadFromJournal ("TestData\\AddAndLookupItemsPersisted", 523);
 
-            MemTable mtl = new MemTable();
-            mtl.ReadFromJournal("TestData\\AddAndLookupItemsPersisted", 523);
+			Value value;
+			foreach (var pair in values) {
+				Assert.IsTrue (mtl.Lookup(pair.Key, out value));
+				Assert.AreEqual (pair.Value, value);
+			}
+			Assert.IsFalse (mtl.Lookup(Key.Random(40), out value));
 
-            Value value;
-            foreach (var pair in values) {
-                Assert.IsTrue(mtl.Lookup(pair.Key, out value));
-                Assert.AreEqual(pair.Value, value);
-            }
-            Assert.IsFalse(mtl.Lookup(Key.Random(40), out value));
+			Assert.AreEqual (10000 * (40 + 256), mtl.Size);
+			Assert.IsTrue (mtl.Full);
+		}
 
-            Assert.AreEqual(10000 * (40 + 256), mtl.Size);
-            Assert.IsTrue(mtl.Full);
-        }
+		[Test]
+        public void SnapshotEnumerator ()
+		{
+			// This test is designed to highlight inefficiencies in the memtable snapshotting mechanism (fixed now with snapshot-able tree)
 
-        [Test]
-        public void SnapshotEnumerator() {
+			MemTable mt = new MemTable ();
 
-            // This test is designed to highlight inefficiencies in the memtable snapshotting mechanism (fixed now with snapshot-able tree)
+			for (int i = 0; i < 10000; i++) {
+				var randomKey = new Key (new ByteArray(BitConverter.GetBytes(i)));
+				var randomValue = Value.Random (256);
 
-            MemTable mt = new MemTable();
+				mt.Add (randomKey, randomValue);
+			}
 
-            for (int i = 0; i < 10000; i++) {
-                var randomKey = new Key(new ByteArray(BitConverter.GetBytes(i)));
-                var randomValue = Value.Random(256);
+			Stopwatch timer = new Stopwatch ();
+			timer.Start ();
+			for (int k = 0; k < 100; k++) {
+				Assert.AreEqual (10000, mt.GetEnumerableSnapshot ().Count ());
+			}
+			timer.Stop ();
 
-                mt.Add(randomKey, randomValue);
-            }
-
-            Stopwatch timer = new Stopwatch();
-            timer.Start();
-            for (int k = 0; k < 100; k++) {
-                Assert.AreEqual(10000, mt.GetEnumerableSnapshot().Count());
-            }
-            timer.Stop();
-
-            Console.WriteLine("Elapsed Time: {0}ms", timer.ElapsedMilliseconds);
-        }
-    }
-
+			Console.WriteLine ("Elapsed Time: {0}ms", timer.ElapsedMilliseconds);
+		}
+	}
 }

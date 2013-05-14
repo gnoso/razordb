@@ -20,49 +20,56 @@ using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
 
-namespace RazorDB {
+namespace RazorDB
+{
+	public struct ByteArray : IComparable<ByteArray>
+	{
+		private byte[] _bytes;
 
-    public struct ByteArray : IComparable<ByteArray> {
+		public ByteArray (byte[] bytes)
+		{
+			_bytes = bytes;
 
-        public ByteArray(byte[] bytes) {
-            if (bytes == null)
-                throw new ArgumentNullException();
-            _bytes = bytes;
-        }
-        private byte[] _bytes;
+			if (bytes == null) throw new ArgumentNullException ();
+		}
 
-        public byte[] InternalBytes { get { return _bytes; } }
+		public byte[] InternalBytes { get { return _bytes; } }
 
-        public int Length {
-            get { return _bytes == null ? 0 : _bytes.Length; }
-        }
+		public int Length {
+			get { return _bytes == null ? 0 : _bytes.Length; }
+		}
 
-        public int CompareTo(ByteArray other) {
-            if (_bytes == null && other._bytes != null) {
-                return -1;
-            } else if (_bytes != null && other._bytes == null) {
-                return 1;
-            } else if (_bytes == null && other._bytes == null) {
-                return 0;
-            }
-            return CompareMemCmp(_bytes, other._bytes);
-        }
+		public int CompareTo (ByteArray other)
+		{
+			if (_bytes == null && other._bytes != null) {
+				return -1;
+			} else if (_bytes != null && other._bytes == null) {
+				return 1;
+			} else if (_bytes == null && other._bytes == null) {
+				return 0;
+			}
+			return CompareMemCmp (_bytes, other._bytes);
+		}
 
-        public int CompareTo(byte[] other, int offset, int length) {
-            return CompareMemCmp(_bytes, 0, other, offset, Math.Min(_bytes.Length, length));
-        }
+		public int CompareTo (byte[] other, int offset, int length)
+		{
+			return CompareMemCmp (_bytes, 0, other, offset, Math.Min (_bytes.Length, length));
+		}
 
-        public static bool operator ==(ByteArray a, ByteArray b) {
-            return CompareMemCmp(a._bytes, b._bytes) == 0;
-        }
+		public static bool operator == (ByteArray a, ByteArray b)
+		{
+			return CompareMemCmp (a._bytes, b._bytes) == 0;
+		}
 
-        public static bool operator !=(ByteArray a, ByteArray b) {
-            return CompareMemCmp(a._bytes, b._bytes) != 0;
-        }
+		public static bool operator != (ByteArray a, ByteArray b)
+		{
+			return CompareMemCmp (a._bytes, b._bytes) != 0;
+		}
 
-        [ThreadStatic]
+		[ThreadStatic]
         private static Random rand;
         private static object randLock = new object();
+
         private static Random getRand() {
             if (rand == null)
                 lock (randLock) {
@@ -75,6 +82,7 @@ namespace RazorDB {
         public static ByteArray Random(int numBytes) {
             byte[] bytes = new byte[numBytes];
             getRand().NextBytes(bytes);
+
             return new ByteArray(bytes);
         }
 
@@ -98,6 +106,7 @@ namespace RazorDB {
             int l = left.Length;
             int r = right.Length;
             int comparison = CompareMemCmp(left, 0, right, 0, Math.Min(l, r));
+
             if (comparison == 0 && l != r) {
                 return l.CompareTo(r);
             } else {
@@ -133,5 +142,4 @@ namespace RazorDB {
             return string.Concat(bytes.Skip(offset).Take(count).Select((b) => b.ToString("X2")).ToArray());
         }
     }
-
 }

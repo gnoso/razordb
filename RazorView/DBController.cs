@@ -22,88 +22,100 @@ using System.IO;
 using RazorDB;
 using System.Text.RegularExpressions;
 
-namespace RazorView {
+namespace RazorView
+{
+	public class ByteViz : IDataViz
+	{
+		public string TransformKey (byte[] key)
+		{
+			return key.ToHexString ();
+		}
 
-    public class ByteViz : IDataViz {
+		public string TransformValue (byte[] value)
+		{
+			return value.ToHexString ();
+		}
+	}
 
-        public string TransformKey(byte[] key) {
-            return key.ToHexString();
-        }
+	public class Record
+	{
+		public Record (int index, KeyValuePair<byte[], byte[]> pair, IDataViz viz)
+		{
+			Index = index;
+			key = pair.Key;
+			value = pair.Value;
+			_viz = viz;
+		}
 
-        public string TransformValue(byte[] value) {
-            return value.ToHexString();
-        }
-    }
+		private IDataViz _viz;
 
-    public class Record {
-        public Record(int index, KeyValuePair<byte[], byte[]> pair, IDataViz viz) {
-            Index = index;
-            key = pair.Key;
-            value = pair.Value;
-            _viz = viz;
-        }
-        private IDataViz _viz;
+		public int Index { get; set; }
 
-        public int Index { get; set; }
+		private byte[] key;
 
-        private byte[] key;
-        public string Key {
-            get { return _viz.TransformKey(key); }
-        }
-        private byte[] value;
-        public string Value {
-            get { return _viz.TransformValue(value); }
-        }
-    }
+		public string Key {
+			get { return _viz.TransformKey (key); }
+		}
 
-    public class DBController {
+		private byte[] value;
 
-        public DBController(string journalFile, IEnumerable<IDataVizFactory> vizFactories) {
-            string path = Path.GetDirectoryName(journalFile);
-            _db = new KeyValueStore(path);
+		public string Value {
+			get { return _viz.TransformValue (value); }
+		}
+	}
 
-            foreach (var vf in vizFactories) {
-                var v = vf.GetVisualizer(_db);
-                if (v != null) {
-                    _viz = v;
-                    break;
-                }
-            }
-            if (_viz == null)
-                _viz = new ByteViz();
-        }
+	public class DBController
+	{
+		public DBController (string journalFile, IEnumerable<IDataVizFactory> vizFactories)
+		{
+			string path = Path.GetDirectoryName (journalFile);
+			_db = new KeyValueStore (path);
 
-        private KeyValueStore _db;
-        private IDataViz _viz;
+			foreach (var vf in vizFactories) {
+				var v = vf.GetVisualizer (_db);
+				if (v != null) {
+					_viz = v;
+					break;
+				}
+			}
+			if (_viz == null)
+				_viz = new ByteViz ();
+		}
 
-        public IEnumerable<Record> GetRecords(string keyFilter, string valueFilter) {
-            int index = 0;
-            var collection = _db.Enumerate().Select(pair => new Record(index++, pair, _viz)); 
-            if (!string.IsNullOrWhiteSpace(keyFilter)) {
-                Regex reg = new Regex(keyFilter, RegexOptions.None);
-                collection = collection.Where(rec => reg.IsMatch(rec.Key));
-            }
-            if (!string.IsNullOrWhiteSpace(valueFilter)) {
-                Regex reg = new Regex(valueFilter, RegexOptions.None);
-                collection = collection.Where(rec => reg.IsMatch(rec.Value));
-            }
-            return collection;
-        }
+		private KeyValueStore _db;
+		private IDataViz _viz;
 
-        public void Close() {
-            _db.Close();
-        }
+		public IEnumerable<Record> GetRecords (string keyFilter, string valueFilter)
+		{
+			int index = 0;
+			var collection = _db.Enumerate ().Select (pair => new Record(index++, pair, _viz)); 
+			if (!string.IsNullOrWhiteSpace (keyFilter)) {
+				Regex reg = new Regex (keyFilter, RegexOptions.None);
+				collection = collection.Where (rec => reg.IsMatch(rec.Key));
+			}
+			if (!string.IsNullOrWhiteSpace (valueFilter)) {
+				Regex reg = new Regex (valueFilter, RegexOptions.None);
+				collection = collection.Where (rec => reg.IsMatch(rec.Value));
+			}
+			return collection;
+		}
 
-        public string GetAnalysisText() {
-            int recordCount = 0;
-            int keySize = 0;
-            int valueSize = 0;
-            foreach (var pair in _db.Enumerate()) {
-                recordCount++;
-                keySize += pair.Key.Length;
-                valueSize += pair.Value.Length;
-            }
-            return string.Format("Total Records: {0}\nKey Size: {1} MB\nValue Size: {2} MB\n", recordCount, (double)keySize/1024/1024, (double)valueSize/1024/1024);
-        }
-    }
+		public void Close ()
+		{
+			_db.Close ();
+		}
+
+		public string GetAnalysisText ()
+		{
+			int recordCount = 0;
+			int keySize = 0;
+			int valueSize = 0;
+			foreach (var pair in _db.Enumerate()) {
+				recordCount++;
+				keySize += pair.Key.Length;
+				valueSize += pair.Value.Length;
+			}
+			return string.Format ("Total Records: {0}\nKey Size: {1} MB\nValue Size: {2} MB\n", recordCount, (double)keySize / 1024 / 1024, (double)valueSize / 1024 / 1024);
+		}
+	}
 }
