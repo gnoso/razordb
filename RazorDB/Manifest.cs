@@ -265,7 +265,10 @@ namespace RazorDB {
                 var pages = GetPagesAtLevel(level);
                 foreach (var page in pages) {
                     var mergePages = FindPagesForKeyRange(level + 1, page.FirstKey, page.LastKey).Count();
-                    manifest.LogMessage("Page {0}-{1} [{2} -> {3}] Ref({4}) Overlap({5})", page.Level, page.Version, page.FirstKey, page.LastKey, page.RefCount, mergePages);
+                    var pageName = string.Format("{0}-{1}.sbt", page.Level, page.Version);
+                    var pageFile = Path.Combine(manifest.BaseFileName, pageName);
+                    var fileFound = File.Exists(pageFile);
+                    manifest.LogMessage("Page {0}-{1} [{2} -> {3}] Ref({4}) Overlap({5}) File Exists({6})", page.Level, page.Version, page.FirstKey, page.LastKey, page.RefCount, mergePages, fileFound ? "True" : "***NOT FOUND***");
                 }
             }
         }

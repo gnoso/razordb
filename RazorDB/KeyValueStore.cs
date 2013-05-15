@@ -362,6 +362,7 @@ namespace RazorDB {
                     for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
                         var pages = manifestSnapshot.GetPagesAtLevel(i)
                             .OrderByDescending(page => page.Version)
+                            .Where( page => SortedBlockTable.Exists(_manifest.BaseFileName, page.Level, page.Version))
                             .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version));
                         tables.AddRange(pages);
                     }

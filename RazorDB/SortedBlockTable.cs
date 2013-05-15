@@ -67,11 +67,11 @@ namespace RazorDB {
             int keySizeLen = Helper.Encode7BitInt(keySize, key.Length);
             byte[] valueSize = new byte[8];
             int valueSizeLen = Helper.Encode7BitInt(valueSize, value.Length);
-            
+
             int bytesNeeded = keySizeLen + key.Length + valueSizeLen + value.Length + 4 + 1;
 
             // Do we need to write out a block before adding this key value pair?
-            if ( (_bufferPos + bytesNeeded) > Config.SortedBlockSize ) {
+            if ((_bufferPos + bytesNeeded) > Config.SortedBlockSize) {
                 WriteDataBlock();
             }
 
@@ -107,7 +107,7 @@ namespace RazorDB {
         private ushort BuildBlockTree(byte[] block, int startIndex, int endIndex, List<ushort> keyOffsets) {
             int middleIndex = (startIndex + endIndex) >> 1;
             ushort nodeOffset = keyOffsets[middleIndex];
-            
+
             // Build left side
             if (startIndex < middleIndex) {
                 ushort leftOffset = BuildBlockTree(block, startIndex, middleIndex - 1, keyOffsets);
@@ -229,7 +229,7 @@ namespace RazorDB {
             get {
                 if (_fileStream == null)
                     _fileStream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, FileOptions.Asynchronous);
-                return _fileStream; 
+                return _fileStream;
             }
         }
 
@@ -343,16 +343,18 @@ namespace RazorDB {
         }
 
         public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out Value value) {
-            SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
-            try {
-                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
+            if (SortedBlockTable.Exists(baseFileName, level, version)) {
+                SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
+                try {
+                    int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
 
-                if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
-                    byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
-                    return SearchBlockForKey(block, key, out value);
-                } 
-            } finally {
-                sbt.Close();
+                    if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
+                        byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
+                        return SearchBlockForKey(block, key, out value);
+                    }
+                } finally {
+                    sbt.Close();
+                }
             }
             value = Value.Empty;
             return false;
@@ -509,7 +511,7 @@ namespace RazorDB {
             int offset = BitConverter.ToUInt16(block, 0); // grab the tree root
             value = Value.Empty;
 
-            while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte) RecordHeaderFlag.Record) {
+            while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte)RecordHeaderFlag.Record) {
                 int startingOffset = offset;
                 offset += 1; // skip header
                 offset += 4; // skip tree pointers
@@ -542,23 +544,24 @@ namespace RazorDB {
             offset += valueSize;
 
             // if the next keySize bit is zero then we have exhausted this block. Set to -1 to terminate enumeration
-            if (offset >= Config.SortedBlockSize || block[offset] == (byte)RecordHeaderFlag.EndOfBlock )
+            if (offset >= Config.SortedBlockSize || block[offset] == (byte)RecordHeaderFlag.EndOfBlock)
                 offset = -1;
 
             return new KeyValuePair<Key, Value>(key, val);
         }
 
         public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
-             var tables = tableSpecs
-               .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
-               .ToList();
-             try {
+            var tables = tableSpecs
+                .Where(pageRef => SortedBlockTable.Exists(baseFileName, pageRef.Level, pageRef.Version))
+              .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
+              .ToList();
+            try {
                 foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate().ToList().AsEnumerable()), t => t.Key)) {
                     yield return pair;
                 }
-             } finally {
-                 tables.ForEach(t => t.Close());
-             }
+            } finally {
+                tables.ForEach(t => t.Close());
+            }
         }
 
         public static IEnumerable<PageRecord> MergeTables(RazorCache cache, Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs) {
@@ -614,14 +617,14 @@ namespace RazorDB {
             msg(string.Format("Data Blocks: {0}\nIndex Blocks: {1}\nTotal Blocks: {2}", _dataBlocks, _indexBlocks, _totalBlocks));
             msg("");
             for (int i = 0; i < _dataBlocks; i++) {
-                msg(string.Format("\n*** Data Block {0} ***",i));
-                byte[] block = ReadBlock( new byte[Config.SortedBlockSize], i);
+                msg(string.Format("\n*** Data Block {0} ***", i));
+                byte[] block = ReadBlock(new byte[Config.SortedBlockSize], i);
 
                 int treePtr = BitConverter.ToUInt16(block, 0);
-                msg(string.Format("{0:X4} \"{1}\" Tree Offset: {2:X4}", 0, BytesToString(block,0,2), treePtr));
+                msg(string.Format("{0:X4} \"{1}\" Tree Offset: {2:X4}", 0, BytesToString(block, 0, 2), treePtr));
 
                 int offset = 2;
-                while ( offset < Config.SortedBlockSize && block[offset] != (byte)RecordHeaderFlag.EndOfBlock) {
+                while (offset < Config.SortedBlockSize && block[offset] != (byte)RecordHeaderFlag.EndOfBlock) {
 
                     // Record
                     msg(string.Format("{0:X4} \"{1}\" {2}", offset, BytesToString(block, offset, 1), ((RecordHeaderFlag)block[offset]).ToString()));
@@ -634,7 +637,7 @@ namespace RazorDB {
                     // Key
                     int keyOffset = offset;
                     int keySize = Helper.Decode7BitInt(block, ref offset);
-                    msg(string.Format("{0:X4} \"{1}\" KeySize: {2}", keyOffset, BytesToString(block, keyOffset, offset-keyOffset), keySize));
+                    msg(string.Format("{0:X4} \"{1}\" KeySize: {2}", keyOffset, BytesToString(block, keyOffset, offset - keyOffset), keySize));
                     msg(string.Format("{0:X4} \"{1}\"", offset, BytesToString(block, offset, keySize)));
                     offset += keySize;
 
@@ -705,6 +708,15 @@ namespace RazorDB {
                 _fileStream.Close();
             }
             _fileStream = null;
+        }
+
+        internal static bool Exists(string baseName, int level, int version) {
+            try {
+                return File.Exists(Config.SortedBlockTableFile(baseName, level, version));
+            } catch (Exception ex) {
+                Console.WriteLine("**Error reading sorted block table for {0} {1}-{2}\r\n\t{3}", baseName, level, version, ex.Message);
+                return false;
+            }
         }
     }
 }
