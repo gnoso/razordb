@@ -90,7 +90,8 @@
     <Compile Include="SortedBlockTable.cs" />
     <Compile Include="TableManager.cs" />
     <Compile Include="Value.cs" />
-    <Compile Include="Viz.cs" />
+    <Compile Include="VisualFactory.cs" />
+    <Compile Include="ProjectDetector.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="RazorStrongName.snk" />
