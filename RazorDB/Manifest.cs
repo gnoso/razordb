@@ -453,6 +453,8 @@ namespace RazorDB {
                 var m = new ManifestImmutable(this);
                 m.ReadManifestContents(reader);
                 _manifests.AddLast(m);
+            } catch (Exception ex) {
+                LogMessage("Error reading manifest file: {0}", _baseFileName);
             } finally {
                 reader.Close();
             }
