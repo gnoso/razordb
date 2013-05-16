@@ -36,6 +36,8 @@ namespace RazorDB {
         public static string SortedBlockTableFile(string baseName, int level, int version) {
             return baseName + "\\" + level.ToString() + "-" + version.ToString() + ".sbt";
         }
+        public static FileOptions SortedBlockTableFileOptions = FileOptions.SequentialScan;
+            
         public static string JournalFile(string baseName, int version) {
             return baseName + "\\" + version.ToString() + ".jf";
         }

@@ -22,17 +22,17 @@ using System.IO;
 using System.Diagnostics;
 
 namespace RazorDB {
-    
+
     public class KeyValueStore : IDisposable {
 
-        public KeyValueStore(string baseFileName) : this(baseFileName, null) {}
+        public KeyValueStore(string baseFileName, Action<string> logger = null) : this(baseFileName, (RazorCache) null, logger) {}
 
-        public KeyValueStore(string baseFileName, RazorCache cache) {
+        public KeyValueStore(string baseFileName, RazorCache cache, Action<string> logger = null) {
             if (!Directory.Exists(baseFileName)) {
                 Directory.CreateDirectory(baseFileName);
             }
             _manifest = new Manifest(baseFileName);
-
+            _manifest.Logger = logger;
 
             int memTableVersion = _manifest.CurrentVersion(0);
             // Check for a previously aborted journal rotation 
@@ -194,7 +194,7 @@ namespace RazorDB {
             KeyValueStore indexStore = null;
             lock (_secondaryIndexes) {
                 if (!_secondaryIndexes.TryGetValue(IndexName, out indexStore)) {
-                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName), _cache);
+                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName), _cache, _manifest.Logger);
                     if (Manifest.Logger != null) {
                         indexStore.Manifest.Logger = msg => Manifest.Logger(string.Format("{0}: {1}", IndexName, msg));
                     }
@@ -229,14 +229,14 @@ namespace RazorDB {
                 // Must check all pages on level 0
                 var zeroPages = manifest.GetPagesAtLevel(0).OrderByDescending( (page) => page.Version );
                 foreach (var page in zeroPages) {
-                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output)) {
+                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _manifest.Logger)) {
                         return output;
                     }
                 }
                 // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
                 for (int level = 1; level < manifest.NumLevels; level++) {
                     var page = manifest.FindPageForKey(level, lookupKey);
-                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output)) {
+                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _manifest.Logger)) {
                         return output;
                     }
                 }
@@ -362,7 +362,7 @@ namespace RazorDB {
                     for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
                         var pages = manifestSnapshot.GetPagesAtLevel(i)
                             .OrderByDescending(page => page.Version)
-                            .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version));
+                            .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version, _manifest.Logger));
                         tables.AddRange(pages);
                     }
                     enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
