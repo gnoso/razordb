@@ -113,9 +113,6 @@ namespace RazorDB {
                 return index;
             }
 
-            if (!SortedBlockTable.Exists(baseName, level, version))
-                return index;
-
             var sbt = new SortedBlockTable(null, baseName, level, version);
             try {
                 index = sbt.GetIndex();
