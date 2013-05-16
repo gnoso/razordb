@@ -129,12 +129,12 @@ namespace RazorDBTests {
             var sw = new Stopwatch();
             var timingDict = new Dictionary<string, TimeSpan>();
 
-            Config.SortedBlockTableFileOptions = FileOptions.Asynchronous;
-            sw.Reset();
-            sw.Start();
-            DoWriteSpeedTests("TestData\\WriteSpeedTestsAsynchronous");
-            sw.Stop();
-            timingDict.Add("Asynchronous #1", sw.Elapsed);
+            //Config.SortedBlockTableFileOptions = FileOptions.Asynchronous;
+            //sw.Reset();
+            //sw.Start();
+            //DoWriteSpeedTests("TestData\\WriteSpeedTestsAsynchronous");
+            //sw.Stop();
+            //timingDict.Add("Asynchronous #1", sw.Elapsed);
 
             Config.SortedBlockTableFileOptions = FileOptions.SequentialScan;
             sw.Reset();
@@ -143,19 +143,19 @@ namespace RazorDBTests {
             sw.Stop();
             timingDict.Add("Sequential #1", sw.Elapsed);
 
-            Config.SortedBlockTableFileOptions = FileOptions.Asynchronous;
-            sw.Reset();
-            sw.Start();
-            DoWriteSpeedTests("TestData\\WriteSpeedTestsAsynchronous2");
-            sw.Stop();
-            timingDict.Add("Asynchronous #2", sw.Elapsed);
+            //Config.SortedBlockTableFileOptions = FileOptions.Asynchronous;
+            //sw.Reset();
+            //sw.Start();
+            //DoWriteSpeedTests("TestData\\WriteSpeedTestsAsynchronous2");
+            //sw.Stop();
+            //timingDict.Add("Asynchronous #2", sw.Elapsed);
 
-            Config.SortedBlockTableFileOptions = FileOptions.SequentialScan;
-            sw.Reset();
-            sw.Start();
-            DoWriteSpeedTests("TestData\\WriteSpeedTestsSequential2");
-            sw.Stop();
-            timingDict.Add("Sequential #2", sw.Elapsed);
+            //Config.SortedBlockTableFileOptions = FileOptions.SequentialScan;
+            //sw.Reset();
+            //sw.Start();
+            //DoWriteSpeedTests("TestData\\WriteSpeedTestsSequential2");
+            //sw.Stop();
+            //timingDict.Add("Sequential #2", sw.Elapsed);
 
             foreach (var key in timingDict.Keys)
                 Console.WriteLine("{0} elapsed time: {1}", key, timingDict[key]);
