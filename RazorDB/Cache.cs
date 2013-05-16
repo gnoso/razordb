@@ -104,7 +104,7 @@ namespace RazorDB {
         public int IndexCacheSize { get { return _blockIndexCache.CurrentSize; } }
         public int DataCacheSize { get { return _blockDataCache.CurrentSize; } }
 
-        public Key[] GetBlockTableIndex(string baseName, int level, int version) {
+        public Key[] GetBlockTableIndex(string baseName, int level, int version, Action<string> logger) {
 
             string fileName = Config.SortedBlockTableFile(baseName, level, version);
             Key[] index;
@@ -113,7 +113,7 @@ namespace RazorDB {
                 return index;
             }
 
-            var sbt = new SortedBlockTable(null, baseName, level, version);
+            var sbt = new SortedBlockTable(null, baseName, level, version, logger);
             try {
                 index = sbt.GetIndex();
                 _blockIndexCache.Set(fileName, index);
