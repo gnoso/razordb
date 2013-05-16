@@ -126,7 +126,42 @@ namespace RazorDBTests {
 
         [Test]
         public void WriteSpeedTests() {
+            var sw = new Stopwatch();
+            var timingDict = new Dictionary<string, TimeSpan>();
 
+            Config.SortedBlockTableFileOptions = FileOptions.Asynchronous;
+            sw.Reset();
+            sw.Start();
+            DoWriteSpeedTests("TestData\\WriteSpeedTestsAsynchronous");
+            sw.Stop();
+            timingDict.Add("Asynchronous #1", sw.Elapsed);
+
+            Config.SortedBlockTableFileOptions = FileOptions.SequentialScan;
+            sw.Reset();
+            sw.Start();
+            DoWriteSpeedTests("TestData\\WriteSpeedTestsSequential1");
+            sw.Stop();
+            timingDict.Add("Sequential #1", sw.Elapsed);
+
+            Config.SortedBlockTableFileOptions = FileOptions.Asynchronous;
+            sw.Reset();
+            sw.Start();
+            DoWriteSpeedTests("TestData\\WriteSpeedTestsAsynchronous2");
+            sw.Stop();
+            timingDict.Add("Asynchronous #2", sw.Elapsed);
+
+            Config.SortedBlockTableFileOptions = FileOptions.SequentialScan;
+            sw.Reset();
+            sw.Start();
+            DoWriteSpeedTests("TestData\\WriteSpeedTestsSequential2");
+            sw.Stop();
+            timingDict.Add("Sequential #2", sw.Elapsed);
+
+            foreach (var key in timingDict.Keys)
+                Console.WriteLine("{0} elapsed time: {1}", key, timingDict[key]);
+        }
+
+        private static void DoWriteSpeedTests(string basepath) {
             Action<KeyValueStore, int, int, int> InsertDenseBlock = (KeyValueStore db, int key, int density, int count) => {
                 byte[] value = ByteArray.Random(Config.MaxSmallValueSize - 12).InternalBytes;
                 for (int i = 0; i < count; i++) {
@@ -138,7 +173,7 @@ namespace RazorDBTests {
             };
 
             // Make sure that when we have high key density, pages don't start to overlap with more than 10 pages at the level higher than the current one.
-            string path = Path.GetFullPath("TestData\\WriteSpeedTests");
+            string path = Path.GetFullPath(basepath);
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
                 db.Manifest.Logger = (msg) => Console.WriteLine(msg);
@@ -815,7 +850,7 @@ namespace RazorDBTests {
                 db.Manifest.Logger = (msg) => Console.WriteLine(msg);
 
                 timer.Start();
-                for (int i = 0; i < 105000; i++) {
+                for (int i = 0; i < 1050000; i++) {
                     var randomKey = BitConverter.GetBytes(i);
                     var randomValue = BitConverter.GetBytes(i);
                     db.Set(randomKey, randomValue);
@@ -828,7 +863,10 @@ namespace RazorDBTests {
             }
 
             // delete the sbt file
-            File.Delete(Path.Combine(path, "0-0.sbt"));
+            File.Delete(Path.Combine(path, "0-9.sbt"));
+            File.Delete(Path.Combine(path, "1-2.sbt"));
+            File.Delete(Path.Combine(path, "1-4.sbt"));
+            File.Delete(Path.Combine(path, "1-6.sbt"));
 
             // Close and re-open the database to force all the sstable merging to complete.
             using (var db = new KeyValueStore(path)) {
@@ -856,7 +894,7 @@ namespace RazorDBTests {
                     }
                 }
                 timer.Stop();
-                Assert.Greater(105000, ct, "Items should be missing and not equal to 105000.");
+                Assert.AreEqual(575056, ct, "575056 items of 1050000 should remain.");
                 Console.WriteLine("Enumerated read throughput of {0} MB/s (avg {1} ms per 1000 items)", (double)readSize / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0), (double)timer.Elapsed.TotalSeconds / (double)105);
             }
 

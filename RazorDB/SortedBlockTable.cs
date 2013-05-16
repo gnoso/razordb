@@ -29,7 +29,7 @@ namespace RazorDB {
 
         public SortedBlockTableWriter(string baseFileName, int level, int version) {
             string fileName = Config.SortedBlockTableFile(baseFileName, level, version);
-            _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
+            _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, Config.SortedBlockTableFileOptions);
             _bufferA = new byte[Config.SortedBlockSize];
             _bufferB = new byte[Config.SortedBlockSize];
             _buffer = _bufferA;
@@ -223,12 +223,35 @@ namespace RazorDB {
         }
         private string _path;
 
+        private bool? _fileExists;
+        private bool FileExists {
+            get { 
+                if(_fileExists.HasValue)
+                    return _fileExists.Value;
+
+                _fileExists = File.Exists(_path);
+                if(!_fileExists.Value)
+                    Console.WriteLine("ERROR: sorted block table file is missing: {0}", _path);
+
+                return _fileExists.Value;
+            }
+        }
+
         // Lazy open the filestream
         private FileStream _fileStream;
         private FileStream internalFileStream {
             get {
-                if (_fileStream == null)
-                    _fileStream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, FileOptions.Asynchronous);
+                if (!FileExists)
+                    return null;
+
+                try {
+                    if (_fileStream == null)
+                        _fileStream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, Config.SortedBlockTableFileOptions);
+                    _fileExists = _fileStream != null;
+                } catch {
+                    _fileExists = false;
+                    Console.WriteLine("ERROR: Unable to open sorted block table: {0}", _path);
+                }
                 return _fileStream;
             }
         }
@@ -242,6 +265,8 @@ namespace RazorDB {
         private RazorCache _cache;
 
         private void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
+            if (!FileExists) return;
+
             current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
             Array.Clear(current, 0, current.Length);
         }
@@ -257,6 +282,8 @@ namespace RazorDB {
         }
 
         private IAsyncResult BeginReadBlock(byte[] block, int blockNum) {
+            if (!FileExists) return null;
+
             if (_cache != null) {
                 byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
                 if (cachedBlock != null) {
@@ -313,7 +340,12 @@ namespace RazorDB {
         private void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
-            if (_cache != null) {
+            if (!FileExists) {
+                _totalBlocks = 0;
+                _dataBlocks = 0;
+                _indexBlocks = 0;
+                return;
+            } else if (_cache != null) {
                 mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
                 if (mdBlock == null) {
                     numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
@@ -325,6 +357,7 @@ namespace RazorDB {
                 numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
                 mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
             }
+
             MemoryStream ms = new MemoryStream(mdBlock);
             BinaryReader reader = new BinaryReader(ms);
             string checkString = Encoding.ASCII.GetString(reader.ReadBytes(8));
@@ -343,18 +376,15 @@ namespace RazorDB {
         }
 
         public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out Value value) {
-            if (SortedBlockTable.Exists(baseFileName, level, version)) {
-                SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
-                try {
-                    int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
-
-                    if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
-                        byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
-                        return SearchBlockForKey(block, key, out value);
-                    }
-                } finally {
-                    sbt.Close();
+            SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
+            try {
+                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
+                if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
+                    byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
+                    return SearchBlockForKey(block, key, out value);
                 }
+            } finally {
+                sbt.Close();
             }
             value = Value.Empty;
             return false;
@@ -374,6 +404,8 @@ namespace RazorDB {
         }
 
         public IEnumerable<KeyValuePair<Key, Value>> EnumerateFromKey(RazorCache indexCache, Key key) {
+            if (!FileExists)
+                yield break;
 
             int startingBlock;
             if (key.Length == 0) {
@@ -433,6 +465,8 @@ namespace RazorDB {
         }
 
         private IEnumerable<Key> EnumerateIndex() {
+            if (!FileExists)
+                yield break;
 
             byte[] allocBlockA = new byte[Config.SortedBlockSize];
             byte[] allocBlockB = new byte[Config.SortedBlockSize];
@@ -552,7 +586,6 @@ namespace RazorDB {
 
         public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
             var tables = tableSpecs
-                .Where(pageRef => SortedBlockTable.Exists(baseFileName, pageRef.Level, pageRef.Version))
               .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
               .ToList();
             try {
@@ -710,13 +743,5 @@ namespace RazorDB {
             _fileStream = null;
         }
 
-        internal static bool Exists(string baseName, int level, int version) {
-            try {
-                return File.Exists(Config.SortedBlockTableFile(baseName, level, version));
-            } catch (Exception ex) {
-                Console.WriteLine("**Error reading sorted block table for {0} {1}-{2}\r\n\t{3}", baseName, level, version, ex.Message);
-                return false;
-            }
-        }
     }
 }
