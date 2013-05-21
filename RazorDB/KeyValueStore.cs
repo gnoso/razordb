@@ -32,15 +32,17 @@ namespace RazorDB {
             if (!Directory.Exists(baseFileName)) {
                 Directory.CreateDirectory(baseFileName);
             }
+
             _manifest = new Manifest(baseFileName);
-            _manifest.Logger = logger;
+            Logger.log = logger;
 
             int memTableVersion = _manifest.CurrentVersion(0);
-            // Check for a previously aborted journal rotation 
+
+            // Check for a previously aborted journal rotation
             CheckForIncompleteJournalRotation(baseFileName, memTableVersion);
+
             // Create new journal for this run (and potentially load from disk, if there was data loaded previously)
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
-            
             _cache = cache == null ? new RazorCache() : cache;
         }
 
@@ -54,7 +56,7 @@ namespace RazorDB {
         private RazorCache _cache;
         private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string, KeyValueStore>(StringComparer.OrdinalIgnoreCase);
 
-        // For Table Manager 
+        // For Table Manager
         internal long ticksTillNextMerge = 0;
         internal object mergeLock = new object();
         internal int mergeCount = 0;
@@ -191,14 +193,21 @@ namespace RazorDB {
             }
         }
 
+		private Action<string> _logger;
+		public Action<string> _makeString {
+			get { return _logger; }
+			set { _logger = value; }
+		}
+
         private KeyValueStore GetSecondaryIndex(string IndexName) {
             KeyValueStore indexStore = null;
+
             lock (_secondaryIndexes) {
                 if (!_secondaryIndexes.TryGetValue(IndexName, out indexStore)) {
-                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName), _cache, _manifest.Logger);
-                    if (Manifest.Logger != null) {
-                        indexStore.Manifest.Logger = msg => Manifest.Logger(string.Format("{0}: {1}", IndexName, msg));
-                    }
+                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName), _cache, Logger.log);
+
+					indexStore._makeString = msg => Logger.log(string.Format("{0}: {1}", IndexName, msg));
+
                     _secondaryIndexes.Add(IndexName, indexStore);
                 }
             }
@@ -212,9 +221,10 @@ namespace RazorDB {
 
         private Value InternalGet(Key lookupKey) {
             Value output = Value.Empty;
+
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
-            
+
             // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output;
@@ -230,14 +240,14 @@ namespace RazorDB {
                 // Must check all pages on level 0
                 var zeroPages = manifest.GetPagesAtLevel(0).OrderByDescending( (page) => page.Version );
                 foreach (var page in zeroPages) {
-                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _manifest.Logger)) {
+                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, Logger.log)) {
                         return output;
                     }
                 }
                 // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
                 for (int level = 1; level < manifest.NumLevels; level++) {
                     var page = manifest.FindPageForKey(level, lookupKey);
-                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _manifest.Logger)) {
+                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, Logger.log)) {
                         return output;
                     }
                 }
@@ -363,7 +373,7 @@ namespace RazorDB {
                     for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
                         var pages = manifestSnapshot.GetPagesAtLevel(i)
                             .OrderByDescending(page => page.Version)
-                            .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version, _manifest.Logger));
+                            .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version, Logger.log));
                         tables.AddRange(pages);
                     }
                     enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
@@ -532,7 +542,7 @@ namespace RazorDB {
 
         // List all the pages in the directory and delete those that are not in the manifest.
         public void RemoveOrphanedPages() {
-            
+
             using (var manifestInst = this.Manifest.GetLatestManifest()) {
 
                 // find all the sbt files in the data directory
@@ -555,7 +565,7 @@ namespace RazorDB {
                         var parts = file.Split('-');
                         int level = int.Parse(parts[0]);
                         int version = int.Parse(parts[1]);
-                        
+
                         // First let's check the version number, we don't want to remove any new files that are being created while this is happening
                         if (level < manifestInst.NumLevels && version < manifestInst.CurrentVersion(level)) {
 
@@ -582,7 +592,5 @@ namespace RazorDB {
                 }
             }
         }
-
     }
-
 }
