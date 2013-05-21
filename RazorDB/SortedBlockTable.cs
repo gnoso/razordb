@@ -262,29 +262,25 @@ namespace RazorDB {
                 if (_fileExists.HasValue)
                     return _fileExists.Value;
 
-                _fileExists = File.Exists(_path);
-                if (!_fileExists.Value)
-                    LogError("Sorted block table file is missing: {0}", _path);
-
+                _fileExists = internalFileStream != null;
                 return _fileExists.Value;
             }
         }
 
-        // Lazy open the filestream
         private FileStream _fileStream;
         private FileStream internalFileStream {
             get {
-                if (!FileExists)
-                    return null;
+                if (_fileExists.HasValue)
+                    return _fileStream;
 
                 try {
-                    if (_fileStream == null)
-                        _fileStream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, Config.SortedBlockTableFileOptions);
+                    _fileStream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, Config.SortedBlockTableFileOptions);
                     _fileExists = _fileStream != null;
-                } catch {
+                } catch (Exception ex) {
                     _fileExists = false;
-                    LogError("Unable to open sorted block table: {0}", _path);
+                    LogError("Unable to open sorted block table: {0}\nException: {1}", _path, ex.Message);
                 }
+
                 return _fileStream;
             }
         }
@@ -373,7 +369,9 @@ namespace RazorDB {
         private void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
-            if (!FileExists) {
+
+            // don't check file exists here just try to create the stream
+            if (internalFileStream == null) {
                 _totalBlocks = 0;
                 _dataBlocks = 0;
                 _indexBlocks = 0;
