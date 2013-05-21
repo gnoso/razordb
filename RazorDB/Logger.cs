@@ -18,6 +18,7 @@ using System;
 
 namespace RazorDB
 {
+	// Logging service
 	public static class Logger
 	{
 		static Action<string> _log;
