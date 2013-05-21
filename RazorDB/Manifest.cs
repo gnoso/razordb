@@ -393,8 +393,7 @@ namespace RazorDB {
 
         public void NotifyPageReleased(PageRecord pageRec) {
             string path = Config.SortedBlockTableFile(BaseFileName, pageRec.Level, pageRec.Version);
-            if (File.Exists(path))
-                File.Delete(path);
+            if (File.Exists(path)) File.Delete(path);
         }
 
         private void Write(ManifestImmutable m) {
@@ -457,7 +456,8 @@ namespace RazorDB {
                 var m = new ManifestImmutable(this);
                 m.ReadManifestContents(reader);
                 _manifests.AddLast(m);
-            } catch (Exception ex) {
+            } catch (Exception e) {
+				e.GetType ();
                 LogMessage("Error reading manifest file: {0}", _baseFileName);
             } finally {
                 reader.Close();
@@ -487,23 +487,13 @@ namespace RazorDB {
             }
         }
 
-        private Action<string> _logger;
-        public Action<string> Logger {
-            get { return _logger; }
-            set { _logger = value; } 
-        }
-
         public void LogMessage(string format, params object[] parms) {
-            if (Logger != null) {
-                Logger( string.Format(format, parms));   
-            }
+			Logger.log(string.Format(format, parms));
         }
 
         [Conditional("DEBUG")]
         public void DebugMessage(string format, params object[] parms) {
-            if (Logger != null) {
-                Logger(string.Format(format, parms));
-            }
+			Logger.log(string.Format(format, parms));
         }
     }
 

@@ -91,6 +91,7 @@
     <Compile Include="TableManager.cs" />
     <Compile Include="Value.cs" />
     <Compile Include="Viz.cs" />
+    <Compile Include="Logger.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="RazorStrongName.snk" />
