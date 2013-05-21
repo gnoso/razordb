@@ -1,14 +1,16 @@
 # Directories
 .nuget/*
+*/[Bb]in/*
 [Dd]ebug/*
 [Ee]xternal/*
+*/[Oo]bj/*
 [Pp]ackages/*
 [Rr]elease/*
-*/[Oo]bj/*
 */[Tt]est-[Rr]esults/*
 
 # Files
 .DS_Store
+*.csproj.user
 *.pdb
 *.suo
-*.csproj.user
+*.userprefs
