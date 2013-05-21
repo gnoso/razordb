@@ -92,6 +92,7 @@
     <Compile Include="Value.cs" />
     <Compile Include="Viz.cs" />
     <Compile Include="Logger.cs" />
+    <Compile Include="BinaryHelper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="RazorStrongName.snk" />
