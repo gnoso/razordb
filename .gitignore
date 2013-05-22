@@ -12,3 +12,5 @@
 *.pdb
 *.suo
 *.csproj.user
+
+.RazorDB.boltdata/*

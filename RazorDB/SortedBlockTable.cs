@@ -256,31 +256,13 @@ namespace RazorDB {
         }
 
 
-        private bool? _fileExists;
-        private bool FileExists {
-            get {
-                if (_fileExists.HasValue)
-                    return _fileExists.Value;
-
-                _fileExists = internalFileStream != null;
-                return _fileExists.Value;
-            }
-        }
-
+        private bool FileExists = true;
         private FileStream _fileStream;
         private FileStream internalFileStream {
             get {
-                if (_fileExists.HasValue)
+                if (!FileExists || _fileStream != null)
                     return _fileStream;
-
-                try {
-                    _fileStream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, Config.SortedBlockTableFileOptions);
-                    _fileExists = _fileStream != null;
-                } catch (Exception ex) {
-                    _fileExists = false;
-                    LogError("Unable to open sorted block table: {0}\nException: {1}", _path, ex.Message);
-                }
-
+                _fileStream = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read, Config.SortedBlockSize, Config.SortedBlockTableFileOptions);
                 return _fileStream;
             }
         }
@@ -370,34 +352,37 @@ namespace RazorDB {
             byte[] mdBlock = null;
             int numBlocks = -1;
 
-            // don't check file exists here just try to create the stream
-            if (internalFileStream == null) {
-                _totalBlocks = 0;
-                _dataBlocks = 0;
-                _indexBlocks = 0;
-                return;
-            } else if (_cache != null) {
-                mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
-                if (mdBlock == null) {
+            try {
+                if (_cache != null) {
+                    mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
+                    if (mdBlock == null) {
+                        numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
+                        mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                        byte[] blockCopy = (byte[])mdBlock.Clone();
+                        _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
+                    }
+                } else {
                     numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
                     mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
-                    byte[] blockCopy = (byte[])mdBlock.Clone();
-                    _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
                 }
-            } else {
-                numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+
+                MemoryStream ms = new MemoryStream(mdBlock);
+                BinaryReader reader = new BinaryReader(ms);
+                string checkString = Encoding.ASCII.GetString(reader.ReadBytes(8));
+                if (checkString != "@RAZORDB") {
+                    throw new InvalidDataException("This does not appear to be a valid table file.");
+                }
+                _totalBlocks = reader.Read7BitEncodedInt();
+                _dataBlocks = reader.Read7BitEncodedInt();
+                _indexBlocks = reader.Read7BitEncodedInt();
+            } catch (Exception ex) {
+                _totalBlocks = 0;
+                _dataBlocks = 0;
+                _indexBlocks = -1; // special case initialize to -1
+                FileExists = false;
+                LogError("ReadMetadata exception: {0}", ex.Message);
             }
 
-            MemoryStream ms = new MemoryStream(mdBlock);
-            BinaryReader reader = new BinaryReader(ms);
-            string checkString = Encoding.ASCII.GetString(reader.ReadBytes(8));
-            if (checkString != "@RAZORDB") {
-                throw new InvalidDataException("This does not appear to be a valid table file.");
-            }
-            _totalBlocks = reader.Read7BitEncodedInt();
-            _dataBlocks = reader.Read7BitEncodedInt();
-            _indexBlocks = reader.Read7BitEncodedInt();
             if (_totalBlocks != numBlocks && numBlocks != -1) {
                 throw new InvalidDataException("The file size does not match the metadata size.");
             }
