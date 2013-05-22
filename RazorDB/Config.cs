@@ -69,6 +69,9 @@ namespace RazorDB {
 #endif
                 return _logger;
             }
+            set {
+                _logger = value;
+            }
         }
         public static void LogMessage(string msg, bool err = false) {
 #if DEBUG

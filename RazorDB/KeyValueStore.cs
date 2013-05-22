@@ -43,7 +43,9 @@ namespace RazorDB {
             // Create new journal for this run (and potentially load from disk, if there was data loaded previously)
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
             _cache = cache == null ? new RazorCache() : cache;
-            _exceptionHandling = exceptionHandling;
+
+            Config.Logger = logger;
+            Config.ExceptionHandling = exceptionHandling;
         }
 
         bool finalizing = false;
