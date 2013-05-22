@@ -214,47 +214,15 @@ namespace RazorDB {
 
     public class SortedBlockTable {
 
-        public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version, Action<string> logger = null) {
+        public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version) {
             _baseFileName = baseFileName;
             _level = level;
             _version = version;
             _cache = cache;
             _path = Config.SortedBlockTableFile(baseFileName, level, version);
-            _logger = logger;
             ReadMetadata();
         }
         private string _path;
-
-
-        private Action<string> _logger;
-        private Action<string> Logger {
-            get {
-#if DEBUG
-                if (_logger == null)
-                    _logger = (msg) => { Console.WriteLine(msg); };
-#endif
-                return _logger;
-            }
-        }
-        private void LogMessage(string msg, bool err = false) {
-#if DEBUG
-            if (Logger != null)
-                Logger(msg);
-#else
-            if(Logger != null && err)
-                Logger(msg);
-#endif
-        }
-
-        private void LogMessage(string formatStr, params object[] values) {
-            var msg = string.Format(formatStr, values);
-            LogMessage(msg);
-        }
-        private void LogError(string formatStr, params object[] values) {
-            var msg = string.Format(formatStr, values);
-            LogMessage("ERROR " + msg, true);
-        }
-
 
         private bool FileExists = true;
         private FileStream _fileStream;
@@ -375,26 +343,33 @@ namespace RazorDB {
                 _totalBlocks = reader.Read7BitEncodedInt();
                 _dataBlocks = reader.Read7BitEncodedInt();
                 _indexBlocks = reader.Read7BitEncodedInt();
-            } catch (Exception ex) {
-                _totalBlocks = 0;
-                _dataBlocks = 0;
-                _indexBlocks = -1; // special case initialize to -1
-                FileExists = false;
-                LogError("ReadMetadata exception: {0}", ex.Message);
-            }
 
-            if (_totalBlocks != numBlocks && numBlocks != -1) {
-                throw new InvalidDataException("The file size does not match the metadata size.");
-            }
-            if (_totalBlocks != (_dataBlocks + _indexBlocks + 1)) {
-                throw new InvalidDataException("Corrupted metadata.");
+                if (_totalBlocks != numBlocks && numBlocks != -1) {
+                    throw new InvalidDataException("The file size does not match the metadata size.");
+                }
+                if (_totalBlocks != (_dataBlocks + _indexBlocks + 1)) {
+                    throw new InvalidDataException("Corrupted metadata.");
+                }
+            } catch (Exception ex) {
+                if (Config.ExceptionHandling == ExceptionHandling.ThrowAll)
+                    throw;
+
+                HandleEmptySortedBlockTable(ex);
             }
         }
 
-        public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out Value value, Action<string> logger) {
+        private void HandleEmptySortedBlockTable(Exception ex) {
+            _totalBlocks = 0;
+            _dataBlocks = 0;
+            _indexBlocks = 0;
+            FileExists = false;
+            Config.LogError("ReadMetadata {0}\nException: {1}", _path, ex.Message);
+        }
+
+        public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out Value value, ExceptionHandling exceptionHandling, Action<string> logger) {
             SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
             try {
-                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key, logger);
+                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
                     byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
                     return SearchBlockForKey(block, key, out value);
@@ -406,8 +381,8 @@ namespace RazorDB {
             return false;
         }
 
-        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, Key key, Action<string> logger) {
-            Key[] index = indexCache.GetBlockTableIndex(baseFileName, level, version, logger);
+        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, Key key) {
+            Key[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
             int dataBlockNum = Array.BinarySearch(index, key);
             if (dataBlockNum < 0) {
                 dataBlockNum = ~dataBlockNum - 1;
@@ -427,7 +402,7 @@ namespace RazorDB {
             if (key.Length == 0) {
                 startingBlock = 0;
             } else {
-                startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key, Logger);
+                startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key);
                 if (startingBlock < 0)
                     startingBlock = 0;
             }
@@ -600,7 +575,7 @@ namespace RazorDB {
             return new KeyValuePair<Key, Value>(key, val);
         }
 
-        public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs) {
+        public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs, ExceptionHandling exceptionHandling, Action<string> logger) {
             var tables = tableSpecs
               .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
               .ToList();
@@ -613,7 +588,7 @@ namespace RazorDB {
             }
         }
 
-        public static IEnumerable<PageRecord> MergeTables(RazorCache cache, Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs) {
+        public static IEnumerable<PageRecord> MergeTables(RazorCache cache, Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs, ExceptionHandling exceptionHandling, Action<string> logger) {
 
             var orderedTableSpecs = tableSpecs.OrderByPagePriority();
             var outputTables = new List<PageRecord>();
@@ -636,7 +611,7 @@ namespace RazorDB {
                 writer = null;
             };
 
-            foreach (var pair in EnumerateMergedTablesPreCached(cache, mf.BaseFileName, orderedTableSpecs)) {
+            foreach (var pair in EnumerateMergedTablesPreCached(cache, mf.BaseFileName, orderedTableSpecs, exceptionHandling, logger)) {
                 if (writer == null) {
                     OpenPage(pair);
                 }
@@ -740,11 +715,11 @@ namespace RazorDB {
                                 throw new ApplicationException("Unknown Value Type");
                         }
                     } catch (Exception ex) {
-                        LogError("Error Reading Record: {0}", ex);
+                        Config.LogError("Error Reading Record: {0}", ex);
                     }
                 }
             } catch (Exception ex) {
-                LogError("Error Enumerating File: {0}", ex);
+                Config.LogError("Error Enumerating File: {0}", ex);
             } finally {
                 Console.WriteLine("  KeyBytes: {0}, ValueBytes: {1}\n  Records: {2} Deleted: {3} Null: {4} Small: {5} LargeDesc: {6} LargeChunk: {7}",
                     totalKeyBytes, totalValueBytes, totalRecords, deletedRecords, nullRecords, smallRecords, largeDescRecords, largeChunkRecords);

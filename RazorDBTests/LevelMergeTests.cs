@@ -37,7 +37,7 @@ namespace RazorDBTests {
             List<IEnumerable<int>> collections = new List<IEnumerable<int>>();
             for (int i = 0; i < 10; i++) {
                 List<int> randomData = new List<int>();
-                for (int j=0; j < r.Next(100); j++) {
+                for (int j = 0; j < r.Next(100); j++) {
                     randomData.Add(r.Next());
                     totalElements++;
                 }
@@ -62,7 +62,7 @@ namespace RazorDBTests {
 
             var enumerators = new List<IEnumerable<int>>();
             Assert.AreEqual(0, MergeEnumerator.Merge(enumerators).Count());
-            enumerators.Add(new List<int>().OrderBy( e => e) );
+            enumerators.Add(new List<int>().OrderBy(e => e));
             enumerators.Add(new List<int>().OrderBy(e => e));
             enumerators.Add(new List<int>().OrderBy(e => e));
             Assert.AreEqual(0, MergeEnumerator.Merge(enumerators).Count());
@@ -71,7 +71,7 @@ namespace RazorDBTests {
         [Test]
         public void TestDuplicateMergeIterator() {
             var enumerators = new List<IEnumerable<int>>();
-            enumerators.Add( Enumerable.Range(1,10) );
+            enumerators.Add(Enumerable.Range(1, 10));
             Assert.AreEqual(55, MergeEnumerator.Merge(enumerators).Sum());
 
             enumerators = new List<IEnumerable<int>>();
@@ -99,7 +99,7 @@ namespace RazorDBTests {
             int totalData = 0;
             for (int i = 0; i < num_tables_to_merge; i++) {
                 var mt = new MemTable();
-                for (int j=0; j < items_per_table; j++) {
+                for (int j = 0; j < items_per_table; j++) {
                     var randKey = Key.Random(40);
                     var randVal = Value.Random(512);
                     mt.Add(randKey, randVal);
@@ -110,14 +110,14 @@ namespace RazorDBTests {
             var tables = new List<IEnumerable<KeyValuePair<Key, Value>>>();
             var sbts = new List<SortedBlockTable>();
             var cache = new RazorCache();
-            for (int j=0; j < num_tables_to_merge; j++) {
+            for (int j = 0; j < num_tables_to_merge; j++) {
                 var sbt = new SortedBlockTable(cache, "TestData\\LevelMergeReadTest", 0, j);
                 tables.Add(sbt.Enumerate());
                 sbts.Add(sbt);
             }
 
             int ct = 0;
-            Key key = Key.FromBytes(new byte[]{0,0});
+            Key key = Key.FromBytes(new byte[] { 0, 0 });
             var timer = new Stopwatch();
             timer.Start();
             foreach (var pair in MergeEnumerator.Merge(tables, p => p.Key)) {
@@ -138,7 +138,7 @@ namespace RazorDBTests {
             string path = Path.GetFullPath("TestData\\LevelMergeReadTest2");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
-            
+
             int num_tables_to_merge = 4;
             int items_per_table = 2500;
             int totalData = 0;
@@ -158,13 +158,13 @@ namespace RazorDBTests {
             Key key = new Key(new ByteArray(new byte[] { 0 }));
             var timer = new Stopwatch();
             timer.Start();
-            foreach (var pair in SortedBlockTable.EnumerateMergedTablesPreCached(cache, "TestData\\LevelMergeReadTest2", 
+            foreach (var pair in SortedBlockTable.EnumerateMergedTablesPreCached(cache, "TestData\\LevelMergeReadTest2",
                 new List<PageRef>{
                                                               new PageRef { Level = 0, Version = 0},
                                                               new PageRef { Level = 0, Version = 1},
                                                               new PageRef { Level = 0, Version = 2},
                                                               new PageRef { Level = 0, Version = 3}
-                })) {
+                }, ExceptionHandling.ThrowAll, null)) {
                 Assert.True(key.CompareTo(pair.Key) < 0);
                 key = pair.Key;
                 ct++;
@@ -180,7 +180,7 @@ namespace RazorDBTests {
             string path = Path.GetFullPath("TestData\\LevelMergeOutputTest");
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
-            
+
             int num_tables_to_merge = 4;
             int items_per_table = 2500;
             int totalData = 0;
@@ -205,7 +205,7 @@ namespace RazorDBTests {
                                                                             new PageRef { Level = 0, Version = 1},
                                                                             new PageRef { Level = 0, Version = 2},
                                                                             new PageRef { Level = 0, Version = 3}
-                                                                        });
+                                                                        }, ExceptionHandling.ThrowAll, null);
             timer.Stop();
 
             Console.WriteLine("Wrote a multilevel merge at a throughput of {0} MB/s", (double)totalData / timer.Elapsed.TotalSeconds / (1024.0 * 1024.0));
@@ -220,7 +220,7 @@ namespace RazorDBTests {
             foreach (string file in Directory.GetFiles(path)) {
                 File.Delete(file);
             }
-            
+
             int num_tables_to_merge = 4;
             int items_per_table = 2500;
             int totalData = 0;
@@ -246,7 +246,7 @@ namespace RazorDBTests {
                                                                             new PageRef { Level = 0, Version = 1},
                                                                             new PageRef { Level = 0, Version = 2},
                                                                             new PageRef { Level = 0, Version = 3}
-                                                                        });
+                                                                        }, ExceptionHandling.ThrowAll, null);
             timer.Stop();
 
             // Open the block table and scan it to check the stored values
@@ -254,7 +254,7 @@ namespace RazorDBTests {
             try {
                 var pairs = sbt.Enumerate().ToList();
                 Assert.AreEqual(100, pairs.Count());
-                Assert.AreEqual(2400, BitConverter.ToInt32(pairs.First().Value.ValueBytes,0) );
+                Assert.AreEqual(2400, BitConverter.ToInt32(pairs.First().Value.ValueBytes, 0));
             } finally {
                 sbt.Close();
             }

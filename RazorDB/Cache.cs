@@ -105,7 +105,7 @@ namespace RazorDB {
         public int IndexCacheSize { get { return _blockIndexCache.CurrentSize; } }
         public int DataCacheSize { get { return _blockDataCache.CurrentSize; } }
 
-        public Key[] GetBlockTableIndex(string baseName, int level, int version, Action<string> logger) {
+        public Key[] GetBlockTableIndex(string baseName, int level, int version) {
 
             string fileName = Config.SortedBlockTableFile(baseName, level, version);
             Key[] index;
@@ -114,7 +114,7 @@ namespace RazorDB {
                 return index;
             }
 
-            var sbt = new SortedBlockTable(null, baseName, level, version, logger);
+            var sbt = new SortedBlockTable(null, baseName, level, version);
             try {
                 index = sbt.GetIndex();
                 _blockIndexCache.Set(fileName, index);
@@ -132,8 +132,15 @@ namespace RazorDB {
         }
 
         public void SetBlock(string baseName, int level, int version, int blockNum, byte[] block) {
-            string blockKey = Config.SortedBlockTableFile(baseName, level, version) + ":" + blockNum.ToString();
-            _blockDataCache.Set(blockKey, block);
+            try {
+                string blockKey = Config.SortedBlockTableFile(baseName, level, version) + ":" + blockNum.ToString();
+                _blockDataCache.Set(blockKey, block);
+            } catch (Exception ex) {
+                if (Config.ExceptionHandling == ExceptionHandling.ThrowAll)
+                    throw;
+                if (Config.Logger != null)
+                    Config.Logger(string.Format("RazorCache.SetBlock Failed: {0}\nException: {1}", baseName, ex.Message));
+            }
         }
     }
 }

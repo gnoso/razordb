@@ -24,11 +24,13 @@ using System.Diagnostics;
 
 namespace RazorDB {
 
+    public enum ExceptionHandling { ThrowAll, AttemptRecovery }
+
     public class KeyValueStore : IDisposable {
 
-        public KeyValueStore(string baseFileName, Action<string> logger = null) : this(baseFileName, (RazorCache) null, logger) {}
+        public KeyValueStore(string baseFileName, ExceptionHandling exceptionHandling=ExceptionHandling.ThrowAll, Action<string> logger = null) : this(baseFileName, (RazorCache)null, exceptionHandling, logger) { }
 
-        public KeyValueStore(string baseFileName, RazorCache cache, Action<string> logger = null) {
+        public KeyValueStore(string baseFileName, RazorCache cache, ExceptionHandling exceptionHandling=ExceptionHandling.ThrowAll, Action<string> logger = null) {
             if (!Directory.Exists(baseFileName)) {
                 Directory.CreateDirectory(baseFileName);
             }
@@ -40,8 +42,8 @@ namespace RazorDB {
             CheckForIncompleteJournalRotation(baseFileName, memTableVersion);
             // Create new journal for this run (and potentially load from disk, if there was data loaded previously)
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
-            
             _cache = cache == null ? new RazorCache() : cache;
+            _exceptionHandling = exceptionHandling;
         }
 
         bool finalizing = false;
@@ -53,6 +55,7 @@ namespace RazorDB {
         private Manifest _manifest;
         private RazorCache _cache;
         private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string, KeyValueStore>(StringComparer.OrdinalIgnoreCase);
+        private ExceptionHandling _exceptionHandling = ExceptionHandling.ThrowAll;
 
         // For Table Manager 
         internal long ticksTillNextMerge = 0;
@@ -86,7 +89,7 @@ namespace RazorDB {
                 File.Delete(file);
             }
             foreach (string dir in Directory.GetDirectories(basePath, "*.*", SearchOption.AllDirectories)) {
-                Directory.Delete(dir,true);
+                Directory.Delete(dir, true);
             }
 
             _manifest = new Manifest(basePath);
@@ -150,7 +153,7 @@ namespace RazorDB {
         public void CleanIndex(string indexName) {
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
 
-            var allValueStoreItems = new HashSet<ByteArray>( this.Enumerate().Select(item => new ByteArray(item.Key) ) );
+            var allValueStoreItems = new HashSet<ByteArray>(this.Enumerate().Select(item => new ByteArray(item.Key)));
             foreach (var indexItem in indexStore.Enumerate()) {
                 if (!allValueStoreItems.Contains(new ByteArray(indexItem.Value))) {
                     indexStore.Delete(indexItem.Key);
@@ -195,7 +198,7 @@ namespace RazorDB {
             KeyValueStore indexStore = null;
             lock (_secondaryIndexes) {
                 if (!_secondaryIndexes.TryGetValue(IndexName, out indexStore)) {
-                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName), _cache, _manifest.Logger);
+                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName), _cache, _exceptionHandling, _manifest.Logger);
                     if (Manifest.Logger != null) {
                         indexStore.Manifest.Logger = msg => Manifest.Logger(string.Format("{0}: {1}", IndexName, msg));
                     }
@@ -214,7 +217,7 @@ namespace RazorDB {
             Value output = Value.Empty;
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
-            
+
             // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output;
@@ -228,16 +231,16 @@ namespace RazorDB {
             // Now check the files on disk
             using (var manifest = _manifest.GetLatestManifest()) {
                 // Must check all pages on level 0
-                var zeroPages = manifest.GetPagesAtLevel(0).OrderByDescending( (page) => page.Version );
+                var zeroPages = manifest.GetPagesAtLevel(0).OrderByDescending((page) => page.Version);
                 foreach (var page in zeroPages) {
-                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _manifest.Logger)) {
+                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _exceptionHandling, _manifest.Logger)) {
                         return output;
                     }
                 }
                 // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
                 for (int level = 1; level < manifest.NumLevels; level++) {
                     var page = manifest.FindPageForKey(level, lookupKey);
-                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _manifest.Logger)) {
+                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _exceptionHandling, _manifest.Logger)) {
                         return output;
                     }
                 }
@@ -254,30 +257,30 @@ namespace RazorDB {
                 case ValueFlag.SmallValue:
                     return result.ValueBytes;
                 case ValueFlag.LargeValueDescriptor: {
-                    lock (multiPageLock) {
-                        // read the descriptor again in case it changed
-                        result = InternalGet(lookupKey);
+                        lock (multiPageLock) {
+                            // read the descriptor again in case it changed
+                            result = InternalGet(lookupKey);
 
-                        // make sure type is still large value descriptor and continue
-                        if (result.Type == ValueFlag.LargeValueDescriptor) {
-                            int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
-                            byte[] bytes = new byte[valueSize];
-                            int offset = 0;
-                            byte seqNum = 1;
-                            while (offset < valueSize) {
-                                var blockKey = lookupKey.WithSequence(seqNum);
-                                var block = InternalGet(blockKey);
-                                if (block.Type != ValueFlag.LargeValueChunk)
-                                    throw new InvalidDataException(string.Format("Corrupted data: block is missing. Block Type: {0} SeqNum: {1}, Block Key: {2}", block.Type, seqNum, blockKey));
-                                offset += block.CopyValueBytesTo(bytes, offset);
-                                seqNum++;
+                            // make sure type is still large value descriptor and continue
+                            if (result.Type == ValueFlag.LargeValueDescriptor) {
+                                int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
+                                byte[] bytes = new byte[valueSize];
+                                int offset = 0;
+                                byte seqNum = 1;
+                                while (offset < valueSize) {
+                                    var blockKey = lookupKey.WithSequence(seqNum);
+                                    var block = InternalGet(blockKey);
+                                    if (block.Type != ValueFlag.LargeValueChunk)
+                                        throw new InvalidDataException(string.Format("Corrupted data: block is missing. Block Type: {0} SeqNum: {1}, Block Key: {2}", block.Type, seqNum, blockKey));
+                                    offset += block.CopyValueBytesTo(bytes, offset);
+                                    seqNum++;
+                                }
+                                return bytes;
+                            } else {
+                                return AssembleGetResult(lookupKey, result);
                             }
-                            return bytes;
-                        } else {
-                            return AssembleGetResult(lookupKey, result);
                         }
                     }
-                }
                 default:
                     throw new InvalidOperationException("Unexpected value flag for result.");
             }
@@ -314,7 +317,7 @@ namespace RazorDB {
                 var value = pair.Value;
                 // construct our index key pattern (lookupvalue | key)
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
-                    if (key.Length >= (value.Length + lookupValue.Length)){
+                    if (key.Length >= (value.Length + lookupValue.Length)) {
                         // Lookup the value of the actual object using the key that was found
                         var primaryValue = Get(value);
                         if (primaryValue != null)
@@ -363,7 +366,7 @@ namespace RazorDB {
                     for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
                         var pages = manifestSnapshot.GetPagesAtLevel(i)
                             .OrderByDescending(page => page.Version)
-                            .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version, _manifest.Logger));
+                            .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version));
                         tables.AddRange(pages);
                     }
                     enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
@@ -532,18 +535,18 @@ namespace RazorDB {
 
         // List all the pages in the directory and delete those that are not in the manifest.
         public void RemoveOrphanedPages() {
-            
+
             using (var manifestInst = this.Manifest.GetLatestManifest()) {
 
                 // find all the sbt files in the data directory
-                var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary( f => Path.GetFileNameWithoutExtension(f.ToLower()) );
+                var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary(f => Path.GetFileNameWithoutExtension(f.ToLower()));
                 for (int level = 0; level < manifestInst.NumLevels - 1; level++) {
 
                     foreach (var page in manifestInst.GetPagesAtLevel(level)) {
 
                         // Yes this is kind of backwards to add the file path and then strip it off, but I want to make sure we are using the exact same logic
                         // as that which creates the file names.
-                        string fileForPage = Path.GetFileNameWithoutExtension( Config.SortedBlockTableFile(this.Manifest.BaseFileName, page.Level, page.Version) );
+                        string fileForPage = Path.GetFileNameWithoutExtension(Config.SortedBlockTableFile(this.Manifest.BaseFileName, page.Level, page.Version));
                         // Remove the page from the file list because it's in the manifest and we've accounted for it.
                         files.Remove(fileForPage);
                     }
@@ -555,7 +558,7 @@ namespace RazorDB {
                         var parts = file.Split('-');
                         int level = int.Parse(parts[0]);
                         int version = int.Parse(parts[1]);
-                        
+
                         // First let's check the version number, we don't want to remove any new files that are being created while this is happening
                         if (level < manifestInst.NumLevels && version < manifestInst.CurrentVersion(level)) {
 

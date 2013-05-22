@@ -58,6 +58,38 @@ namespace RazorDB {
                 return (int) Math.Pow(10, level);
             }
         }
+
+        public static ExceptionHandling ExceptionHandling = RazorDB.ExceptionHandling.ThrowAll;
+        private static Action<string> _logger;
+        public static Action<string> Logger {
+            get {
+#if DEBUG
+                if (_logger == null)
+                    _logger = (msg) => { Console.WriteLine(msg); };
+#endif
+                return _logger;
+            }
+        }
+        public static void LogMessage(string msg, bool err = false) {
+#if DEBUG
+            if (Logger != null)
+                Logger(msg);
+#else
+            if(Logger != null && err)
+                Logger(msg);
+#endif
+        }
+
+        public static void LogMessage(string formatStr, params object[] values) {
+            var msg = string.Format(formatStr, values);
+            LogMessage(msg);
+        }
+        public static void LogError(string formatStr, params object[] values) {
+            var msg = string.Format(formatStr, values);
+            LogMessage("ERROR " + msg, true);
+        }
+
+
     }
 
     public static class Helper {
