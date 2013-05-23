@@ -28,14 +28,14 @@ namespace RazorDB {
 
     public class KeyValueStore : IDisposable {
 
-        public KeyValueStore(string baseFileName, ExceptionHandling exceptionHandling=ExceptionHandling.ThrowAll, Action<string> logger = null) : this(baseFileName, (RazorCache)null, exceptionHandling, logger) { }
+        public KeyValueStore(string baseFileName) : this(baseFileName, (RazorCache)null) { }
 
-        public KeyValueStore(string baseFileName, RazorCache cache, ExceptionHandling exceptionHandling=ExceptionHandling.ThrowAll, Action<string> logger = null) {
+        public KeyValueStore(string baseFileName, RazorCache cache) {
             if (!Directory.Exists(baseFileName)) {
                 Directory.CreateDirectory(baseFileName);
             }
             _manifest = new Manifest(baseFileName);
-            _manifest.Logger = logger;
+            _manifest.Logger = Config.Logger;
 
             int memTableVersion = _manifest.CurrentVersion(0);
             // Check for a previously aborted journal rotation 
@@ -44,8 +44,6 @@ namespace RazorDB {
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
             _cache = cache == null ? new RazorCache() : cache;
 
-            Config.Logger = logger;
-            Config.ExceptionHandling = exceptionHandling;
         }
 
         bool finalizing = false;
@@ -200,7 +198,7 @@ namespace RazorDB {
             KeyValueStore indexStore = null;
             lock (_secondaryIndexes) {
                 if (!_secondaryIndexes.TryGetValue(IndexName, out indexStore)) {
-                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName), _cache, _exceptionHandling, _manifest.Logger);
+                    indexStore = new KeyValueStore(Config.IndexBaseName(Manifest.BaseFileName, IndexName), _cache);
                     if (Manifest.Logger != null) {
                         indexStore.Manifest.Logger = msg => Manifest.Logger(string.Format("{0}: {1}", IndexName, msg));
                     }
