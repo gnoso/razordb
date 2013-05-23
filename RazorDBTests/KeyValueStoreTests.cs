@@ -860,7 +860,7 @@ namespace RazorDBTests {
             int totalSize = 0;
             int readSize = 0;
             Action<string> logger = (msg) => { Console.WriteLine(msg); };
-            using (var db = new KeyValueStore(path, ExceptionHandling.ThrowAll, logger)) {
+            using (var db = new KeyValueStore(path)) {
                 db.Truncate();
                 timer.Start();
                 for (int i = 0; i < 500000; i++) {
@@ -883,7 +883,7 @@ namespace RazorDBTests {
             // Close and re-open the database to force all the sstable merging to complete.
             Console.WriteLine("Begin enumeration.");
             Assert.Throws(typeof(FileNotFoundException), () => {
-                using (var db = new KeyValueStore(path, ExceptionHandling.ThrowAll, logger)) {
+                using (var db = new KeyValueStore(path)) {
                     foreach (var pair in db.Enumerate());
                 }
             });
@@ -899,7 +899,7 @@ namespace RazorDBTests {
                 int totalSize = 0;
                 int readSize = 0;
                 Action<string> logger = (msg) => { Console.WriteLine(msg); };
-                using (var db = new KeyValueStore(path, ExceptionHandling.ThrowAll, logger)) {
+                using (var db = new KeyValueStore(path)) {
                     db.Truncate();
                     timer.Start();
                     for (int i = 0; i < 500000; i++) {
@@ -921,7 +921,7 @@ namespace RazorDBTests {
 
                 // Close and re-open the database to force all the sstable merging to complete.
                 Console.WriteLine("Begin enumeration.");
-                using (var db = new KeyValueStore(path, ExceptionHandling.AttemptRecovery, logger)) {
+                using (var db = new KeyValueStore(path)) {
                     timer.Reset();
                     timer.Start();
                     ByteArray lastKey = ByteArray.Empty;
@@ -948,7 +948,7 @@ namespace RazorDBTests {
                 }
 
                 // add some more records after deleting files
-                using (var db = new KeyValueStore(path, ExceptionHandling.AttemptRecovery, logger)) {
+                using (var db = new KeyValueStore(path)) {
                     timer.Start();
                     // add 1,000,000 new keys
                     for (int i = 1000000; i < 3000000; i++) {
@@ -965,7 +965,7 @@ namespace RazorDBTests {
 
                 // Close and re-open the database to force all the sstable merging to complete.
                 Console.WriteLine("Begin enumeration.");
-                using (var db = new KeyValueStore(path, ExceptionHandling.ThrowAll, logger)) {
+                using (var db = new KeyValueStore(path)) {
                     timer.Reset();
                     timer.Start();
                     ByteArray lastKey = ByteArray.Empty;
