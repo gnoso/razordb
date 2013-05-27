@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorUtil", "RazorUtil\RazorUtil.csproj", "{BF136076-8586-4242-A22A-DE9DD35E6750}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BF136076-8586-4242-A22A-DE9DD35E6750}.Debug|x86.ActiveCfg = Debug|x86
+		{BF136076-8586-4242-A22A-DE9DD35E6750}.Debug|x86.Build.0 = Debug|x86
+		{BF136076-8586-4242-A22A-DE9DD35E6750}.Release|x86.ActiveCfg = Release|x86
+		{BF136076-8586-4242-A22A-DE9DD35E6750}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = RazorUtil\RazorUtil.csproj
+	EndGlobalSection
+EndGlobal

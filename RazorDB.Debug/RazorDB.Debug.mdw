@@ -2,5 +2,6 @@
   <Items>
     <Item>RazorView/RazorView.sln</Item>
     <Item>RazorDBTests/RazorDBTests.sln</Item>
+    <Item>RazorUtil/RazorUtil.sln</Item>
   </Items>
 </WorkspaceItem>
