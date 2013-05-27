@@ -1,0 +1,6 @@
+<WorkspaceItem ctype="Workspace">
+  <Items>
+    <Item>RazorView/RazorView.sln</Item>
+    <Item>RazorDBTests/RazorDBTests.sln</Item>
+  </Items>
+</WorkspaceItem>
