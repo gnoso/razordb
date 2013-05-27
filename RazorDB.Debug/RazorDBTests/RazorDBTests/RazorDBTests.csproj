@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>10.0.0</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{14C83EFA-137F-4E3E-AB81-E0772ED591F4}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>RazorDBTests</RootNamespace>
+    <AssemblyName>RazorDBTests</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Reference Include="nunit.framework">
+      <HintPath>..\..\..\References\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="RazorDB">
+      <HintPath>..\..\..\References\RazorDB.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SortedBlockTableTests.cs" />
+    <Compile Include="MemTableTests.cs" />
+    <Compile Include="ManifestTests.cs" />
+    <Compile Include="LevelMergeTests.cs" />
+    <Compile Include="LargeValueTests.cs" />
+    <Compile Include="KeyValueStoreTests.cs" />
+    <Compile Include="JournalTests.cs" />
+    <Compile Include="IndexingTests.cs" />
+    <Compile Include="CrashTests.cs" />
+    <Compile Include="CacheTests.cs" />
+    <Compile Include="ByteArrayTests.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorDBTests", "RazorDBTests\RazorDBTests.csproj", "{14C83EFA-137F-4E3E-AB81-E0772ED591F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RazorDBTest", "RazorDBTest\RazorDBTest.csproj", "{046982C6-E209-41A3-AF6C-1E97714A02F2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{046982C6-E209-41A3-AF6C-1E97714A02F2}.Debug|x86.ActiveCfg = Debug|x86
+		{046982C6-E209-41A3-AF6C-1E97714A02F2}.Debug|x86.Build.0 = Debug|x86
+		{046982C6-E209-41A3-AF6C-1E97714A02F2}.Release|x86.ActiveCfg = Release|x86
+		{046982C6-E209-41A3-AF6C-1E97714A02F2}.Release|x86.Build.0 = Release|x86
+		{14C83EFA-137F-4E3E-AB81-E0772ED591F4}.Debug|x86.ActiveCfg = Debug|x86
+		{14C83EFA-137F-4E3E-AB81-E0772ED591F4}.Debug|x86.Build.0 = Debug|x86
+		{14C83EFA-137F-4E3E-AB81-E0772ED591F4}.Release|x86.ActiveCfg = Release|x86
+		{14C83EFA-137F-4E3E-AB81-E0772ED591F4}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = RazorDBTests\RazorDBTests.csproj
+	EndGlobalSection
+EndGlobal
