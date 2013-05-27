@@ -32,7 +32,7 @@ namespace RazorDBTests {
         [TestFixtureSetUp]
         public void Setup() {
             string path = Path.GetFullPath("TestData");
-            if (!Directory.Exists(path)) 
+            if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
         }
 
@@ -483,7 +483,7 @@ namespace RazorDBTests {
             }
             // Close and re-open the database to force all the sstable merging to complete.
             using (var db = new KeyValueStore(path)) {
-                
+
                 db.Manifest.Logger = (msg) => Console.WriteLine(msg);
 
                 timer.Reset();
@@ -847,7 +847,7 @@ namespace RazorDBTests {
                 timer.Start();
                 var ctModZeros = db.EnumerateFromKey(BitConverter.GetBytes(0)).Count();
                 timer.Stop();
-                
+
                 Console.WriteLine("Scanned index at a throughput of {0} items/s", (double) ctModZeros / timer.Elapsed.TotalSeconds);
             }
         }
@@ -859,7 +859,7 @@ namespace RazorDBTests {
             var timer = new Stopwatch();
             int totalSize = 0;
             int readSize = 0;
-            Action<string> logger = (msg) => { Console.WriteLine(msg); };
+
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
                 timer.Start();
@@ -898,7 +898,7 @@ namespace RazorDBTests {
                 var timer = new Stopwatch();
                 int totalSize = 0;
                 int readSize = 0;
-                Action<string> logger = (msg) => { Console.WriteLine(msg); };
+
                 using (var db = new KeyValueStore(path)) {
                     db.Truncate();
                     timer.Start();
@@ -1146,7 +1146,7 @@ namespace RazorDBTests {
                 }
                 Assert.AreEqual(1, count);
             }
-            
+
         }
 
         [Test]
