@@ -11,6 +11,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("RazorDB")]
 [assembly: AssemblyCopyright("Copyright © 2012, 2013")]
 
+// Strong name related attributes.
+[assembly: AssemblyKeyFile("RazorStrongName.snk")]
+
 
 // Setting ComVisible to false makes the types in this assembly not visible 
 // to COM components.  If you need to access a type in this assembly from 
