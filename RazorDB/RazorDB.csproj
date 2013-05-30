@@ -92,6 +92,7 @@
     <Compile Include="tables\JournaledMemTable.cs" />
     <Compile Include="tables\MemTable.cs" />
     <Compile Include="hashing\MurmurHash.cs" />
+    <Compile Include="helpers\Helper.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="RazorStrongName.snk" />
