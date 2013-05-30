@@ -43,7 +43,6 @@
     <Reference Include="System.Core" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ByteArray.cs" />
     <Compile Include="C5\arrays\ArrayList.cs" />
     <Compile Include="C5\arrays\CircularQueue.cs" />
     <Compile Include="C5\arrays\HashedArrayList.cs" />
@@ -79,19 +78,20 @@
     <Compile Include="Cache.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Journal.cs" />
-    <Compile Include="JournaledMemTable.cs" />
-    <Compile Include="Key.cs" />
-    <Compile Include="KeyValueStore.cs" />
     <Compile Include="Manifest.cs" />
-    <Compile Include="MemTable.cs" />
-    <Compile Include="MergeEnumerator.cs" />
-    <Compile Include="MurmurHash.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SortedBlockTable.cs" />
-    <Compile Include="TableManager.cs" />
     <Compile Include="Value.cs" />
     <Compile Include="Viz.cs" />
-    <Compile Include="BinaryHelper.cs" />
+    <Compile Include="arrays\ByteArray.cs" />
+    <Compile Include="helpers\BinaryHelper.cs" />
+    <Compile Include="managers\TableManager.cs" />
+    <Compile Include="enumerators\MergeEnumerator.cs" />
+    <Compile Include="keychain\Key.cs" />
+    <Compile Include="keychain\KeyValueStore.cs" />
+    <Compile Include="tables\SortedBlockTable.cs" />
+    <Compile Include="tables\JournaledMemTable.cs" />
+    <Compile Include="tables\MemTable.cs" />
+    <Compile Include="hashing\MurmurHash.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="RazorStrongName.snk" />
@@ -109,4 +109,13 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ItemGroup>
+    <Folder Include="arrays\" />
+    <Folder Include="helpers\" />
+    <Folder Include="managers\" />
+    <Folder Include="enumerators\" />
+    <Folder Include="keychain\" />
+    <Folder Include="tables\" />
+    <Folder Include="hashing\" />
+  </ItemGroup>
 </Project>
