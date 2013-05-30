@@ -14,20 +14,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 
 See the License for the specific language governing permissions and limitations.
 */
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 namespace RazorDB {
 
     // This interface is used by the RazorView program to allow an assembly to define possibly better ways of visualizing the data in the key value store
     public interface IDataVizFactory {
-        IDataViz GetVisualizer(KeyValueStore kvStore);
+        // Gets the visualizer.
+        IDataViz GetVisualizer(KeyValueStore k);
     }
 
     public interface IDataViz {
+        // Transforms the key.
         string TransformKey(byte[] key);
+        // Transforms the value.
         string TransformValue(byte[] value);
     }
 }

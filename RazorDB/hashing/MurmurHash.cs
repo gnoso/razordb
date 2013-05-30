@@ -15,9 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 See the License for the specific language governing permissions and limitations.
 */
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace RazorDB {
 
@@ -28,6 +25,7 @@ namespace RazorDB {
         public UInt32 Hash(byte[] data) {
             return Hash(data, 0xc58f1a7b);
         }
+
         const UInt32 m = 0x5bd1e995;
         const Int32 r = 24;
 
@@ -70,9 +68,7 @@ namespace RazorDB {
                 }
             }
 
-            // Do a few final mixes of the hash to ensure the last few
-            // bytes are well-incorporated.
-
+            // Do a few final hash mixes to ensure the last few bytes are well-incorporated.
             h ^= h >> 13;
             h *= m;
             h ^= h >> 15;
@@ -80,5 +76,4 @@ namespace RazorDB {
             return h;
         }
     }
-
 }

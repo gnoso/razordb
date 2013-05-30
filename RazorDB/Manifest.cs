@@ -15,12 +15,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 See the License for the specific language governing permissions and limitations.
 */
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Threading;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
 
 namespace RazorDB {
 
@@ -459,6 +458,7 @@ namespace RazorDB {
                 _manifests.AddLast(m);
             } catch (Exception ex) {
                 LogMessage("Error reading manifest file: {0}", _baseFileName);
+				ex.GetBaseException ();
             } finally {
                 reader.Close();
             }
@@ -490,12 +490,12 @@ namespace RazorDB {
         private Action<string> _logger;
         public Action<string> Logger {
             get { return _logger; }
-            set { _logger = value; } 
+            set { _logger = value; }
         }
 
         public void LogMessage(string format, params object[] parms) {
             if (Logger != null) {
-                Logger( string.Format(format, parms));   
+                Logger( string.Format(format, parms));
             }
         }
 

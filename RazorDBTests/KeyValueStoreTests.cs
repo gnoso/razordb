@@ -859,7 +859,7 @@ namespace RazorDBTests {
             var timer = new Stopwatch();
             int totalSize = 0;
             int readSize = 0;
-            Action<string> logger = (msg) => { Console.WriteLine(msg); };
+
             using (var db = new KeyValueStore(path)) {
                 db.Truncate();
                 timer.Start();
@@ -898,7 +898,7 @@ namespace RazorDBTests {
                 var timer = new Stopwatch();
                 int totalSize = 0;
                 int readSize = 0;
-                Action<string> logger = (msg) => { Console.WriteLine(msg); };
+
                 using (var db = new KeyValueStore(path)) {
                     db.Truncate();
                     timer.Start();
