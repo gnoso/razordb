@@ -17,13 +17,10 @@ See the License for the specific language governing permissions and limitations.
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Collections;
 
 namespace RazorDB {
 
-    // This class takes a collection of IEnumerable<T> objects (assuming in sorted order) and returns 
-    // a merged version with the result being in sorted order as well.
+    // This class takes a collection of IEnumerable<T> objects (assuming in sorted order) and returns a merged version with the result being in sorted order as well.
     public static class MergeEnumerator {
 
         public static IEnumerable<T> Merge<T>(IEnumerable<IEnumerable<T>> enumerables) {
@@ -32,11 +29,11 @@ namespace RazorDB {
 
         public static IEnumerable<T> Merge<T, TKey>(IEnumerable<IEnumerable<T>> enumerables, Func<T, TKey> keyExtractor) {
 
-            // Get enumerators for each enumerable
+            // Get enumerators for each enumerable.
             var enumerators = enumerables.Select(e => e.GetEnumerator()).AsRanked();
             var nonEmptyEnums = new List<Ranked<IEnumerator<T>>>();
 
-            // move ahead and prune out empty enumerators
+            // Move ahead and prune out empty enumerators.
             foreach (var e in enumerators) {
                 if (e.Value.MoveNext()) {
                     nonEmptyEnums.Add(e);
@@ -45,18 +42,18 @@ namespace RazorDB {
                 }
             }
 
-            // Construct the expression to compare the enumerators, taking rank into account
+            // Construct the expression to compare the enumerators, taking rank into account.
             Comparison<Ranked<IEnumerator<T>>> comparer = (x, y) => {
                 int c = Comparer<TKey>.Default.Compare(keyExtractor(x.Value.Current), keyExtractor(y.Value.Current));
                 if (c == 0) {
-                    // If they are equal, then compare the ranks
+                    // If they are equal, then compare the ranks.
                     return x.Rank.CompareTo(y.Rank);
                 } else {
                     return c;
                 }
             };
 
-            // order them by the first (current) element and put into a linked list
+            // Order the enumerators by the first (current) element and put them into a linked list.
             nonEmptyEnums.Sort(comparer);
             var workingEnums = new LinkedList<Ranked<IEnumerator<T>>>(nonEmptyEnums);
 
@@ -68,20 +65,20 @@ namespace RazorDB {
                     var firstEnum = workingEnums.First;
                     T yieldValue = firstEnum.Value.Value.Current;
 
-                    // Yield the value if the key isn't the same as the previously yielded value
+                    // Yield the value if the key isn't the same as the previously yielded value.
                     if (Comparer<TKey>.Default.Compare(keyExtractor(yieldValue), lastKeyValue) != 0) {
                         yield return yieldValue;
                     }
                     lastKeyValue = keyExtractor(yieldValue);
 
-                    // advance this enumerator to the next spot
+                    // Advance this enumerator to the next spot.
                     if (!firstEnum.Value.Value.MoveNext()) {
-                        // ok this enumerator is done, so remove it
+                        // Remove the completed enumerator.
                         firstEnum.Value.Value.Dispose();
                         workingEnums.RemoveFirst();
                         totalEnumerators--;
                     } else {
-                        // push this enumerator to the proper sort position in the list
+                        // Push this enumerator to the proper sort position in the list.
                         var e = firstEnum.Value;
                         workingEnums.RemoveFirst();
                         var currentNode = workingEnums.First;
@@ -103,7 +100,7 @@ namespace RazorDB {
                     }
                 }
             } finally {
-                // Loop through the enumerator list and make sure that any leftovers are properly disposed
+                // Loop through the enumerator list and make sure that any leftovers are properly disposed.
                 // This should really only happen if an exception is thrown from inside the yield.
                 while (workingEnums.First != null) {
                     workingEnums.First.Value.Value.Dispose();
@@ -112,5 +109,4 @@ namespace RazorDB {
             }
         }
     }
-
 }

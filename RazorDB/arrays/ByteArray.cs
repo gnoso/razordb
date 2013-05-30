@@ -15,21 +15,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 See the License for the specific language governing permissions and limitations.
 */
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Runtime.InteropServices;
 
 namespace RazorDB {
 
     public struct ByteArray : IComparable<ByteArray> {
 
+		private byte[] _bytes;
+
         public ByteArray(byte[] bytes) {
             if (bytes == null)
                 throw new ArgumentNullException();
             _bytes = bytes;
         }
-        private byte[] _bytes;
 
         public byte[] InternalBytes { get { return _bytes; } }
 
@@ -133,5 +132,4 @@ namespace RazorDB {
             return string.Concat(bytes.Skip(offset).Take(count).Select((b) => b.ToString("X2")).ToArray());
         }
     }
-
 }

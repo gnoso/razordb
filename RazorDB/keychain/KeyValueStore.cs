@@ -16,31 +16,35 @@ See the License for the specific language governing permissions and limitations.
 */
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
 using System.IO;
-using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 
 namespace RazorDB {
 
+    // The throw all and the attempt recovery.
     public enum ExceptionHandling { ThrowAll, AttemptRecovery }
 
     public class KeyValueStore : IDisposable {
 
+        // Initializes a new instance of the KeyValueStore class.
         public KeyValueStore(string baseFileName) : this(baseFileName, (RazorCache)null) { }
 
+        // Initializes a new instance of the KeyValueStore class.
         public KeyValueStore(string baseFileName, RazorCache cache) {
             if (!Directory.Exists(baseFileName)) {
                 Directory.CreateDirectory(baseFileName);
             }
+
             _manifest = new Manifest(baseFileName);
             _manifest.Logger = Config.Logger;
 
             int memTableVersion = _manifest.CurrentVersion(0);
-            // Check for a previously aborted journal rotation 
+
+            // Check for a previously aborted journal rotation.
             CheckForIncompleteJournalRotation(baseFileName, memTableVersion);
-            // Create new journal for this run (and potentially load from disk, if there was data loaded previously)
+
+            // Create new journal for this run (and potentially load from disk, if there was data loaded previously).
             _currentJournaledMemTable = new JournaledMemTable(_manifest.BaseFileName, memTableVersion);
             _cache = cache == null ? new RazorCache() : cache;
 
@@ -57,26 +61,32 @@ namespace RazorDB {
         private Dictionary<string, KeyValueStore> _secondaryIndexes = new Dictionary<string, KeyValueStore>(StringComparer.OrdinalIgnoreCase);
         private ExceptionHandling _exceptionHandling = ExceptionHandling.ThrowAll;
 
-        // For Table Manager 
+        // Internals for the Table Manager
         internal long ticksTillNextMerge = 0;
         internal object mergeLock = new object();
         internal int mergeCount = 0;
 
+        // Gets the manifest.
         public Manifest Manifest { get { return _manifest; } }
 
+        // Gets or sets the merge callback.
         public Action<int, IEnumerable<PageRecord>, IEnumerable<PageRecord>> MergeCallback { get; set; }
 
         internal RazorCache Cache { get { return _cache; } }
 
+        // Gets the size of the data cache.
         public int DataCacheSize {
             get { return Cache.DataCacheSize; }
         }
+
+        // Gets the size of the index cache.
         public int IndexCacheSize {
             get { return Cache.IndexCacheSize; }
         }
 
         private volatile JournaledMemTable _currentJournaledMemTable;
 
+        // Truncate this instance.
         public void Truncate() {
             _currentJournaledMemTable.Close();
             TableManager.Default.Close(this);
@@ -100,12 +110,15 @@ namespace RazorDB {
             Manifest.LogMessage("Database Truncated.");
         }
 
+        // Set the specified key and value.
         public void Set(byte[] key, byte[] value) {
             Set(key, value, null);
         }
 
+        // The multi page lock.
         public object multiPageLock = new object();
 
+        // Set the specified key, value and indexedValues.
         public void Set(byte[] key, byte[] value, IDictionary<string, byte[]> indexedValues) {
 
             int valueSize = value.Length;
@@ -135,6 +148,7 @@ namespace RazorDB {
             }
         }
 
+        // Removes the index of the from.
         public void RemoveFromIndex(byte[] key, IDictionary<string, byte[]> indexedValues) {
             foreach (var pair in indexedValues) {
                 string IndexName = pair.Key;
@@ -150,6 +164,7 @@ namespace RazorDB {
             }
         }
 
+        // Cleans the index.
         public void CleanIndex(string indexName) {
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
 
@@ -168,7 +183,7 @@ namespace RazorDB {
                 if (adds <= 0)
                     throw new InvalidOperationException("Failed too many times trying to add an item to the JournaledMemTable");
             }
-            // Add secondary index values if they were provided
+            // Add secondary index values if they were provided.
             if (indexedValues != null)
                 AddToIndex(k.KeyBytes, indexedValues);
 
@@ -179,11 +194,12 @@ namespace RazorDB {
             TableManager.Default.MarkKeyValueStoreAsModified(this);
         }
 
+        // Adds to the index of the specified index.
         public void AddToIndex(byte[] key, IDictionary<string, byte[]> indexedValues) {
             foreach (var pair in indexedValues) {
                 string IndexName = pair.Key;
 
-                // Construct Index key by concatenating the indexed value and the target key
+                // Construct Index key by concatenating the indexed value and the target key.
                 byte[] indexValue = pair.Value;
                 byte[] indexKey = new byte[key.Length + indexValue.Length];
                 indexValue.CopyTo(indexKey, 0);
@@ -208,6 +224,7 @@ namespace RazorDB {
             return indexStore;
         }
 
+        // Get the specified key.
         public byte[] Get(byte[] key) {
             Key lookupKey = new Key(key, 0);
             return AssembleGetResult(lookupKey, InternalGet(lookupKey));
@@ -215,29 +232,29 @@ namespace RazorDB {
 
         private Value InternalGet(Key lookupKey) {
             Value output = Value.Empty;
-            // Capture copy of the rotated table if there is one
+            // Capture copy of the rotated table if there is one.
             var rotatedMemTable = _rotatedJournaledMemTable;
 
-            // First check the current memtable
+            // First check the current memtable.
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output;
             }
-            // Check the table in rotation
+            // Check the table in rotation.
             if (rotatedMemTable != null) {
                 if (rotatedMemTable.Lookup(lookupKey, out output)) {
                     return output;
                 }
             }
-            // Now check the files on disk
+            // Now check the files on disk.
             using (var manifest = _manifest.GetLatestManifest()) {
-                // Must check all pages on level 0
+                // Must check all pages on level 0.
                 var zeroPages = manifest.GetPagesAtLevel(0).OrderByDescending((page) => page.Version);
                 foreach (var page in zeroPages) {
                     if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _exceptionHandling, _manifest.Logger)) {
                         return output;
                     }
                 }
-                // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
+                // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker.
                 for (int level = 1; level < manifest.NumLevels; level++) {
                     var page = manifest.FindPageForKey(level, lookupKey);
                     if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _exceptionHandling, _manifest.Logger)) {
@@ -245,7 +262,7 @@ namespace RazorDB {
                     }
                 }
             }
-            // OK, not found anywhere, return null
+            // Return null.
             return Value.Empty;
         }
 
@@ -258,10 +275,10 @@ namespace RazorDB {
                     return result.ValueBytes;
                 case ValueFlag.LargeValueDescriptor: {
                         lock (multiPageLock) {
-                            // read the descriptor again in case it changed
+                            // Read the descriptor again in case it changed.
                             result = InternalGet(lookupKey);
 
-                            // make sure type is still large value descriptor and continue
+                            // Make sure type is still large value descriptor and continue.
                             if (result.Type == ValueFlag.LargeValueDescriptor) {
                                 int valueSize = BitConverter.ToInt32(result.ValueBytes, 0);
                                 byte[] bytes = new byte[valueSize];
@@ -286,14 +303,15 @@ namespace RazorDB {
             }
         }
 
+        // Finds the specified indexName and lookupValue.
         public IEnumerable<KeyValuePair<byte[], byte[]>> Find(string indexName, byte[] lookupValue) {
 
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
-            // Loop over the values
+            // Loop over the values.
             foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
                 var key = pair.Key;
                 var value = pair.Value;
-                // construct our index key pattern (lookupvalue | key)
+                // Construct our index key pattern (lookupvalue | key).
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
                     if (key.Length == (value.Length + lookupValue.Length) && ByteArray.CompareMemCmp(key, lookupValue.Length, value, 0, value.Length) == 0) {
                         // Lookup the value of the actual object using the key that was found
@@ -302,39 +320,42 @@ namespace RazorDB {
                             yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
                     }
                 } else {
-                    // if the above condition was not met then we must have enumerated past the end of the indexed value
+                    // If the above condition was not met then we must have enumerated past the end of the indexed value.
                     yield break;
                 }
             }
         }
 
+        // Finds the starting value w/ the correlating parameters.
         public IEnumerable<KeyValuePair<byte[], byte[]>> FindStartsWith(string indexName, byte[] lookupValue) {
 
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
-            // Loop over the values
+            // Loop over the values.
             foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
                 var key = pair.Key;
                 var value = pair.Value;
-                // construct our index key pattern (lookupvalue | key)
+                // Construct our index key pattern (lookupvalue | key).
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
                     if (key.Length >= (value.Length + lookupValue.Length)) {
-                        // Lookup the value of the actual object using the key that was found
+                        // Lookup the value of the actual object using the key that was found.
                         var primaryValue = Get(value);
                         if (primaryValue != null)
                             yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
                     }
                 } else {
-                    // if the above condition was not met then we must have enumerated past the end of the indexed value
+                    // If the above condition was not met then we must have enumerated past the end of the indexed value.
                     yield break;
                 }
             }
         }
 
+        // Delete the specified key.
         public void Delete(byte[] key) {
             var k = new Key(key, 0);
             InternalSet(k, Value.Deleted, null);
         }
 
+        // Enumerate a instance.
         public IEnumerable<KeyValuePair<byte[], byte[]>> Enumerate() {
             return EnumerateFromKey(new byte[0]);
         }
@@ -348,17 +369,17 @@ namespace RazorDB {
             var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
             Key key = new Key(startingKey, 0);
 
-            // Capture copy of the rotated table if there is one
+            // Capture copy of the rotated table if there is one.
             var rotatedMemTable = _rotatedJournaledMemTable;
 
-            // Select main MemTable
+            // Select the main memtable.
             enumerators.Add(_currentJournaledMemTable.EnumerateSnapshotFromKey(key));
 
             if (rotatedMemTable != null) {
                 enumerators.Add(rotatedMemTable.EnumerateSnapshotFromKey(key));
             }
 
-            // Now check the files on disk
+            // Now check the files on disk.
             using (var manifestSnapshot = _manifest.GetLatestManifest()) {
 
                 List<SortedBlockTable> tables = new List<SortedBlockTable>();
@@ -375,12 +396,13 @@ namespace RazorDB {
                         yield return pair;
                     }
                 } finally {
-                    // make sure all the tables get closed
+                    // Make sure all the tables get closed.
                     tables.ForEach(table => table.Close());
                 }
             }
         }
 
+        // Enumerates from key.
         public IEnumerable<KeyValuePair<byte[], byte[]>> EnumerateFromKey(byte[] startingKey) {
 
             foreach (var pair in InternalEnumerateFromKey(startingKey)) {
@@ -398,11 +420,12 @@ namespace RazorDB {
         private Semaphore _rotationSemaphore = new Semaphore(1, 1);
 
 #pragma warning disable 420
+        // Rotates the memtable.
         public void RotateMemTable() {
             lock (memTableRotationLock) {
-                // Double check the flag in case we have multiple threads that make it into this routine
+                // Double check the flag in case we have multiple threads that make it into this routine.
                 if (_currentJournaledMemTable.Full) {
-                    _rotationSemaphore.WaitOne();    // Wait for the rotation gate to be open, and automatically reset once a single thread gets through.
+                    _rotationSemaphore.WaitOne(); // Wait for the rotation gate to be open, and automatically reset once a single thread gets through.
 
                     _rotatedJournaledMemTable = Interlocked.Exchange<JournaledMemTable>(ref _currentJournaledMemTable, new JournaledMemTable(_manifest.BaseFileName, _manifest.NextVersion(0)));
 
@@ -411,7 +434,7 @@ namespace RazorDB {
                             _rotatedJournaledMemTable.WriteToSortedBlockTable(_manifest);
                             _rotatedJournaledMemTable = null;
                         } finally {
-                            _rotationSemaphore.Release(); // Open the gate for the next rotation
+                            _rotationSemaphore.Release(); // Opens the gate for the next rotation.
                         }
                     });
                 }
@@ -429,16 +452,19 @@ namespace RazorDB {
             }
         }
 
+        // Releases all resource used by the KeyValueStore object.
         public void Dispose() {
             Close(FastClose);
         }
 
-        private bool _fastClose = false;
+		// Gets or sets a value indicating whether or not this KeyValueStore closes.
+		private bool _fastClose = false;
         public bool FastClose {
             get { return _fastClose; }
             set { _fastClose = value; }
         }
 
+        // Close the specified memtable.
         public void Close(bool fast = false) {
             // Make sure any inflight rotations have occurred before shutting down.
             if (!_rotationSemaphore.WaitOne(30000))
@@ -449,6 +475,7 @@ namespace RazorDB {
             if (!finalizing && !fast) {
                 TableManager.Default.Close(this);
             }
+
             if (_currentJournaledMemTable != null) {
                 _currentJournaledMemTable.Close();
                 _currentJournaledMemTable = null;
@@ -464,6 +491,7 @@ namespace RazorDB {
             GC.SuppressFinalize(this);
         }
 
+        // Checks over the records.
         public void ScanCheck() {
 
             long totalKeyBytes = 0;
@@ -533,26 +561,25 @@ namespace RazorDB {
 
         }
 
-        // List all the pages in the directory and delete those that are not in the manifest.
+        // Removes the orphaned pages.
         public void RemoveOrphanedPages() {
 
             using (var manifestInst = this.Manifest.GetLatestManifest()) {
 
-                // find all the sbt files in the data directory
+                // Find all the sbt files in the data directory.
                 var files = Directory.GetFiles(this.Manifest.BaseFileName, "*.sbt").ToDictionary(f => Path.GetFileNameWithoutExtension(f.ToLower()));
                 for (int level = 0; level < manifestInst.NumLevels - 1; level++) {
 
                     foreach (var page in manifestInst.GetPagesAtLevel(level)) {
 
-                        // Yes this is kind of backwards to add the file path and then strip it off, but I want to make sure we are using the exact same logic
-                        // as that which creates the file names.
+                        // Yes this is kind of backwards to add the file path and then strip it off, but I want to make sure we are using the exact same logic as that which creates the file names.
                         string fileForPage = Path.GetFileNameWithoutExtension(Config.SortedBlockTableFile(this.Manifest.BaseFileName, page.Level, page.Version));
                         // Remove the page from the file list because it's in the manifest and we've accounted for it.
                         files.Remove(fileForPage);
                     }
                 }
 
-                // Loop over the leftover files and handle them
+                // Loop over the leftover files and handle them.
                 foreach (var file in files.Keys) {
                     try {
                         var parts = file.Split('-');
@@ -573,10 +600,9 @@ namespace RazorDB {
                         // Best effort, here. If we fail, continue.
                     }
                 }
-
             }
 
-            // Now process the indexes as well
+            // Process the indexes as well.
             Manifest.LogMessage("Removing Orphaned Index Pages");
 
             lock (_secondaryIndexes) {
@@ -585,7 +611,5 @@ namespace RazorDB {
                 }
             }
         }
-
     }
-
 }

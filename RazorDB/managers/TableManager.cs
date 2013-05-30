@@ -14,13 +14,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 
 See the License for the specific language governing permissions and limitations.
 */
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.IO;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 
 namespace RazorDB {
     public class TableManager {
@@ -34,6 +30,7 @@ namespace RazorDB {
             }
         }
 
+        // Gets a default TableManager instance.
         public static TableManager Default {
             get { return _tableManagerInstance; }
         }
@@ -42,16 +39,17 @@ namespace RazorDB {
 
         private long pauseTime = Stopwatch.Frequency / 4;
 
+        // Marks the KeyValueStore as modified.
         public void MarkKeyValueStoreAsModified(KeyValueStore kvStore) {
-            
-            // Only schedule a merge run if no merging is happening
+
+            // Only schedule a merge run if no merge is occuring.
             if (kvStore.mergeCount == 0) {
 
-                // determine if we've reached the next time threshold for another update
+                // Determine if we've reached the next time threshold for another update.
                 long ticks = Stopwatch.GetTimestamp();
                 long ticksTillNext = kvStore.ticksTillNextMerge;
                 if (ticks > ticksTillNext) {
-                    // Schedule a tablemerge run on the threadpool
+                    // Schedule a table merge run on the threadpool.
                     ThreadPool.QueueUserWorkItem((o) => {
                         RunTableMergePass(kvStore);
                     });
@@ -60,10 +58,12 @@ namespace RazorDB {
             }
         }
 
+        // Close the specified KeyValueStore.
         public void Close(KeyValueStore kvStore) {
             RunTableMergePass(kvStore);
         }
 
+        // Runs the table merge pass.
         public static void RunTableMergePass(KeyValueStore kvStore) {
 
             try {
@@ -125,6 +125,5 @@ namespace RazorDB {
                 Interlocked.Decrement(ref kvStore.mergeCount);
             }
         }
-
     }
 }

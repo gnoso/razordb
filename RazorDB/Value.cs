@@ -15,15 +15,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 See the License for the specific language governing permissions and limitations.
 */
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace RazorDB {
 
     public enum ValueFlag : byte { Null = 0x0, SmallValue = 0x1, LargeValueDescriptor = 0x5, LargeValueChunk = 0x10, Deleted = 0xFF };
 
     public struct Value {
+
+		private ByteArray _bytes;
 
         public Value(byte[] bytes) : this(bytes, ValueFlag.SmallValue) {}
         public Value(byte[] bytes, ValueFlag type) {
@@ -32,7 +31,6 @@ namespace RazorDB {
             Array.Copy(bytes, 0, b, 1, bytes.Length);
             _bytes = new ByteArray(b);
         }
-        private ByteArray _bytes;
 
         public ValueFlag Type {
             get { return (ValueFlag) _bytes.InternalBytes[0]; }
@@ -45,13 +43,16 @@ namespace RazorDB {
                 return v; 
             }
         }
+
         public int CopyValueBytesTo(byte[] block, int offset) {
             Array.Copy(InternalBytes, 1, block, offset, Length - 1);
             return Length - 1;
         }
+
         public byte[] InternalBytes {
             get { return _bytes.InternalBytes; }
         }
+
         public int Length { get { return _bytes.Length; } }
 
         public static Value Random(int numBytes) {
@@ -83,6 +84,4 @@ namespace RazorDB {
             get { return new Value(new byte[0], ValueFlag.Deleted); }
         }
     }
-
-
 }

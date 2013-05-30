@@ -20,6 +20,7 @@ namespace RazorDB
 {
 	public static class Helper
 	{
+		// Encodes the bit int.
 		public static int Encode7BitInt (byte[] workingArray, int value)
 		{
 			int size = 0;
@@ -34,6 +35,7 @@ namespace RazorDB
 			return size;
 		}
 
+		// Decodes the bit int.
 		public static int Decode7BitInt (byte[] workingArray, ref int offset)
 		{
 			byte b;
@@ -48,11 +50,13 @@ namespace RazorDB
 			return val;
 		}
 
+		// Reads the bit encoded int.
 		public static int Read7BitEncodedInt (this BinaryReader rdr)
 		{
 			return (int)rdr.Read7BitEncodedUInt ();
 		}
 
+		// Reads the bit encoded U int.
 		public static uint Read7BitEncodedUInt (this BinaryReader rdr)
 		{
 			byte b;
@@ -66,13 +70,15 @@ namespace RazorDB
 			return (uint)val;
 		}
 
+		// Writes the bit encoded int.
 		public static void Write7BitEncodedInt (this BinaryWriter wtr, int value)
 		{
 			if (value < 0)
-				throw new InvalidDataException ("Negative numbers are not supported.");
+				throw new InvalidDataException ("Negative numbers are unsupported.");
 			wtr.Write7BitEncodedUInt ((uint) value);
 		}
 
+		// Writes the bit encoded U int.
 		public static void Write7BitEncodedUInt (this BinaryWriter wtr, uint value)
 		{
 			uint num = value;

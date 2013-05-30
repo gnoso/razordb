@@ -16,8 +16,6 @@ See the License for the specific language governing permissions and limitations.
 */
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
 
 namespace RazorDB {
@@ -35,8 +33,8 @@ namespace RazorDB {
 
         private object _writeLock = new object();
 
-        // Add an item to the journal. It's possible that a thread is still Adding while another thread is Closing the journal.
-        // in that case, we return false and expect the caller to do the operation over again on another journal instance.
+        // Add an item to the journal. 
+		// It's possible that a thread is still adding to the journal while another thread is closing the journal, in which case we would return false and expect the caller to do the operation over again on another journal instance.
         public bool Add(Key key, Value value) {
             lock (_writeLock) {
                 if (_writer == null)
@@ -106,7 +104,5 @@ namespace RazorDB {
                 _reader.Close();
             _reader = null;
         }
-
     }
-
 }

@@ -16,8 +16,6 @@ See the License for the specific language governing permissions and limitations.
 */
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace RazorDB {
 
@@ -49,11 +47,11 @@ namespace RazorDB {
                 CacheEntry<T> val;
                 bool exists = _hash.TryGetValue(key, out val);
                 if (exists) {
-                    // move the item to the top of the LRU list
+                    // Move the item to the top of the LRU list.
                     _list.Remove(val.ListNode);
                     _list.AddFirst(val.ListNode);
                 }
-                // Set the output parameter
+                // Set the output parameter.
                 value = exists ? val.Value : default(T);
                 return exists;
             }
@@ -91,7 +89,7 @@ namespace RazorDB {
             }
         }
     }
-    
+
     public class RazorCache {
 
         public RazorCache() {

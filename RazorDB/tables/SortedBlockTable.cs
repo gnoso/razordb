@@ -17,15 +17,15 @@ See the License for the specific language governing permissions and limitations.
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.IO;
+using System.Text;
 using System.Threading;
 
 namespace RazorDB {
 
     public enum RecordHeaderFlag { Record = 0xE0, EndOfBlock = 0xFF };
 
-    // With this implementation, the maximum sized data that can be stored is ... block size >= keylen + valuelen + (sizecounter - no more than 8 bytes)
+    // With this implementation, the maximum sized data that can be stored is ... block size >= keylen + valuelen + (sizecounter - no more than 8 bytes).
     public class SortedBlockTableWriter {
 
         public SortedBlockTableWriter(string baseFileName, int level, int version) {
@@ -41,9 +41,9 @@ namespace RazorDB {
         }
 
         private FileStream _fileStream;
-        private byte[] _bufferA;     // pre-allocated bufferB
-        private byte[] _bufferB;     // pre-allocated bufferA
-        private byte[] _buffer;      // current buffer that is being loaded
+        private byte[] _bufferA;     // Pre-allocated bufferB.
+        private byte[] _bufferB;     // Pre-allocated bufferA.
+        private byte[] _buffer;      // Current buffer that is being loaded.
         private int _bufferPos;
         private IAsyncResult _async;
         private List<Key> _pageIndex;
@@ -79,20 +79,20 @@ namespace RazorDB {
             // If we are at the beginning of the buffer, then add this key to the index.
             if (_bufferPos == 0) {
                 _pageIndex.Add(key);
-                // Add a place for the root node offset
+                // Add a place for the root node offset.
                 _bufferPos += 2;
             }
 
-            // store the pair in preparation for writing
+            // Store the pair in preparation for writing.
             _keyOffsets.Add((ushort)_bufferPos);
 
             // This is a record header
             _buffer[_bufferPos++] = (byte)RecordHeaderFlag.Record;
 
-            // Add space for left and right node pointers
+            // Add space for left and right node pointers.
             _bufferPos += 4;
 
-            // write the data out to the buffer
+            // Write the data out to the buffer.
             Array.Copy(keySize, 0, _buffer, _bufferPos, keySizeLen);
             _bufferPos += keySizeLen;
             Array.Copy(key.InternalBytes, 0, _buffer, _bufferPos, key.Length);
@@ -109,13 +109,13 @@ namespace RazorDB {
             int middleIndex = (startIndex + endIndex) >> 1;
             ushort nodeOffset = keyOffsets[middleIndex];
 
-            // Build left side
+            // Build left side.
             if (startIndex < middleIndex) {
                 ushort leftOffset = BuildBlockTree(block, startIndex, middleIndex - 1, keyOffsets);
                 byte[] left = BitConverter.GetBytes(leftOffset);
                 Array.Copy(left, 0, block, nodeOffset + 1, 2);
             }
-            // Build right side
+            // Build right side.
             if (middleIndex < endIndex) {
                 ushort rightOffset = BuildBlockTree(block, middleIndex + 1, endIndex, keyOffsets);
                 byte[] right = BitConverter.GetBytes(rightOffset);
@@ -126,12 +126,12 @@ namespace RazorDB {
 
         private void WriteDataBlock() {
 
-            // Write the end of buffer flag if we have room
+            // Write the end of buffer flag if we have room.
             if (_bufferPos < Config.SortedBlockSize) {
                 _buffer[_bufferPos++] = (byte)RecordHeaderFlag.EndOfBlock;
             }
 
-            // Build the tree structure and fill in the starting pointer
+            // Build the tree structure and fill in the starting pointer.
             ushort middleTreePtr = BuildBlockTree(_buffer, 0, _keyOffsets.Count - 1, _keyOffsets);
             byte[] middleTree = BitConverter.GetBytes(middleTreePtr);
             Array.Copy(middleTree, _buffer, 2);
@@ -142,7 +142,7 @@ namespace RazorDB {
 
         private void WriteBlock() {
 
-            // make sure any outstanding writes are completed
+            // make sure any outstanding writes are completed.
             if (_async != null) {
                 _fileStream.EndWrite(_async);
             }
@@ -164,7 +164,7 @@ namespace RazorDB {
                 WriteBlock();
             }
 
-            // write the data out to the buffer
+            // Write the data out to the buffer.
             Array.Copy(keySize, 0, _buffer, _bufferPos, keySizeLen);
             _bufferPos += keySizeLen;
             Array.Copy(key.InternalBytes, 0, _buffer, _bufferPos, key.Length);
@@ -246,7 +246,7 @@ namespace RazorDB {
         private void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
             if (!FileExists) return;
 
-            current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // swap the blocks so we can issue another disk i/o
+            current = Object.ReferenceEquals(current, blockA) ? blockB : blockA; // Swap the blocks so we can issue another disk i/o.
             Array.Clear(current, 0, current.Length);
         }
 
@@ -418,19 +418,19 @@ namespace RazorDB {
 
                     for (int i = startingBlock; i < _dataBlocks; i++) {
 
-                        // wait on last block read to complete so we can start processing the data
+                        // Wait on last block read to complete so we can start processing the data.
                         byte[] block = EndReadBlock(asyncResult);
                         asyncResult = null;
 
-                        // Go ahead and kick off the next block read asynchronously while we parse the last one
+                        // Go ahead and kick off the next block read asynchronously while we parse the last one.
                         if (i < _dataBlocks) {
-                            SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
+                            SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o.
                             asyncResult = BeginReadBlock(currentBlock, i + 1);
                         }
 
-                        int offset = 2; // reset offset, start after tree root pointer
+                        int offset = 2; // Reset offset, start after tree root pointer.
 
-                        // On the first block, we need to seek to the key first (if we don't have an empty key)
+                        // On the first block, we need to seek to the key first (if we don't have an empty key).
                         if (i == startingBlock && key.Length != 0) {
                             while (offset >= 0) {
                                 var pair = ReadPair(block, ref offset);
@@ -441,7 +441,7 @@ namespace RazorDB {
                             }
                         }
 
-                        // Now loop through the rest of the block
+                        // Now loop through the rest of the block.
                         while (offset >= 0) {
                             yield return ReadPair(block, ref offset);
                         }
@@ -469,13 +469,13 @@ namespace RazorDB {
             try {
                 for (int i = _dataBlocks; i < endIndexBlocks; i++) {
 
-                    // wait on last block read to complete so we can start processing the data
+                    // Wait on last block read to complete so we can start processing the data.
                     byte[] block = EndReadBlock(asyncResult);
                     asyncResult = null;
 
-                    // Go ahead and kick off the next block read asynchronously while we parse the last one
+                    // Go ahead and kick off the next block read asynchronously while we parse the last one.
                     if (i < endIndexBlocks) {
-                        SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
+                        SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o.
                         asyncResult = BeginReadBlock(currentBlock, i + 1);
                     }
 
@@ -499,7 +499,7 @@ namespace RazorDB {
             var key = ByteArray.From(block, offset, keySize);
             offset += keySize;
 
-            // if the next keySize bit is zero then we have exhausted this block. Set to -1 to terminate enumeration
+            // If the next keySize bit is zero then we have exhausted this block. Set to -1 to terminate enumeration.
             if (block[offset] == 0)
                 offset = -1;
 
@@ -507,17 +507,16 @@ namespace RazorDB {
         }
 
         private static bool ScanBlockForKey(byte[] block, Key key, out Value value) {
-            int offset = 2; // skip over the tree root pointer
+            int offset = 2; // Skip over the tree root pointer
             value = Value.Empty;
 
             while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte)RecordHeaderFlag.Record) {
                 int startingOffset = offset;
-                offset++; // skip past the header flag
-                offset += 4; // skip past the tree pointers
+                offset++; // Skip past the header flag.
+                offset += 4; // Skip past the tree pointers.
                 int keySize = Helper.Decode7BitInt(block, ref offset);
                 int cmp = key.CompareTo(block, offset, keySize);
                 if (cmp == 0) {
-                    // Found it
                     var pair = ReadPair(block, ref startingOffset);
                     value = pair.Value;
                     return true;
@@ -525,7 +524,7 @@ namespace RazorDB {
                     return false;
                 }
                 offset += keySize;
-                // Skip past the value
+                // Skip past the value.
                 int valueSize = Helper.Decode7BitInt(block, ref offset);
                 offset += valueSize;
             }
@@ -533,17 +532,16 @@ namespace RazorDB {
         }
 
         private static bool SearchBlockForKey(byte[] block, Key key, out Value value) {
-            int offset = BitConverter.ToUInt16(block, 0); // grab the tree root
+            int offset = BitConverter.ToUInt16(block, 0); // Grab the tree root.
             value = Value.Empty;
 
             while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte)RecordHeaderFlag.Record) {
                 int startingOffset = offset;
-                offset += 1; // skip header
-                offset += 4; // skip tree pointers
+                offset += 1; // Skip the header.
+                offset += 4; // Skip the tree pointers.
                 int keySize = Helper.Decode7BitInt(block, ref offset);
                 int cmp = key.CompareTo(block, offset, keySize);
                 if (cmp == 0) {
-                    // Found it
                     var pair = ReadPair(block, ref startingOffset);
                     value = pair.Value;
                     return true;
@@ -559,8 +557,8 @@ namespace RazorDB {
         }
 
         private static KeyValuePair<Key, Value> ReadPair(byte[] block, ref int offset) {
-            offset += 1; // skip over header flag
-            offset += 4; // skip over the tree pointers
+            offset += 1; // Skip over the header flag.
+            offset += 4; // Skip over the tree pointers.
             int keySize = Helper.Decode7BitInt(block, ref offset);
             var key = new Key(ByteArray.From(block, offset, keySize));
             offset += keySize;
@@ -568,7 +566,7 @@ namespace RazorDB {
             var val = Value.From(block, offset, valueSize);
             offset += valueSize;
 
-            // if the next keySize bit is zero then we have exhausted this block. Set to -1 to terminate enumeration
+            // If the next keySize bit is zero then we have exhausted this block. Set to -1 to terminate enumeration.
             if (offset >= Config.SortedBlockSize || block[offset] == (byte)RecordHeaderFlag.EndOfBlock)
                 offset = -1;
 
@@ -596,7 +594,7 @@ namespace RazorDB {
 
             Key firstKey = new Key();
             Key lastKey = new Key();
-            Key maxKey = new Key(); // Maximum key we can span with this table to avoid covering more than 10 pages in the destination
+            Key maxKey = new Key(); // Maximum key we can span with this table to avoid covering more than 10 pages in the destination.
 
             Action<KeyValuePair<Key, Value>> OpenPage = (pair) => {
                 writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
@@ -605,6 +603,7 @@ namespace RazorDB {
                     maxKey = m.FindSpanningLimit(destinationLevel + 1, firstKey);
                 }
             };
+
             Action ClosePage = () => {
                 writer.Close();
                 outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
@@ -733,6 +732,5 @@ namespace RazorDB {
             }
             _fileStream = null;
         }
-
     }
 }
