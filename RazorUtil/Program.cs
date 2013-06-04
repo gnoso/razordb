@@ -156,7 +156,7 @@ namespace RazorUtil {
             try {
                 kv.ScanCheck();
             } finally {
-                kv.Close();
+                kv.Close(false);
             }
         }
 
@@ -170,7 +170,7 @@ namespace RazorUtil {
             try {
                 kv.RemoveOrphanedPages();
             } finally {
-                kv.Close();
+                kv.Close(false);
             }
         }
 
