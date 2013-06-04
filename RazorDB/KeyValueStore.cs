@@ -439,7 +439,8 @@ namespace RazorDB {
             set { _fastClose = value; }
         }
 
-        public void Close(bool fast = false) {
+        public void Close(bool fast) {
+			fast = false;
             // Make sure any inflight rotations have occurred before shutting down.
             if (!_rotationSemaphore.WaitOne(30000))
                 throw new TimeoutException("Timed out waiting for table rotation to complete.");
