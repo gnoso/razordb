@@ -1,5 +1,6 @@
 # Directories
 .nuget/*
+.RazorDB.boltdata/*
 */[Bb]in/*
 [Dd]ebug/*
 [Ee]xternal/*
@@ -14,5 +15,3 @@
 *.pdb
 *.suo
 *.userprefs
-
-.RazorDB.boltdata/*
