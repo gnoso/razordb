@@ -156,7 +156,11 @@ namespace RazorUtil {
             try {
                 kv.ScanCheck();
             } finally {
-                kv.Close(false);
+                if (kv.FastClose = false) {
+					kv.Close(false);
+				} else {
+					kv.Close(true);
+				}
             }
         }
 
@@ -170,7 +174,11 @@ namespace RazorUtil {
             try {
                 kv.RemoveOrphanedPages();
             } finally {
-                kv.Close(false);
+				if (kv.FastClose = false) {
+					kv.Close(false);
+				} else {
+					kv.Close(true);
+				}
             }
         }
 
@@ -191,6 +199,5 @@ namespace RazorUtil {
                 Console.WriteLine("{0} => {1}", pair.Key.ToString(), pair.Value.ToString());
             }
         }
-
     }
 }
