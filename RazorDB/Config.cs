@@ -73,7 +73,8 @@ namespace RazorDB {
                 _logger = value;
             }
         }
-        public static void LogMessage(string msg, bool err = false) {
+        public static void LogMessage(string msg, bool err) {
+			err = false;
 #if DEBUG
             if (Logger != null)
                 Logger(msg);

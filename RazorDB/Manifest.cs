@@ -459,6 +459,7 @@ namespace RazorDB {
                 _manifests.AddLast(m);
             } catch (Exception ex) {
                 LogMessage("Error reading manifest file: {0}", _baseFileName);
+				ex.GetBaseException();
             } finally {
                 reader.Close();
             }
