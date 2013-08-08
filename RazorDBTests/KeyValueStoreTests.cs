@@ -857,7 +857,7 @@ namespace RazorDBTests {
         [Test]
         public void BulkSetEnumerateAllWithMissingSBT_ThrowAll() {
 
-            string path = Path.GetFullPath("TestData\\BulkSetEnumerateAllWithMissingSBT_ThrowAll");
+            string path = Path.GetFullPath("TestData\\BulkSetEnumerateAllWithMissingSBT_ThrowAll"+DateTime.Now.Ticks.ToString());
             var timer = new Stopwatch();
             int totalSize = 0;
             int readSize = 0;
@@ -884,6 +884,7 @@ namespace RazorDBTests {
 
             // Close and re-open the database to force all the sstable merging to complete.
             Console.WriteLine("Begin enumeration.");
+            RazorDB.Config.ExceptionHandling = ExceptionHandling.ThrowAll;
             Assert.Throws(typeof(FileNotFoundException), () => {
                 using (var db = new KeyValueStore(path)) {
                     foreach (var pair in db.Enumerate());
