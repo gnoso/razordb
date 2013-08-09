@@ -83,8 +83,10 @@ namespace RazorDBTests {
             var process = Process.Start(testPath, "CrashTestBeforeMerge");
 
             doneSetting.WaitOne(30000);
-            process.Kill();
-            process.WaitForExit();
+            if (!process.HasExited) {
+                process.Kill();
+                process.WaitForExit();
+            }
 
             // Open the database created by the other program
             using (var db = new KeyValueStore(path)) {
