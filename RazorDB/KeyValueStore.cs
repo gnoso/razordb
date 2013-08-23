@@ -161,6 +161,13 @@ namespace RazorDB {
             }
         }
 
+        public void DropIndex(string indexName) {
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+            if(indexStore != null)
+                indexStore.Truncate();
+        }
+
+
         private void InternalSet(Key k, Value v, IDictionary<string, byte[]> indexedValues) {
             int adds = 10;
             while (!_currentJournaledMemTable.Add(k, v)) {
