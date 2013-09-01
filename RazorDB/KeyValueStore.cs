@@ -293,6 +293,11 @@ namespace RazorDB {
             }
         }
 
+        public int CountIndex(string indexName) {
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+            return indexStore.Enumerate().Count();
+        }
+
         public IEnumerable<KeyValuePair<byte[], byte[]>> Find(string indexName, byte[] lookupValue) {
 
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
