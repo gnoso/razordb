@@ -157,8 +157,9 @@ namespace RazorDB {
             foreach (var pair in pairs) {
                 if (ByteArray.CompareMemCmp(pair.Value, value) == 0)
                     indexStore.Delete(pair.Key);
-                else
-                    break;
+                if (ByteArray.CompareMemCmp(startAt, 0, pair.Key, 0, startAt.Length) == 0)
+                    continue;
+                break;
             }
         }
 
