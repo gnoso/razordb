@@ -150,6 +150,18 @@ namespace RazorDB {
             }
         }
 
+
+        public void RemoveIndexRangeForValue(string indexName, byte[] startAt, byte[] value) {
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+            var pairs = indexStore.EnumerateFromKey(startAt);
+            foreach (var pair in pairs) {
+                if (ByteArray.CompareMemCmp(pair.Value, value) == 0)
+                    indexStore.Delete(pair.Key);
+                else
+                    break;
+            }
+        }
+
         public void CleanIndex(string indexName) {
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
 
@@ -592,6 +604,7 @@ namespace RazorDB {
                 }
             }
         }
+
 
     }
 
