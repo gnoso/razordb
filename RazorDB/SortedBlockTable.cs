@@ -24,7 +24,6 @@ using System.Threading;
 namespace RazorDB {
 
     public enum RecordHeaderFlag { Record = 0xE0, EndOfBlock = 0xFF };
-
     // With this implementation, the maximum sized data that can be stored is ... block size >= keylen + valuelen + (sizecounter - no more than 8 bytes)
     public class SortedBlockTableWriter {
 
@@ -214,7 +213,10 @@ namespace RazorDB {
 
     public class SortedBlockTable {
 
+        private static RazorCache _sbtMetadataCache = new RazorCache();
+
         public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version) {
+            PerformanceCounters.SBTConstructed.Increment();
             _baseFileName = baseFileName;
             _level = level;
             _version = version;
@@ -321,17 +323,21 @@ namespace RazorDB {
             int numBlocks = -1;
 
             try {
-                if (_cache != null) {
-                    mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
+                if (_sbtMetadataCache != null) {
+                    mdBlock = _sbtMetadataCache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
                     if (mdBlock == null) {
                         numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
                         mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                        PerformanceCounters.SBTReadMetadata.Increment();
                         byte[] blockCopy = (byte[])mdBlock.Clone();
-                        _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
+                        _sbtMetadataCache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
+                    } else {
+                        PerformanceCounters.SBTReadMetadataCached.Increment();
                     }
                 } else {
                     numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
                     mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                    PerformanceCounters.SBTReadMetadata.Increment();
                 }
 
                 MemoryStream ms = new MemoryStream(mdBlock);
@@ -367,6 +373,7 @@ namespace RazorDB {
         }
 
         public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out Value value, ExceptionHandling exceptionHandling, Action<string> logger) {
+            PerformanceCounters.SBTLookup.Increment();
             SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
             try {
                 int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
@@ -576,6 +583,7 @@ namespace RazorDB {
         }
 
         public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs, ExceptionHandling exceptionHandling, Action<string> logger) {
+            PerformanceCounters.SBTEnumerateMergedTablesPrecached.Increment();
             var tables = tableSpecs
               .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
               .ToList();

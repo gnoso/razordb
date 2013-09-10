@@ -78,6 +78,7 @@
     <Compile Include="C5\Wrappers.cs" />
     <Compile Include="Cache.cs" />
     <Compile Include="Config.cs" />
+    <Compile Include="PerformanceCounters.cs" />
     <Compile Include="Journal.cs" />
     <Compile Include="JournaledMemTable.cs" />
     <Compile Include="Key.cs" />

@@ -114,6 +114,7 @@ namespace RazorDB {
                 return index;
             }
 
+            PerformanceCounters.SBTGetBlockTableIndex.Increment();
             var sbt = new SortedBlockTable(null, baseName, level, version);
             try {
                 index = sbt.GetIndex();
