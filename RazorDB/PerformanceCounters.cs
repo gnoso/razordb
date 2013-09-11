@@ -43,40 +43,44 @@ namespace RazorDB {
         private static PerformanceCounter _SBTEnumerateMergedTablesPrecached;
         public static PerformanceCounter SBTEnumerateMergedTablesPrecached { get { if (_SBTEnumerateMergedTablesPrecached == null) Initialize(); return _SBTEnumerateMergedTablesPrecached; } }
 
-        private static CounterCreationDataCollection _ccData = new CounterCreationDataCollection();
-        private static PerformanceCounterCategory _pcCategory;
+        private const string perfCategoryName = "RazorDb";
         private static void Initialize() {
-
-            _SBTConstructed = CreatePerformanceCounter("SBT Constructed", "Number of times SBT constructor is called", PerformanceCounterType.NumberOfItems64);
-            _SBTReadMetadata = CreatePerformanceCounter("SBT ReadMetadata", "Number of times ReadMetadata goes to disk", PerformanceCounterType.NumberOfItems64);
-            _SBTReadMetadataCached = CreatePerformanceCounter("SBT ReadMetadata Cached","Number of times ReadMetadata comeds from cache",PerformanceCounterType.NumberOfItems64);
-            _SBTEnumerateFromKey = CreatePerformanceCounter("SBT EnumerateFromKey", "Number of SBT created for EnumerateFromKey", PerformanceCounterType.NumberOfItems64);
-            _SBTGetBlockTableIndex = CreatePerformanceCounter("SBT GetBlockTableIndex", "Number of SBT created for GetBlockTableIndex", PerformanceCounterType.NumberOfItems64);
-            _SBTLookup = CreatePerformanceCounter("SBT Lookup", "Number of SBT created for Lookup", PerformanceCounterType.NumberOfItems64);
-            _SBTEnumerateMergedTablesPrecached = CreatePerformanceCounter("SBT EnumerateMergedTablesPrecached", "Number of SBT created for EnumerateMergedTablesPrecached", PerformanceCounterType.NumberOfItems64);
+            // remove any previous definitions
+            if (PerformanceCounterCategory.Exists(perfCategoryName))
+                PerformanceCounterCategory.Delete(perfCategoryName);
             
+            AddPerformanceCounterData("SBTConstructed", "Number of times SBT constructor is called", PerformanceCounterType.NumberOfItems64);
+            AddPerformanceCounterData("SBTReadMetadata", "Number of times ReadMetadata goes to disk", PerformanceCounterType.NumberOfItems64);
+            AddPerformanceCounterData("SBTReadMetadata Cached","Number of times ReadMetadata comeds from cache",PerformanceCounterType.NumberOfItems64);
+            AddPerformanceCounterData("SBTEnumerateFromKey", "Number of SBT created for EnumerateFromKey", PerformanceCounterType.NumberOfItems64);
+            AddPerformanceCounterData("SBTGetBlockTableIndex", "Number of SBT created for GetBlockTableIndex", PerformanceCounterType.NumberOfItems64);
+            AddPerformanceCounterData("SBTLookup", "Number of SBT created for Lookup", PerformanceCounterType.NumberOfItems64);
+            AddPerformanceCounterData("SBTEnumerateMergedTablesPrecached", "Number of SBT created for EnumerateMergedTablesPrecached", PerformanceCounterType.NumberOfItems64);
+
+            // Create the category and pass the collection to it.
+            System.Diagnostics.PerformanceCounterCategory.Create(
+                perfCategoryName, "Peformance counters for internal operations of RazorDb",
+                PerformanceCounterCategoryType.SingleInstance, _ccData);
+
+            // Create static counter refs
+            _SBTConstructed = new PerformanceCounter(perfCategoryName, "SBTConstructed", false);
+            _SBTEnumerateFromKey = new PerformanceCounter(perfCategoryName, "SBTEnumerateFromKey", false);
+            _SBTEnumerateMergedTablesPrecached = new PerformanceCounter(perfCategoryName, "SBTEnumerateMergedTablesPrecached", false);
+            _SBTGetBlockTableIndex = new PerformanceCounter(perfCategoryName, "SBTGetBlockTableIndex", false);
+            _SBTLookup = new PerformanceCounter(perfCategoryName, "SBTLookup", false);
+            _SBTReadMetadata = new PerformanceCounter(perfCategoryName, "SBTReadMetadata", false);
+            _SBTReadMetadataCached = new PerformanceCounter(perfCategoryName, "SBTReadMetadataCached",false);
+
         }
 
-        private static PerformanceCounter CreatePerformanceCounter(string name, string help, PerformanceCounterType type) {
+        private static CounterCreationDataCollection _ccData = new CounterCreationDataCollection();
+        private static void AddPerformanceCounterData(string name, string help, PerformanceCounterType type) {
             var ccd = new CounterCreationData() {
                 CounterName = name,
                 CounterHelp = help,
                 CounterType = type
             };
             _ccData.Add(ccd);
-
-            // remove any previous definitions
-            if (PerformanceCounterCategory.Exists("RazorDb"))
-                PerformanceCounterCategory.Delete("RazorDb");
-
-            // Create the category and pass the collection to it.
-            _pcCategory = System.Diagnostics.PerformanceCounterCategory.Create(
-                "RazorDb", "Peformance counters for internal operations of RazorDb",
-                PerformanceCounterCategoryType.SingleInstance, _ccData);
-
-            var pc = new PerformanceCounter("RazorDb", name, false);
-            pc.RawValue = 0L;
-            return pc;
         }
     }
 }
