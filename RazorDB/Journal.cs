@@ -88,9 +88,11 @@ namespace RazorDB {
                     if (key.Length != keyLen)
                         throw new InvalidOperationException();
                     int valueLen = _reader.Read7BitEncodedInt();
+                    if (valueLen <= 0)
+                        throw new InvalidOperationException("Value length must be greater than 0.");
                     value = _reader.ReadBytes(valueLen);
-                    if (valueLen <= 0 || valueLen != value.Length)
-                        throw new InvalidOperationException();
+                    if (valueLen != value.Length)
+                        throw new InvalidOperationException("Value length does not match expected data length.");
                 } catch (EndOfStreamException) {
                     data = false;
                 } catch (InvalidOperationException) {
