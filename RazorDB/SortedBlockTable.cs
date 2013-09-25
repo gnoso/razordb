@@ -213,8 +213,6 @@ namespace RazorDB {
 
     public class SortedBlockTable {
 
-        private static RazorCache _sbtMetadataCache = new RazorCache();
-
         public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version) {
             PerformanceCounters.SBTConstructed.Increment();
             _baseFileName = baseFileName;
@@ -323,14 +321,14 @@ namespace RazorDB {
             int numBlocks = -1;
 
             try {
-                if (_sbtMetadataCache != null) {
-                    mdBlock = _sbtMetadataCache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
+                if (_cache != null) {
+                    mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
                     if (mdBlock == null) {
                         numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
                         mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
                         PerformanceCounters.SBTReadMetadata.Increment();
                         byte[] blockCopy = (byte[])mdBlock.Clone();
-                        _sbtMetadataCache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
+                        _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
                     } else {
                         PerformanceCounters.SBTReadMetadataCached.Increment();
                     }
