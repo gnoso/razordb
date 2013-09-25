@@ -44,42 +44,52 @@ namespace RazorDB {
         public static RazorPerformanceCounter SBTEnumerateMergedTablesPrecached { get { if (_SBTEnumerateMergedTablesPrecached == null) Initialize(); return _SBTEnumerateMergedTablesPrecached; } }
 
         private const string perfCategoryName = "RazorDb";
+        private static object _perfCtrLock = new object();
+        private static bool _initialized = false;
         private static void Initialize() {
-            try {
-                // remove any previous definitions
-                if (PerformanceCounterCategory.Exists(perfCategoryName))
-                    PerformanceCounterCategory.Delete(perfCategoryName);
 
-                AddPerformanceCounterData("SBTConstructed", "Number of times SBT constructor is called", PerformanceCounterType.NumberOfItems64);
-                AddPerformanceCounterData("SBTReadMetadata", "Number of times ReadMetadata goes to disk", PerformanceCounterType.NumberOfItems64);
-                AddPerformanceCounterData("SBTReadMetadata Cached", "Number of times ReadMetadata comeds from cache", PerformanceCounterType.NumberOfItems64);
-                AddPerformanceCounterData("SBTEnumerateFromKey", "Number of SBT created for EnumerateFromKey", PerformanceCounterType.NumberOfItems64);
-                AddPerformanceCounterData("SBTGetBlockTableIndex", "Number of SBT created for GetBlockTableIndex", PerformanceCounterType.NumberOfItems64);
-                AddPerformanceCounterData("SBTLookup", "Number of SBT created for Lookup", PerformanceCounterType.NumberOfItems64);
-                AddPerformanceCounterData("SBTEnumerateMergedTablesPrecached", "Number of SBT created for EnumerateMergedTablesPrecached", PerformanceCounterType.NumberOfItems64);
+            lock (_perfCtrLock) {
+                // once entered make sure initialization still needded
+                if (_initialized)
+                    return;
 
                 try {
-                    // Create the category and pass the collection to it.
-                    System.Diagnostics.PerformanceCounterCategory.Create(
-                        perfCategoryName, "Peformance counters for internal operations of RazorDb",
-                        PerformanceCounterCategoryType.SingleInstance, _ccData);
+                    // remove any previous definitions
+                    if (PerformanceCounterCategory.Exists(perfCategoryName))
+                        PerformanceCounterCategory.Delete(perfCategoryName);
+
+                    AddPerformanceCounterData("SBTConstructed", "Number of times SBT constructor is called", PerformanceCounterType.NumberOfItems64);
+                    AddPerformanceCounterData("SBTReadMetadata", "Number of times ReadMetadata goes to disk", PerformanceCounterType.NumberOfItems64);
+                    AddPerformanceCounterData("SBTReadMetadata Cached", "Number of times ReadMetadata comeds from cache", PerformanceCounterType.NumberOfItems64);
+                    AddPerformanceCounterData("SBTEnumerateFromKey", "Number of SBT created for EnumerateFromKey", PerformanceCounterType.NumberOfItems64);
+                    AddPerformanceCounterData("SBTGetBlockTableIndex", "Number of SBT created for GetBlockTableIndex", PerformanceCounterType.NumberOfItems64);
+                    AddPerformanceCounterData("SBTLookup", "Number of SBT created for Lookup", PerformanceCounterType.NumberOfItems64);
+                    AddPerformanceCounterData("SBTEnumerateMergedTablesPrecached", "Number of SBT created for EnumerateMergedTablesPrecached", PerformanceCounterType.NumberOfItems64);
+
+                    try {
+                        // Create the category and pass the collection to it.
+                        System.Diagnostics.PerformanceCounterCategory.Create(
+                            perfCategoryName, "Peformance counters for internal operations of RazorDb",
+                            PerformanceCounterCategoryType.SingleInstance, _ccData);
+                    } catch {
+                        // not sure what to do with this exception.
+                        // have only seen an exception here when
+                    }
                 } catch {
-                    // not sure what to do with this exception.
-                    // have only seen an exception here when
+                    // exception at this level probably means lack of permissions
                 }
-            } catch {
-                // exception at this level probably means lack of permissions
+
+                // Create static counter refs
+                _SBTConstructed = new RazorPerformanceCounter(perfCategoryName, "SBTConstructed", false);
+                _SBTEnumerateFromKey = new RazorPerformanceCounter(perfCategoryName, "SBTEnumerateFromKey", false);
+                _SBTEnumerateMergedTablesPrecached = new RazorPerformanceCounter(perfCategoryName, "SBTEnumerateMergedTablesPrecached", false);
+                _SBTGetBlockTableIndex = new RazorPerformanceCounter(perfCategoryName, "SBTGetBlockTableIndex", false);
+                _SBTLookup = new RazorPerformanceCounter(perfCategoryName, "SBTLookup", false);
+                _SBTReadMetadata = new RazorPerformanceCounter(perfCategoryName, "SBTReadMetadata", false);
+                _SBTReadMetadataCached = new RazorPerformanceCounter(perfCategoryName, "SBTReadMetadataCached", false);
+
+                _initialized = true;
             }
-
-            // Create static counter refs
-            _SBTConstructed = new RazorPerformanceCounter(perfCategoryName, "SBTConstructed", false);
-            _SBTEnumerateFromKey = new RazorPerformanceCounter(perfCategoryName, "SBTEnumerateFromKey", false);
-            _SBTEnumerateMergedTablesPrecached = new RazorPerformanceCounter(perfCategoryName, "SBTEnumerateMergedTablesPrecached", false);
-            _SBTGetBlockTableIndex = new RazorPerformanceCounter(perfCategoryName, "SBTGetBlockTableIndex", false);
-            _SBTLookup = new RazorPerformanceCounter(perfCategoryName, "SBTLookup", false);
-            _SBTReadMetadata = new RazorPerformanceCounter(perfCategoryName, "SBTReadMetadata", false);
-            _SBTReadMetadataCached = new RazorPerformanceCounter(perfCategoryName, "SBTReadMetadataCached", false);
-
         }
 
 
@@ -111,8 +121,12 @@ namespace RazorDB {
         }
 
         public void Increment() {
-            if (_perfCtr != null)
-                _perfCtr.Increment();
+            try {
+                if (_perfCtr != null)
+                    _perfCtr.Increment();
+            } catch(Exception ex) {
+                 //don't let perf counter increment interfere with any operation
+            }
         }
     }
 
