@@ -458,7 +458,7 @@ namespace RazorDB {
                 m.ReadManifestContents(reader);
                 _manifests.AddLast(m);
             } catch (Exception ex) {
-                LogMessage("Error reading manifest file: {0}", _baseFileName);
+                LogMessage("Error reading manifest file: {0} - {1}", _baseFileName, ex.Message);
             } finally {
                 reader.Close();
             }

@@ -124,7 +124,7 @@ namespace RazorDB {
             try {
                 if (_perfCtr != null)
                     _perfCtr.Increment();
-            } catch(Exception ex) {
+            } catch(Exception) {
                  //don't let perf counter increment interfere with any operation
             }
         }
