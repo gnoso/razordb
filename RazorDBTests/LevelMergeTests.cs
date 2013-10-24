@@ -108,10 +108,10 @@ namespace RazorDBTests {
                 totalData += mt.Size;
             }
             var tables = new List<IEnumerable<KeyValuePair<Key, Value>>>();
-            var sbts = new List<SortedBlockTable>();
+            var sbts = new List<SortedBlockTableRaw>();
             var cache = new RazorCache();
             for (int j = 0; j < num_tables_to_merge; j++) {
-                var sbt = new SortedBlockTable(cache, "TestData\\LevelMergeReadTest", 0, j);
+                var sbt = new SortedBlockTableRaw(cache, "TestData\\LevelMergeReadTest", 0, j);
                 tables.Add(sbt.Enumerate());
                 sbts.Add(sbt);
             }
@@ -250,7 +250,7 @@ namespace RazorDBTests {
             timer.Stop();
 
             // Open the block table and scan it to check the stored values
-            var sbt = new SortedBlockTable(cache, mf.BaseFileName, 1, 1);
+            var sbt = new SortedBlockTableRaw(cache, mf.BaseFileName, 1, 1);
             try {
                 var pairs = sbt.Enumerate().ToList();
                 Assert.AreEqual(100, pairs.Count());

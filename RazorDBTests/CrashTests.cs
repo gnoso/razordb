@@ -83,6 +83,7 @@ namespace RazorDBTests {
             var process = Process.Start(testPath, "CrashTestBeforeMerge");
 
             doneSetting.WaitOne(30000);
+            process.Refresh();
             if (!process.HasExited) {
                 process.Kill();
                 process.WaitForExit();

@@ -139,7 +139,7 @@ namespace RazorUtil {
 
                 Console.WriteLine("Level: {0} Version: {1}", level, version);
 
-                var tablefile = new SortedBlockTable(cache, baseDir, level, version);
+                var tablefile = new SortedBlockTableRaw(cache, baseDir, level, version);
                 try {
                     tablefile.ScanCheck();
                 } finally {
@@ -176,7 +176,7 @@ namespace RazorUtil {
 
         static void DumpFile(string baseDir, int level, int version) {
             RazorCache cache = new RazorCache();
-            var tablefile = new SortedBlockTable(cache, baseDir, level, version);
+            var tablefile = new SortedBlockTableRaw(cache, baseDir, level, version);
             try {
                 tablefile.DumpContents(msg => Console.WriteLine(msg));
             } finally {

@@ -211,9 +211,147 @@ namespace RazorDB {
         }
     }
 
-    public class SortedBlockTable {
 
-        public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version) {
+    public class SortedBlockTable : SortedBlockTableRaw {
+
+        public class SortedBlockTableEnumerable : IEnumerable<KeyValuePair<Key, Value>> {
+            private SortedBlockTableEnumerator<Key, Value> Enumerator;
+            public SortedBlockTableEnumerable(Func<IEnumerator<KeyValuePair<Key, Value>>> enumeratorCallback, Key firstKey) {
+                Enumerator = new SortedBlockTableEnumerator<Key, Value>(enumeratorCallback, firstKey);
+
+
+            }
+
+            public IEnumerator<KeyValuePair<Key, Value>> GetEnumerator() {
+                return Enumerator;
+            }
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
+        }
+
+        public class SortedBlockTableEnumerator<Key, Value> : IEnumerator<KeyValuePair<Key, Value>> {
+            private IEnumerator<KeyValuePair<Key, Value>> Enumerator = null;
+            private Key FirstKey;
+            private object _firstValueLock = new object();
+            private Func<IEnumerator<KeyValuePair<Key, Value>>> EnumeratorCallback;
+
+            public SortedBlockTableEnumerator(Func<IEnumerator<KeyValuePair<Key, Value>>> enumeratorCallback, Key firstKey) {
+                FirstKey = firstKey;
+                EnumeratorCallback = enumeratorCallback;
+            }
+
+            private Value _triggerValue {
+                get {
+                    if (Enumerator == null) {
+                        lock (_firstValueLock) {
+                            if (Enumerator == null) {
+                                Enumerator = EnumeratorCallback();
+                                Enumerator.MoveNext();
+                            }
+                        }
+                    }
+                    return Enumerator.Current.Value;
+                }
+            }
+
+            public KeyValuePair<Key, Value> Current {
+                get {
+                    if (Enumerator == null)
+                        return new KeyValuePair<Key, Value>(FirstKey, _triggerValue);
+                    else
+                        return Enumerator.Current;
+                }
+            }
+
+            public void Dispose() {
+                if (Enumerator != null)
+                    Enumerator.Dispose();
+            }
+
+            object System.Collections.IEnumerator.Current {
+                get { return Current; }
+            }
+
+            public bool MoveNext() {
+                if (Enumerator == null)
+                    return true;
+
+                return Enumerator.MoveNext();
+            }
+
+            public void Reset() {
+                Enumerator = null;
+            }
+        }
+
+
+        private object _metdataLock = new object();
+        private bool _metaDataLoaded = false;
+        private Key _firstKey;
+        private string _sbtFileName;
+        public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version, Key firstKey) {
+            _sbtFileName = Config.SortedBlockTableFile(baseFileName, level, version);
+
+            PerformanceCounters.SBTConstructed.Increment();
+            _baseFileName = baseFileName;
+            _level = level;
+            _version = version;
+            _cache = cache;
+            _path = Config.SortedBlockTableFile(baseFileName, level, version);
+            _firstKey = firstKey;
+        }
+
+        private void EnsureMetadataRead() {
+            lock (_metdataLock) {
+                if (_metaDataLoaded == false)
+                    ReadMetadata();
+                _metaDataLoaded = true;
+            }
+        }
+
+        public override void Close() {
+            base.Close();
+        }
+
+        public override void DumpContents(Action<string> msg) {
+            EnsureMetadataRead();
+            base.DumpContents(msg);
+        }
+
+        public override IEnumerable<KeyValuePair<Key, Value>> EnumerateFromKey(RazorCache indexCache, Key key) {
+            if (!File.Exists(_sbtFileName))
+                throw new FileNotFoundException("Missing Sorted Block Table File: " + _sbtFileName);
+
+            return new SortedBlockTableEnumerable(new Func<IEnumerator<KeyValuePair<Key, Value>>>(() => {
+                EnsureMetadataRead();
+                return base.EnumerateFromKey(indexCache, key).GetEnumerator();
+            }), _firstKey);
+        }
+
+        public override void ScanCheck() {
+            EnsureMetadataRead();
+            base.ScanCheck();
+        }
+
+        public override IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
+            EnsureMetadataRead();
+            return base.Enumerate();
+        }
+
+        public override IEnumerable<Key> EnumerateIndex() {
+            EnsureMetadataRead();
+            return base.EnumerateIndex();
+        }
+
+    }
+
+
+
+    public class SortedBlockTableRaw {
+        protected SortedBlockTableRaw() { } // used for dervied class
+        public SortedBlockTableRaw(RazorCache cache, string baseFileName, int level, int version) {
             PerformanceCounters.SBTConstructed.Increment();
             _baseFileName = baseFileName;
             _level = level;
@@ -222,11 +360,11 @@ namespace RazorDB {
             _path = Config.SortedBlockTableFile(baseFileName, level, version);
             ReadMetadata();
         }
-        private string _path;
+        protected string _path;
 
-        private bool FileExists = true;
-        private FileStream _fileStream;
-        private FileStream internalFileStream {
+        protected bool FileExists = true;
+        protected FileStream _fileStream;
+        protected FileStream internalFileStream {
             get {
                 if (!FileExists || _fileStream != null)
                     return _fileStream;
@@ -235,13 +373,13 @@ namespace RazorDB {
             }
         }
 
-        private string _baseFileName;
-        private int _level;
-        private int _version;
-        private int _dataBlocks;
-        private int _indexBlocks;
-        private int _totalBlocks;
-        private RazorCache _cache;
+        protected string _baseFileName;
+        protected int _level;
+        protected int _version;
+        protected int _dataBlocks;
+        protected int _indexBlocks;
+        protected int _totalBlocks;
+        protected RazorCache _cache;
 
         private void SwapBlocks(byte[] blockA, byte[] blockB, ref byte[] current) {
             if (!FileExists) return;
@@ -316,7 +454,7 @@ namespace RazorDB {
             return threadAllocBlock;
         }
 
-        private void ReadMetadata() {
+        protected virtual void ReadMetadata() {
             byte[] mdBlock = null;
             int numBlocks = -1;
 
@@ -372,7 +510,7 @@ namespace RazorDB {
 
         public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out Value value, ExceptionHandling exceptionHandling, Action<string> logger) {
             PerformanceCounters.SBTLookup.Increment();
-            SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
+            var sbt = new SortedBlockTableRaw(cache, baseFileName, level, version);
             try {
                 int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
@@ -386,7 +524,7 @@ namespace RazorDB {
             return false;
         }
 
-        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, Key key) {
+        protected static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, Key key) {
             Key[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
             int dataBlockNum = Array.BinarySearch(index, key);
             if (dataBlockNum < 0) {
@@ -395,11 +533,11 @@ namespace RazorDB {
             return dataBlockNum;
         }
 
-        public IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
+        public virtual IEnumerable<KeyValuePair<Key, Value>> Enumerate() {
             return EnumerateFromKey(_cache, Key.Empty);
         }
 
-        public IEnumerable<KeyValuePair<Key, Value>> EnumerateFromKey(RazorCache indexCache, Key key) {
+        public virtual IEnumerable<KeyValuePair<Key, Value>> EnumerateFromKey(RazorCache indexCache, Key key) {
             if (!FileExists)
                 yield break;
 
@@ -460,7 +598,7 @@ namespace RazorDB {
 
         }
 
-        private IEnumerable<Key> EnumerateIndex() {
+        public virtual IEnumerable<Key> EnumerateIndex() {
             if (!FileExists)
                 yield break;
 
@@ -583,7 +721,7 @@ namespace RazorDB {
         public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs, ExceptionHandling exceptionHandling, Action<string> logger) {
             PerformanceCounters.SBTEnumerateMergedTablesPrecached.Increment();
             var tables = tableSpecs
-              .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
+              .Select(pageRef => new SortedBlockTableRaw(cache, baseFileName, pageRef.Level, pageRef.Version))
               .ToList();
             try {
                 foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate().ToList().AsEnumerable()), t => t.Key)) {
@@ -641,7 +779,7 @@ namespace RazorDB {
             return string.Concat(block.Skip(start).Take(length).Select((b) => b.ToString("X2")).ToArray());
         }
 
-        public void DumpContents(Action<string> msg) {
+        public virtual void DumpContents(Action<string> msg) {
             msg(string.Format("Path: {0}", _path));
             msg(string.Format("BaseFileName: {0} Level: {1} Version: {2}", _baseFileName, _level, _version));
             msg(string.Format("Data Blocks: {0}\nIndex Blocks: {1}\nTotal Blocks: {2}", _dataBlocks, _indexBlocks, _totalBlocks));
@@ -682,7 +820,7 @@ namespace RazorDB {
             }
         }
 
-        public void ScanCheck() {
+        public virtual void ScanCheck() {
 
             long totalKeyBytes = 0;
             long totalValueBytes = 0;
@@ -733,7 +871,7 @@ namespace RazorDB {
 
         }
 
-        public void Close() {
+        public virtual void Close() {
             if (_fileStream != null) {
                 _fileStream.Close();
             }

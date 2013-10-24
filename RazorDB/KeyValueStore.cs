@@ -393,7 +393,7 @@ namespace RazorDB {
                             .OrderByDescending(page => page.Version)
                             .Select(page => {
                                 PerformanceCounters.SBTEnumerateFromKey.Increment();
-                                return new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version);
+                                return new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version, page.FirstKey);
                             });
                         tables.AddRange(pages);
                     }
