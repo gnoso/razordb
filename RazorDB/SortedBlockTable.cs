@@ -218,8 +218,6 @@ namespace RazorDB {
             private SortedBlockTableEnumerator<Key, Value> Enumerator;
             public SortedBlockTableEnumerable(Func<IEnumerator<KeyValuePair<Key, Value>>> enumeratorCallback, Key firstKey) {
                 Enumerator = new SortedBlockTableEnumerator<Key, Value>(enumeratorCallback, firstKey);
-
-
             }
 
             public IEnumerator<KeyValuePair<Key, Value>> GetEnumerator() {
@@ -293,6 +291,13 @@ namespace RazorDB {
         private string _sbtFileName;
         public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version, Key firstKey) {
             _sbtFileName = Config.SortedBlockTableFile(baseFileName, level, version);
+            if (!File.Exists(_sbtFileName)) {
+                var ex = new FileNotFoundException("Missing Sorted Block Table File: " + _sbtFileName);
+                if (Config.ExceptionHandling == ExceptionHandling.ThrowAll)
+                    throw ex;
+                else
+                    HandleEmptySortedBlockTable(ex);
+            }
 
             PerformanceCounters.SBTConstructed.Increment();
             _baseFileName = baseFileName;
@@ -321,9 +326,6 @@ namespace RazorDB {
         }
 
         public override IEnumerable<KeyValuePair<Key, Value>> EnumerateFromKey(RazorCache indexCache, Key key) {
-            if (!File.Exists(_sbtFileName))
-                throw new FileNotFoundException("Missing Sorted Block Table File: " + _sbtFileName);
-
             return new SortedBlockTableEnumerable(new Func<IEnumerator<KeyValuePair<Key, Value>>>(() => {
                 EnsureMetadataRead();
                 return base.EnumerateFromKey(indexCache, key).GetEnumerator();
@@ -500,7 +502,7 @@ namespace RazorDB {
             }
         }
 
-        private void HandleEmptySortedBlockTable(Exception ex) {
+        protected void HandleEmptySortedBlockTable(Exception ex) {
             _totalBlocks = 0;
             _dataBlocks = 0;
             _indexBlocks = 0;
