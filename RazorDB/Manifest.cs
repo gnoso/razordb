@@ -90,6 +90,10 @@ namespace RazorDB {
             return index < 0 ? null : _pages[level][index];
         }
 
+        public PageRecord FindPageForIndex(int level, int index) {
+            return (index < 0) || (index >= _pages[level].Count()) ? null : _pages[level][index];
+        }
+
         public PageRecord[] FindPagesForKeyRange(int level, Key startKey, Key endKey) {
             if (level >= MaxLevels)
                 throw new IndexOutOfRangeException();
@@ -490,12 +494,12 @@ namespace RazorDB {
         private Action<string> _logger;
         public Action<string> Logger {
             get { return _logger; }
-            set { _logger = value; } 
+            set { _logger = value; }
         }
 
         public void LogMessage(string format, params object[] parms) {
             if (Logger != null) {
-                Logger( string.Format(format, parms));   
+                Logger(string.Format(format, parms));
             }
         }
 

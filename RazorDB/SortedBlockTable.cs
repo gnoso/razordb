@@ -211,6 +211,106 @@ namespace RazorDB {
         }
     }
 
+    public class TableEnumerator : IEnumerator<KeyValuePair<Key, Value>> {
+
+        public static IEnumerable<KeyValuePair<Key, Value>> Enumerate(int level, RazorCache rzrCache, string baseFileName, ManifestImmutable mft, Key key) {
+            var enumerator = new TableEnumerator(level, rzrCache, baseFileName, mft, key);
+            while (enumerator.MoveNext())
+                yield return enumerator.Current;
+        }
+
+        private object _enLock = new object();
+        private IEnumerator<KeyValuePair<Key, Value>> _curEnumerator = null;
+        private RazorCache Cache;
+        private String BaseFileName;
+        private ManifestImmutable manifest;
+        private Key StartKey;
+        private int Level;
+        private int StartPageIndex;
+        private int NextPageIndex;
+        private bool done;
+
+        public TableEnumerator(int level, RazorCache rzrCache, string baseFileName, ManifestImmutable mft, Key key) {
+            Cache = rzrCache;
+            BaseFileName = baseFileName;
+            manifest = mft;
+            StartKey = key;
+            Level = level;
+            done = false;
+
+            var firstPage = manifest.FindPageForIndex(level, 0);
+            if (firstPage != null && key.CompareTo(firstPage.FirstKey) < 0) {
+                StartPageIndex = 0;
+            } else {
+                StartPageIndex = manifest.FindPageIndexForKey(Level, StartKey);
+            }
+
+            InitEnumerator();
+        }
+
+        object System.Collections.IEnumerator.Current { get { return Current; } }
+        public KeyValuePair<Key, Value> Current {
+            get {
+                if (_curEnumerator == null)
+                    throw new InvalidOperationException("Current called on initialized enumerator.");
+                return _curEnumerator.Current;
+            }
+        }
+
+        public void Dispose() { }
+
+        public bool MoveNext() {
+            lock (_enLock) {
+                if (_curEnumerator == null)
+                    return false;
+
+                while (!_curEnumerator.MoveNext()) {
+                    _curEnumerator = GetEnumerator();
+                    if (done)
+                        return false;
+                }
+
+                return true;
+            }
+        }
+
+        private void InitEnumerator() {
+            lock (_enLock) {
+                NextPageIndex = StartPageIndex;
+                if (StartPageIndex < 0) {
+                    _curEnumerator = null;
+                } else {
+                    _curEnumerator = GetEnumerator();
+                }
+            }
+        }
+
+        private IEnumerator<KeyValuePair<Key, Value>> GetEnumerator() {
+            if (NextPageIndex < 0) {
+                done = true;
+                yield break;
+            }
+
+            PageRecord page = manifest.FindPageForIndex(Level, NextPageIndex++);
+
+            if (page == null) {
+                done = true;
+                yield break;
+            }
+
+            var sbt = new SortedBlockTable(Cache, BaseFileName, page.Level, page.Version);
+
+            foreach (var pair in sbt.EnumerateFromKey(Cache, StartKey))
+                yield return pair;
+
+            sbt.Close();
+        }
+
+        public void Reset() {
+            InitEnumerator();
+        }
+    }
+
     public class SortedBlockTable {
 
         public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version) {

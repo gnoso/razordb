@@ -176,7 +176,7 @@ namespace RazorDB {
 
         public void DropIndex(string indexName) {
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
-            if(indexStore != null)
+            if (indexStore != null)
                 indexStore.Truncate();
         }
 
@@ -379,34 +379,33 @@ namespace RazorDB {
             // Select main MemTable
             enumerators.Add(_currentJournaledMemTable.EnumerateSnapshotFromKey(key));
 
-            if (rotatedMemTable != null) {
+            if (rotatedMemTable != null)
                 enumerators.Add(rotatedMemTable.EnumerateSnapshotFromKey(key));
-            }
 
             // Now check the files on disk
             using (var manifestSnapshot = _manifest.GetLatestManifest()) {
-
-                List<SortedBlockTable> tables = new List<SortedBlockTable>();
+                List<SortedBlockTable> pages = new List<SortedBlockTable>();
                 try {
-                    for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
-                        var pages = manifestSnapshot.GetPagesAtLevel(i)
-                            .OrderByDescending(page => page.Version)
-                            .Select(page => {
-                                PerformanceCounters.SBTEnumerateFromKey.Increment();
-                                return new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version);
-                            });
-                        tables.AddRange(pages);
-                    }
-                    enumerators.AddRange(tables.Select(t => t.EnumerateFromKey(_cache, key)));
+                    pages.AddRange(manifestSnapshot.GetPagesAtLevel(0)
+                        .OrderByDescending(page => page.Version)
+                        .Select(page => {
+                            PerformanceCounters.SBTEnumerateFromKey.Increment();
+                            return new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version);
+                        }));
+                    pages.ForEach(p => enumerators.Add(p.EnumerateFromKey(_cache, key)));
 
-                    foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key)) {
+                    for (int i = 1; i < manifestSnapshot.NumLevels; i++)
+                        enumerators.Add(TableEnumerator.Enumerate(i, _cache, _manifest.BaseFileName, manifestSnapshot, key));
+
+                    foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key))
                         yield return pair;
-                    }
+
                 } finally {
                     // make sure all the tables get closed
-                    tables.ForEach(table => table.Close());
+                    pages.ForEach(table => table.Close());
                 }
             }
+
         }
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> EnumerateFromKey(byte[] startingKey) {
