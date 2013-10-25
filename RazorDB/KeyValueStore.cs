@@ -253,14 +253,14 @@ namespace RazorDB {
                 // Must check all pages on level 0
                 var zeroPages = manifest.GetPagesAtLevel(0).OrderByDescending((page) => page.Version);
                 foreach (var page in zeroPages) {
-                    if (SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _exceptionHandling, _manifest.Logger)) {
+                    if (SortedBlockTableDelayLoad.Lookup(_manifest.BaseFileName, page.Level, page.Version, page.FirstKey, _cache, lookupKey, out output, _exceptionHandling, _manifest.Logger)) {
                         return output;
                     }
                 }
                 // If not found, must check pages on the higher levels, but we can use the page index to make the search quicker
                 for (int level = 1; level < manifest.NumLevels; level++) {
                     var page = manifest.FindPageForKey(level, lookupKey);
-                    if (page != null && SortedBlockTable.Lookup(_manifest.BaseFileName, page.Level, page.Version, _cache, lookupKey, out output, _exceptionHandling, _manifest.Logger)) {
+                    if (page != null && SortedBlockTableDelayLoad.Lookup(_manifest.BaseFileName, page.Level, page.Version, page.FirstKey,_cache, lookupKey, out output, _exceptionHandling, _manifest.Logger)) {
                         return output;
                     }
                 }
@@ -386,14 +386,14 @@ namespace RazorDB {
             // Now check the files on disk
             using (var manifestSnapshot = _manifest.GetLatestManifest()) {
 
-                List<SortedBlockTable> tables = new List<SortedBlockTable>();
+                List<SortedBlockTableDelayLoad> tables = new List<SortedBlockTableDelayLoad>();
                 try {
                     for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
                         var pages = manifestSnapshot.GetPagesAtLevel(i)
                             .OrderByDescending(page => page.Version)
                             .Select(page => {
                                 PerformanceCounters.SBTEnumerateFromKey.Increment();
-                                return new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version, page.FirstKey);
+                                return new SortedBlockTableDelayLoad(_cache, _manifest.BaseFileName, page.Level, page.Version, page.FirstKey);
                             });
                         tables.AddRange(pages);
                     }

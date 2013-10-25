@@ -86,7 +86,7 @@ namespace RazorDB {
                                 var mergePages = manifestInst.FindPagesForKeyRange(1, startKey, endKey).AsPageRefs().ToList();
                                 var allInputPages = inputPageRecords.AsPageRefs().Concat(mergePages).ToList();
 
-                                var outputPages = SortedBlockTable.MergeTables(cache, manifest, 1, allInputPages, ExceptionHandling.ThrowAll, null).ToList();
+                                var outputPages = SortedBlockTableDelayLoad.MergeTables(cache, manifest, 1, allInputPages, ExceptionHandling.ThrowAll, null).ToList();
                                 manifest.ModifyPages(outputPages, allInputPages);
 
                                 manifest.LogMessage("Merge Level 0 => InputPages: {0} OutputPages:{1}",
@@ -102,7 +102,7 @@ namespace RazorDB {
                                     var mergePages = manifestInst.FindPagesForKeyRange(level + 1, inputPage.FirstKey, inputPage.LastKey).ToList();
                                     var inputPageRecords = mergePages.Concat(new PageRecord[] { inputPage });
                                     var allInputPages = inputPageRecords.AsPageRefs().ToList();
-                                    var outputPages = SortedBlockTable.MergeTables(cache, manifest, level + 1, allInputPages, ExceptionHandling.ThrowAll, null);
+                                    var outputPages = SortedBlockTableDelayLoad.MergeTables(cache, manifest, level + 1, allInputPages, ExceptionHandling.ThrowAll, null);
 
                                     // Notify if a merge happened, implemented for testing primarily
                                     if (kvStore.MergeCallback != null) kvStore.MergeCallback(level, inputPageRecords, outputPages);

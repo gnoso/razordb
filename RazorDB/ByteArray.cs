@@ -120,7 +120,7 @@ namespace RazorDB {
 
         public static ByteArray From(byte[] block, int offset, int size) {
             byte[] bytes = new byte[size];
-            Array.Copy(block, offset, bytes, 0, size);
+            Buffer.BlockCopy(block, offset, bytes, 0, size);
             return new ByteArray(bytes);
         }
     }

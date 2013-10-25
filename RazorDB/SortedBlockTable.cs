@@ -212,7 +212,7 @@ namespace RazorDB {
     }
 
 
-    public class SortedBlockTable : SortedBlockTableRaw {
+    public class SortedBlockTableDelayLoad : SortedBlockTableRaw {
 
         public class SortedBlockTableEnumerable : IEnumerable<KeyValuePair<Key, Value>> {
             private SortedBlockTableEnumerator<Key, Value> Enumerator;
@@ -289,15 +289,15 @@ namespace RazorDB {
         private bool _metaDataLoaded = false;
         private Key _firstKey;
         private string _sbtFileName;
-        public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version, Key firstKey) {
+        public SortedBlockTableDelayLoad(RazorCache cache, string baseFileName, int level, int version, Key firstKey) {
             _sbtFileName = Config.SortedBlockTableFile(baseFileName, level, version);
-            if (!File.Exists(_sbtFileName)) {
-                var ex = new FileNotFoundException("Missing Sorted Block Table File: " + _sbtFileName);
-                if (Config.ExceptionHandling == ExceptionHandling.ThrowAll)
-                    throw ex;
-                else
-                    HandleEmptySortedBlockTable(ex);
-            }
+            //if (!File.Exists(_sbtFileName)) {
+            //    var ex = new FileNotFoundException("Missing Sorted Block Table File: " + _sbtFileName);
+            //    if (Config.ExceptionHandling == ExceptionHandling.ThrowAll)
+            //        throw ex;
+            //    else
+            //        HandleEmptySortedBlockTable(ex);
+            //}
 
             PerformanceCounters.SBTConstructed.Increment();
             _baseFileName = baseFileName;
@@ -421,8 +421,7 @@ namespace RazorDB {
                 internalFileStream.EndRead(async);
                 ablock = (AsyncBlock)async.AsyncState;
                 if (_cache != null) {
-                    var blockCopy = (byte[])ablock.Buffer.Clone();
-                    _cache.SetBlock(_baseFileName, _level, _version, ablock.BlockNum, blockCopy);
+                    _cache.SetBlock(_baseFileName, _level, _version, ablock.BlockNum, (byte[])ablock.Buffer.Clone());
                 }
                 return ablock.Buffer;
             }
@@ -438,8 +437,7 @@ namespace RazorDB {
             internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
             internalFileStream.Read(block, 0, Config.SortedBlockSize);
             if (_cache != null) {
-                var blockCopy = (byte[])block.Clone();
-                _cache.SetBlock(_baseFileName, _level, _version, blockNum, blockCopy);
+                _cache.SetBlock(_baseFileName, _level, _version, blockNum, (byte[])block.Clone());
             }
             return block;
         }
@@ -467,8 +465,7 @@ namespace RazorDB {
                         numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
                         mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
                         PerformanceCounters.SBTReadMetadata.Increment();
-                        byte[] blockCopy = (byte[])mdBlock.Clone();
-                        _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
+                        _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, (byte[])mdBlock.Clone());
                     } else {
                         PerformanceCounters.SBTReadMetadataCached.Increment();
                     }
@@ -510,9 +507,9 @@ namespace RazorDB {
             Config.LogError("ReadMetadata {0}\nException: {1}", _path, ex.Message);
         }
 
-        public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out Value value, ExceptionHandling exceptionHandling, Action<string> logger) {
+        public static bool Lookup(string baseFileName, int level, int version, Key firstKey, RazorCache cache, Key key, out Value value, ExceptionHandling exceptionHandling, Action<string> logger) {
             PerformanceCounters.SBTLookup.Increment();
-            var sbt = new SortedBlockTableRaw(cache, baseFileName, level, version);
+            var sbt = new SortedBlockTableDelayLoad(cache, baseFileName, level, version, firstKey);
             try {
                 int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {

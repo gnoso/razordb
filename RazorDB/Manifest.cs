@@ -510,6 +510,7 @@ namespace RazorDB {
     public struct PageRef : IComparable<PageRef> {
         public int Level;
         public int Version;
+        public Key FirstKey;
 
         // Define the order of pages by the merging priority
         // Higher priority is "less than"
@@ -546,7 +547,7 @@ namespace RazorDB {
             return pages.OrderBy(page => page);
         }
         public static IEnumerable<PageRef> AsPageRefs(this IEnumerable<PageRecord> pageRecords) {
-            return pageRecords.Select(record => new PageRef { Level = record.Level, Version = record.Version });
+            return pageRecords.Select(record => new PageRef { Level = record.Level, Version = record.Version, FirstKey=record.FirstKey });
         }
     }
 
