@@ -220,29 +220,29 @@ namespace RazorDB {
         }
 
         private object _enLock = new object();
-        private IEnumerator<KeyValuePair<Key, Value>> _curEnumerator = null;
+        private IEnumerator<KeyValuePair<Key, Value>> ActiveEnumerator = null;
+        private bool StopEnumerating = false;
         private RazorCache Cache;
         private String BaseFileName;
-        private ManifestImmutable manifest;
+        private ManifestImmutable ActiveManifest;
         private Key StartKey;
         private int Level;
         private int StartPageIndex;
         private int NextPageIndex;
-        private bool done;
 
         public TableEnumerator(int level, RazorCache rzrCache, string baseFileName, ManifestImmutable mft, Key key) {
             Cache = rzrCache;
             BaseFileName = baseFileName;
-            manifest = mft;
+            ActiveManifest = mft;
             StartKey = key;
             Level = level;
-            done = false;
+            StopEnumerating = false;
 
-            var firstPage = manifest.FindPageForIndex(level, 0);
+            var firstPage = ActiveManifest.FindPageForIndex(level, 0);
             if (firstPage != null && key.CompareTo(firstPage.FirstKey) < 0) {
                 StartPageIndex = 0;
             } else {
-                StartPageIndex = manifest.FindPageIndexForKey(Level, StartKey);
+                StartPageIndex = ActiveManifest.FindPageIndexForKey(Level, StartKey);
             }
 
             InitEnumerator();
@@ -251,50 +251,47 @@ namespace RazorDB {
         object System.Collections.IEnumerator.Current { get { return Current; } }
         public KeyValuePair<Key, Value> Current {
             get {
-                if (_curEnumerator == null)
+                if (ActiveEnumerator == null)
                     throw new InvalidOperationException("Current called on initialized enumerator.");
-                return _curEnumerator.Current;
+                return ActiveEnumerator.Current;
             }
         }
 
         public void Dispose() { }
 
         public bool MoveNext() {
-            lock (_enLock) {
-                if (_curEnumerator == null)
+            if (ActiveEnumerator == null)
+                return false;
+
+            while (!ActiveEnumerator.MoveNext()) {
+                lock (_enLock)
+                    ActiveEnumerator = GetEnumerator();
+                if (StopEnumerating)
                     return false;
-
-                while (!_curEnumerator.MoveNext()) {
-                    _curEnumerator = GetEnumerator();
-                    if (done)
-                        return false;
-                }
-
-                return true;
             }
+
+            return true;
         }
 
         private void InitEnumerator() {
-            lock (_enLock) {
-                NextPageIndex = StartPageIndex;
-                if (StartPageIndex < 0) {
-                    _curEnumerator = null;
-                } else {
-                    _curEnumerator = GetEnumerator();
-                }
+            NextPageIndex = StartPageIndex;
+            if (StartPageIndex < 0) {
+                ActiveEnumerator = null;
+            } else {
+                ActiveEnumerator = GetEnumerator();
             }
         }
 
         private IEnumerator<KeyValuePair<Key, Value>> GetEnumerator() {
             if (NextPageIndex < 0) {
-                done = true;
+                StopEnumerating = true;
                 yield break;
             }
 
-            PageRecord page = manifest.FindPageForIndex(Level, NextPageIndex++);
+            PageRecord page = ActiveManifest.FindPageForIndex(Level, NextPageIndex++);
 
             if (page == null) {
-                done = true;
+                StopEnumerating = true;
                 yield break;
             }
 
