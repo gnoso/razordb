@@ -289,15 +289,13 @@ namespace RazorDB {
         }
 
         public void Dispose() {
-            System.Threading.ThreadPool.QueueUserWorkItem((unused) => {
-                foreach (var level in _pages) {
-                    foreach (var page in level) {
-                        int count = page.Release();
-                        if (count == 0)
-                            _manifest.NotifyPageReleased(page);
-                    }
+            foreach (var level in _pages) {
+                foreach (var page in level) {
+                    int count = page.Release();
+                    if (count == 0)
+                        _manifest.NotifyPageReleased(page);
                 }
-            });
+            }
         }
     }
 
