@@ -296,11 +296,12 @@ namespace RazorDB {
             }
 
             var sbt = new SortedBlockTable(Cache, BaseFileName, page.Level, page.Version);
-
-            foreach (var pair in sbt.EnumerateFromKey(Cache, StartKey))
-                yield return pair;
-
-            sbt.Close();
+            try {
+                foreach (var pair in sbt.EnumerateFromKey(Cache, StartKey))
+                    yield return pair;
+            } finally {
+                sbt.Close();
+            }
         }
 
         public void Reset() {
@@ -714,21 +715,24 @@ namespace RazorDB {
                 writer = null;
             };
 
-            foreach (var pair in EnumerateMergedTablesPreCached(cache, mf.BaseFileName, orderedTableSpecs, exceptionHandling, logger)) {
-                if (writer == null) {
-                    OpenPage(pair);
+            try {
+                foreach (var pair in EnumerateMergedTablesPreCached(cache, mf.BaseFileName, orderedTableSpecs, exceptionHandling, logger)) {
+                    if (writer == null) {
+                        OpenPage(pair);
+                    }
+                    if (writer.WrittenSize >= Config.MaxSortedBlockTableSize || (!maxKey.IsEmpty && pair.Key.CompareTo(maxKey) >= 0)) {
+                        ClosePage();
+                    }
+                    if (writer == null) {
+                        OpenPage(pair);
+                    }
+                    writer.WritePair(pair.Key, pair.Value);
+                    lastKey = pair.Key;
                 }
-                if (writer.WrittenSize >= Config.MaxSortedBlockTableSize || (!maxKey.IsEmpty && pair.Key.CompareTo(maxKey) >= 0)) {
+            } finally {
+                if (writer != null) {
                     ClosePage();
                 }
-                if (writer == null) {
-                    OpenPage(pair);
-                }
-                writer.WritePair(pair.Key, pair.Value);
-                lastKey = pair.Key;
-            }
-            if (writer != null) {
-                ClosePage();
             }
 
             return outputTables;
