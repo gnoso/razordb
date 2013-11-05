@@ -90,6 +90,12 @@ namespace RazorDB {
                 _hash.Remove(cacheEntry.Key);
             }
         }
+
+        internal void Clear() {
+            _list.Clear();
+            _hash.Clear();
+            _currentSize = 0;
+        }
     }
     
     public class RazorCache {
@@ -142,6 +148,11 @@ namespace RazorDB {
                 if (Config.Logger != null)
                     Config.Logger(string.Format("RazorCache.SetBlock Failed: {0}\nException: {1}", baseName, ex.Message));
             }
+        }
+
+        public void Clear() {
+            _blockDataCache.Clear();
+            _blockIndexCache.Clear();
         }
     }
 }
