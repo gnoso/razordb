@@ -243,8 +243,7 @@ namespace RazorDBTests {
             }
         }
 
-        //[Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")]
-        [Test, Ignore]
+        [Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")]
         public void RotationShutdownRaceTest() {
 
             // Test to be sure that the rotation page has definitely been written by the time we exit the dispose region (the db must wait for that to occur).
@@ -270,8 +269,7 @@ namespace RazorDBTests {
             }
         }
 
-        //[Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")]
-        [Test, Ignore]
+        [Test, Explicit("Success depends on a race condition happening. Too unreliable for regular use.")]
         public void RotationReadRaceTest() {
 
             string path = Path.GetFullPath("TestData\\RotationReadRaceTest");
