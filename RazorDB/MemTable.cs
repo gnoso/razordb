@@ -63,15 +63,10 @@ namespace RazorDB {
 
             lock (_tableLock) {
                 SortedBlockTableWriter tableWriter = null;
-                try {
-                    tableWriter = new SortedBlockTableWriter(baseFileName, level, version);
-
+                using(tableWriter = new SortedBlockTableWriter(baseFileName, level, version)) {
                     foreach ( var pair in this.Enumerate() ) {
                         tableWriter.WritePair(pair.Key, pair.Value);
                     }
-                } finally {
-                    if (tableWriter != null)
-                        tableWriter.Close();
                 }
             }
         }

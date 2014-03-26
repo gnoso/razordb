@@ -25,8 +25,7 @@ namespace RazorDB {
 
     public enum RecordHeaderFlag { Record = 0xE0, EndOfBlock = 0xFF };
     // With this implementation, the maximum sized data that can be stored is ... block size >= keylen + valuelen + (sizecounter - no more than 8 bytes)
-    public class SortedBlockTableWriter {
-
+    public class SortedBlockTableWriter : IDisposable {
         public SortedBlockTableWriter(string baseFileName, int level, int version) {
             string fileName = Config.SortedBlockTableFile(baseFileName, level, version);
             _fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write, FileShare.None, Config.SortedBlockSize, Config.SortedBlockTableFileOptions);
@@ -194,18 +193,25 @@ namespace RazorDB {
         }
 
         public void Close() {
+            Dispose();
+        }
+
+        public void Dispose() {
             if (_fileStream != null) {
-                // Write the last block of the data
-                WriteDataBlock();
-                dataBlocks = totalBlocks;
-                // Write the Index entries
-                WriteIndex();
-                // Write the last block of the index
-                WriteBlock();
-                indexBlocks = totalBlocks - dataBlocks;
-                // Write metadata block at the end
-                WriteMetadata();
-                _fileStream.Close();
+                try {
+                    // Write the last block of the data
+                    WriteDataBlock();
+                    dataBlocks = totalBlocks;
+                    // Write the Index entries
+                    WriteIndex();
+                    // Write the last block of the index
+                    WriteBlock();
+                    indexBlocks = totalBlocks - dataBlocks;
+                    // Write metadata block at the end
+                    WriteMetadata();
+                } finally {
+                    _fileStream.Dispose();
+                }
             }
             _fileStream = null;
         }
@@ -295,12 +301,9 @@ namespace RazorDB {
                 yield break;
             }
 
-            var sbt = new SortedBlockTable(Cache, BaseFileName, page.Level, page.Version);
-            try {
+            using (var sbt = new SortedBlockTable(Cache, BaseFileName, page.Level, page.Version)) {
                 foreach (var pair in sbt.EnumerateFromKey(Cache, StartKey))
                     yield return pair;
-            } finally {
-                sbt.Close();
             }
         }
 
@@ -309,8 +312,7 @@ namespace RazorDB {
         }
     }
 
-    public class SortedBlockTable {
-
+    public class SortedBlockTable : IDisposable {
         public SortedBlockTable(RazorCache cache, string baseFileName, int level, int version) {
             PerformanceCounters.SBTConstructed.Increment();
             _baseFileName = baseFileName;
@@ -320,8 +322,8 @@ namespace RazorDB {
             _path = Config.SortedBlockTableFile(baseFileName, level, version);
             ReadMetadata();
         }
-        private string _path;
 
+        private string _path;
         private bool FileExists = true;
         private FileStream _fileStream;
         private FileStream internalFileStream {
@@ -470,15 +472,12 @@ namespace RazorDB {
 
         public static bool Lookup(string baseFileName, int level, int version, RazorCache cache, Key key, out Value value, ExceptionHandling exceptionHandling, Action<string> logger) {
             PerformanceCounters.SBTLookup.Increment();
-            SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
-            try {
+            using (var sbt = new SortedBlockTable(cache, baseFileName, level, version)) {
                 int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
                     byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
                     return SearchBlockForKey(block, key, out value);
                 }
-            } finally {
-                sbt.Close();
             }
             value = Value.Empty;
             return false;
@@ -680,58 +679,42 @@ namespace RazorDB {
 
         public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs, ExceptionHandling exceptionHandling, Action<string> logger) {
             PerformanceCounters.SBTEnumerateMergedTablesPrecached.Increment();
-            var tables = tableSpecs
-              .Select(pageRef => new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version))
-              .ToList();
-            try {
-                foreach (var pair in MergeEnumerator.Merge(tables.Select(t => t.Enumerate().ToList().AsEnumerable()), t => t.Key)) {
-                    yield return pair;
+
+            var pairs = new List<IEnumerable<KeyValuePair<Key, Value>>>();
+            foreach (var pageRef in tableSpecs) {
+                using (var sbt = new SortedBlockTable(cache, baseFileName, pageRef.Level, pageRef.Version)) {
+                    pairs.Add(sbt.Enumerate().ToList().AsEnumerable());
                 }
-            } finally {
-                tables.ForEach(t => t.Close());
             }
+
+            return MergeEnumerator.Merge(pairs, t => t.Key);
         }
 
         public static IEnumerable<PageRecord> MergeTables(RazorCache cache, Manifest mf, int destinationLevel, IEnumerable<PageRef> tableSpecs, ExceptionHandling exceptionHandling, Action<string> logger) {
-
             var orderedTableSpecs = tableSpecs.OrderByPagePriority();
             var outputTables = new List<PageRecord>();
-            SortedBlockTableWriter writer = null;
 
-            Key firstKey = new Key();
-            Key lastKey = new Key();
-            Key maxKey = new Key(); // Maximum key we can span with this table to avoid covering more than 10 pages in the destination
+            var pairs = EnumerateMergedTablesPreCached(cache, mf.BaseFileName, orderedTableSpecs, exceptionHandling, logger);
+            var pairsEnum = pairs.GetEnumerator();
+            var hasPairs = pairsEnum.MoveNext();
 
-            Action<KeyValuePair<Key, Value>> OpenPage = (pair) => {
-                writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
-                firstKey = pair.Key;
-                using (var m = mf.GetLatestManifest()) {
-                    maxKey = m.FindSpanningLimit(destinationLevel + 1, firstKey);
-                }
-            };
-            Action ClosePage = () => {
-                writer.Close();
-                outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
-                writer = null;
-            };
+            while (hasPairs) {
+                using (var writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel))) {
+                    Key firstKey = pairsEnum.Current.Key;
+                    Key lastKey = new Key();
+                    Key maxKey = new Key(); // Maximum key we can span with this table to avoid covering more than 10 pages in the destination
 
-            try {
-                foreach (var pair in EnumerateMergedTablesPreCached(cache, mf.BaseFileName, orderedTableSpecs, exceptionHandling, logger)) {
-                    if (writer == null) {
-                        OpenPage(pair);
+                    using (var m = mf.GetLatestManifest()) {
+                        maxKey = m.FindSpanningLimit(destinationLevel + 1, firstKey);
                     }
-                    if (writer.WrittenSize >= Config.MaxSortedBlockTableSize || (!maxKey.IsEmpty && pair.Key.CompareTo(maxKey) >= 0)) {
-                        ClosePage();
+
+                    while (hasPairs && writer.WrittenSize < Config.MaxSortedBlockTableSize && (maxKey.IsEmpty || pairsEnum.Current.Key.CompareTo(maxKey) < 0)) {
+                        writer.WritePair(pairsEnum.Current.Key, pairsEnum.Current.Value);
+                        lastKey = pairsEnum.Current.Key;
+                        hasPairs = pairsEnum.MoveNext();
                     }
-                    if (writer == null) {
-                        OpenPage(pair);
-                    }
-                    writer.WritePair(pair.Key, pair.Value);
-                    lastKey = pair.Key;
-                }
-            } finally {
-                if (writer != null) {
-                    ClosePage();
+
+                    outputTables.Add(new PageRecord(destinationLevel, writer.Version, firstKey, lastKey));
                 }
             }
 
@@ -835,8 +818,12 @@ namespace RazorDB {
         }
 
         public void Close() {
+            Dispose();
+        }
+
+        public void Dispose() {
             if (_fileStream != null) {
-                _fileStream.Close();
+                _fileStream.Dispose();
             }
             _fileStream = null;
         }

@@ -384,26 +384,18 @@ namespace RazorDB {
 
             // Now check the files on disk
             using (var manifestSnapshot = _manifest.GetLatestManifest()) {
-                List<SortedBlockTable> pages = new List<SortedBlockTable>();
-                try {
-                    pages.AddRange(manifestSnapshot.GetPagesAtLevel(0)
-                        .OrderByDescending(page => page.Version)
-                        .Select(page => {
-                            PerformanceCounters.SBTEnumerateFromKey.Increment();
-                            return new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version);
-                        }));
-                    pages.ForEach(p => enumerators.Add(p.EnumerateFromKey(_cache, key)));
-
-                    for (int i = 1; i < manifestSnapshot.NumLevels; i++)
-                        enumerators.Add(TableEnumerator.Enumerate(i, _cache, _manifest.BaseFileName, manifestSnapshot, key));
-
-                    foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key))
-                        yield return pair;
-
-                } finally {
-                    // make sure all the tables get closed
-                    pages.ForEach(table => table.Close());
+                foreach (var page in manifestSnapshot.GetPagesAtLevel(0).OrderByDescending(page => page.Version)) {
+                    using (var sbt = new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version)) {
+                        PerformanceCounters.SBTEnumerateFromKey.Increment();
+                        enumerators.Add(sbt.EnumerateFromKey(_cache, key));
+                    }
                 }
+
+                for (int i = 1; i < manifestSnapshot.NumLevels; i++)
+                    enumerators.Add(TableEnumerator.Enumerate(i, _cache, _manifest.BaseFileName, manifestSnapshot, key));
+
+                foreach (var pair in MergeEnumerator.Merge(enumerators, t => t.Key))
+                    yield return pair;
             }
 
         }
