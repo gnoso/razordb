@@ -206,6 +206,7 @@ namespace RazorDB {
                 // Write metadata block at the end
                 WriteMetadata();
                 _fileStream.Close();
+                _fileStream.Dispose();
             }
             _fileStream = null;
         }
