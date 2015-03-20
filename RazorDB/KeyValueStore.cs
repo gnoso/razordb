@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and limitations.
 */
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -106,7 +107,7 @@ namespace RazorDB {
 
         public object multiPageLock = new object();
 
-        public void Set(byte[] key, byte[] value, IDictionary<string, byte[]> indexedValues) {
+        public void Set(byte[] key, byte[] value, IEnumerable<KeyValuePair<string, byte[]>> indexedValues) {
 
             int valueSize = value.Length;
             if (valueSize <= Config.MaxSmallValueSize) {
@@ -181,7 +182,7 @@ namespace RazorDB {
         }
 
 
-        private void InternalSet(Key k, Value v, IDictionary<string, byte[]> indexedValues) {
+        private void InternalSet(Key k, Value v, IEnumerable<KeyValuePair<string, byte[]>> indexedValues) {
             int adds = 10;
             while (!_currentJournaledMemTable.Add(k, v)) {
                 adds--;
@@ -199,9 +200,9 @@ namespace RazorDB {
             TableManager.Default.MarkKeyValueStoreAsModified(this);
         }
 
-        public void AddToIndex(byte[] key, IDictionary<string, byte[]> indexedValues) {
+        public void AddToIndex(byte[] key, IEnumerable<KeyValuePair<string, byte[]>> indexedValues) {
             foreach (var pair in indexedValues) {
-                string IndexName = pair.Key;
+                var IndexName = pair.Key;
 
                 // Construct Index key by concatenating the indexed value and the target key
                 byte[] indexValue = pair.Value;
