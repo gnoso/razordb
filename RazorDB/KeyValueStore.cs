@@ -356,6 +356,29 @@ namespace RazorDB {
             }
         }
 
+        /// <summary>
+        /// Return only the bytes for the key linked to the index (record key in this case is the index value)
+        /// </summary>
+        /// <param name="indexName"></param>
+        /// <param name="lookupValue"></param>
+        /// <returns></returns>
+        public IEnumerable<KeyValuePair<byte[], byte[]>> FindKeysByIndexStartsWith(string indexName, byte[] lookupValue) {
+
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+            // Loop over the values
+            foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
+                // construct our index key pattern (lookupvalue | key)
+                if (ByteArray.CompareMemCmp(pair.Key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+                    if (pair.Key.Length >= (pair.Value.Length + lookupValue.Length)) {
+                        yield return new KeyValuePair<byte[], byte[]>(pair.Key, pair.Value);
+                    }
+                } else {
+                    // if the above condition was not met then we must have enumerated past the end of the indexed value
+                    yield break;
+                }
+            }
+        }
+
         public void Delete(byte[] key) {
             var k = new Key(key, 0);
             InternalSet(k, Value.Deleted, null);
