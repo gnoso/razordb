@@ -35,20 +35,12 @@ namespace RazorDB {
         public static int MaxPageSpan = 10;                                     // The maximum number of pages in level L+1 that a level L page can span (w.r.t the key distribution).
 
         public static string SortedBlockTableFile(string baseName, int level, int version) {
-            // it's counter intuitive but string builder is 30% faster than any other string concat
-            var sb = new StringBuilder();
-            sb.Append(baseName);
-            sb.Append("\\");
-            sb.Append(level);
-            sb.Append("-");
-            sb.Append(version);
-            sb.Append(".sbt");
-            return sb.ToString();
+            return baseName + "\\" + level + "-" + version + ".sbt";
         }
         public static FileOptions SortedBlockTableFileOptions = FileOptions.SequentialScan;
             
         public static string JournalFile(string baseName, int version) {
-            return baseName + "\\" + version.ToString() + ".jf";
+            return baseName + "\\" + version + ".jf";
         }
         public static string ManifestFile(string baseName) {
             return baseName + "\\0.mf";
