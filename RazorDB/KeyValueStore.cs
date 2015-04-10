@@ -200,18 +200,24 @@ namespace RazorDB {
             TableManager.Default.MarkKeyValueStoreAsModified(this);
         }
 
-        public void AddToIndex(byte[] key, IEnumerable<KeyValuePair<string, byte[]>> indexedValues) {
-            foreach (var pair in indexedValues) {
+        public void AddToIndex(byte[] itemKey, IEnumerable<KeyValuePair<string, byte[]>> indexValues) {
+            foreach (var pair in indexValues) {
                 var IndexName = pair.Key;
 
                 // Construct Index key by concatenating the indexed value and the target key
                 byte[] indexValue = pair.Value;
-                byte[] indexKey = new byte[key.Length + indexValue.Length];
+                byte[] indexKey = new byte[itemKey.Length + indexValue.Length];
                 indexValue.CopyTo(indexKey, 0);
-                key.CopyTo(indexKey, indexValue.Length);
+                itemKey.CopyTo(indexKey, indexValue.Length);
 
                 KeyValueStore indexStore = GetSecondaryIndex(IndexName);
-                indexStore.Set(indexKey, key);
+
+                // get indexkey length encoding 
+                var lenBytes = new byte[8];
+                var indexValueLen = Helper.Encode7BitInt(lenBytes, indexValue.Length);
+                var indexValueLenBytes = new byte[indexValueLen];
+                Buffer.BlockCopy(lenBytes, 0, indexValueLenBytes, 0, indexValueLen);
+                indexStore.Set(indexKey, indexValueLenBytes); // we know the key length 
             }
         }
 
@@ -321,11 +327,16 @@ namespace RazorDB {
                 var value = pair.Value;
                 // construct our index key pattern (lookupvalue | key)
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
-                    if (key.Length == (value.Length + lookupValue.Length) && ByteArray.CompareMemCmp(key, lookupValue.Length, value, 0, value.Length) == 0) {
+                    int offset = 0;
+                    int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                    if (lookupValue.Length == indexKeyLen) {
                         // Lookup the value of the actual object using the key that was found
-                        var primaryValue = Get(value);
+                        // get the object key from the index value tail
+                        var objectKey = new byte[key.Length - indexKeyLen];
+                        Buffer.BlockCopy(key, indexKeyLen, objectKey, 0, key.Length - indexKeyLen);
+                        var primaryValue = this. Get(objectKey);
                         if (primaryValue != null)
-                            yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
+                            yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
                     }
                 } else {
                     // if the above condition was not met then we must have enumerated past the end of the indexed value
@@ -343,11 +354,16 @@ namespace RazorDB {
                 var value = pair.Value;
                 // construct our index key pattern (lookupvalue | key)
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
-                    if (key.Length >= (value.Length + lookupValue.Length)) {
+                    int offset = 0;
+                    int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                    if (lookupValue.Length <=  indexKeyLen) {
                         // Lookup the value of the actual object using the key that was found
-                        var primaryValue = Get(value);
+                        // get the object key from the index value tail
+                        var objectKey = new byte[key.Length - indexKeyLen];
+                        Buffer.BlockCopy(key, indexKeyLen, objectKey, 0, key.Length - indexKeyLen);
+                        var primaryValue = Get(objectKey);
                         if (primaryValue != null)
-                            yield return new KeyValuePair<byte[], byte[]>(value, primaryValue);
+                            yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
                     }
                 } else {
                     // if the above condition was not met then we must have enumerated past the end of the indexed value
@@ -369,8 +385,14 @@ namespace RazorDB {
             foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
                 // construct our index key pattern (lookupvalue | key)
                 if (ByteArray.CompareMemCmp(pair.Key, 0, lookupValue, 0, lookupValue.Length) == 0) {
-                    if (pair.Key.Length >= (pair.Value.Length + lookupValue.Length)) {
-                        yield return new KeyValuePair<byte[], byte[]>(pair.Key, pair.Value);
+                    int offset = 0;
+                    int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                    if (lookupValue.Length <= indexKeyLen) {
+                        // Construct the item key from index value
+                        // get the object key from the index value tail
+                        var objectKey = new byte[pair.Key.Length - indexKeyLen];
+                        Buffer.BlockCopy(pair.Key, indexKeyLen, objectKey, 0, pair.Key.Length - indexKeyLen);
+                        yield return new KeyValuePair<byte[], byte[]>(pair.Key, objectKey);
                     }
                 } else {
                     // if the above condition was not met then we must have enumerated past the end of the indexed value
