@@ -24,6 +24,12 @@ using System.Diagnostics;
 
 namespace RazorDB {
 
+    public class RazorUpgradeException : Exception {
+        public RazorUpgradeException(string msg)
+            : base(msg) {
+        }
+    }
+
     public class ManifestImmutable : IDisposable {
 
         public ManifestImmutable(Manifest manifest) {
@@ -205,6 +211,12 @@ namespace RazorDB {
             return m;
         }
 
+        private const int secret = -20150410; // marker for manifest;
+        private const int razorversion = 2;
+        public void WriteManifestHeader(BinaryWriter writer) {
+            writer.Write7BitEncodedInt(secret);
+            writer.Write7BitEncodedInt(razorversion);
+        }
 
         // Read/Write manifest data
         public void WriteManifestContents(BinaryWriter writer) {
@@ -233,6 +245,23 @@ namespace RazorDB {
 
             int size = (int)(writer.BaseStream.Position - startPos);
             writer.Write(size);
+        }
+
+        /// <summary>
+        /// Manifest header is where file version compatibilty is checked
+        /// </summary>
+        /// <param name="reader"></param>
+        internal void ReadManifestHeader(BinaryReader reader) {
+            var readsecret = reader.Read7BitEncodedInt();
+            if (readsecret != secret) {
+                if(razorversion == 2)
+                    throw new RazorUpgradeException("Version 2 of RazorDb requires upgrade by reindexing");
+            }
+
+            var readversion = reader.Read7BitEncodedInt();
+            if (readversion < 2) {
+                throw new RazorUpgradeException("Version 2 of RazorDb requires upgrade by reindexing");
+            }
         }
 
         internal void ReadManifestContents(BinaryReader reader) {
@@ -411,6 +440,7 @@ namespace RazorDB {
             // Get an in-memory copy of the all the bytes that will be written to the manifest
             var ms = new MemoryStream();
             var writer = new BinaryWriter(ms);
+            m.WriteManifestHeader(writer);
             m.WriteManifestContents(writer);
             writer.Close();
             var manifestBytes = ms.ToArray();
