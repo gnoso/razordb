@@ -58,6 +58,8 @@ namespace RazorDB {
             return clone;
         }
 
+        public int RazorVersion { get; private set; }
+
         private Key[] _mergeKeys;
         private List<PageRecord>[] _pages;
 
@@ -211,15 +213,17 @@ namespace RazorDB {
             return m;
         }
 
-        private const int secret = -20150410; // marker for manifest;
-        private const int razorversion = 2;
+        private const int secretFileFormatId = 99887766; // marker for manifest;
+        public const int RazorDataVersion = 2;
         public void WriteManifestHeader(BinaryWriter writer) {
-            writer.Write7BitEncodedInt(secret);
-            writer.Write7BitEncodedInt(razorversion);
+            writer.Write7BitEncodedInt(secretFileFormatId);
+            writer.Write7BitEncodedInt(RazorDataVersion);
         }
 
         // Read/Write manifest data
         public void WriteManifestContents(BinaryWriter writer) {
+            WriteManifestHeader(writer);
+
             long startPos = writer.BaseStream.Position;
 
             writer.Write7BitEncodedInt(_versions.Length);
@@ -253,18 +257,23 @@ namespace RazorDB {
         /// <param name="reader"></param>
         internal void ReadManifestHeader(BinaryReader reader) {
             var readsecret = reader.Read7BitEncodedInt();
-            if (readsecret != secret) {
-                if(razorversion == 2)
-                    throw new RazorUpgradeException("Version 2 of RazorDb requires upgrade by reindexing");
+
+            // check to see if the manifest contains a header
+            if (readsecret != secretFileFormatId) {
+                reader.BaseStream.Seek(0L, SeekOrigin.Begin); // rewind and return;
+                return;
             }
 
-            var readversion = reader.Read7BitEncodedInt();
-            if (readversion < 2) {
-                throw new RazorUpgradeException("Version 2 of RazorDb requires upgrade by reindexing");
+            // if there is a header read it
+            RazorVersion = reader.Read7BitEncodedInt();
+            if (RazorVersion < 2) {
+                throw new RazorUpgradeException("Unregonized RazorDb data format version: " + RazorVersion);
             }
         }
 
         internal void ReadManifestContents(BinaryReader reader) {
+            ReadManifestHeader(reader);
+
             int num_versions = reader.Read7BitEncodedInt();
             for (int i = 0; i < num_versions; i++) {
                 _versions[i] = reader.Read7BitEncodedInt();
