@@ -272,8 +272,6 @@ namespace RazorDB {
         }
 
         internal void ReadManifestContents(BinaryReader reader) {
-            ReadManifestHeader(reader);
-
             int num_versions = reader.Read7BitEncodedInt();
             for (int i = 0; i < num_versions; i++) {
                 _versions[i] = reader.Read7BitEncodedInt();
@@ -495,6 +493,10 @@ namespace RazorDB {
             BinaryReader reader = new BinaryReader(fs);
 
             try {
+                var m = new ManifestImmutable(this);
+                // read header from start of file
+                m.ReadManifestHeader(reader);
+                
                 // Get the size of the last manifest block
                 reader.BaseStream.Seek(-4, SeekOrigin.End);
                 int size = reader.ReadInt32();
@@ -502,7 +504,6 @@ namespace RazorDB {
                 // Now seek to that position and read it
                 reader.BaseStream.Seek(-size - 4, SeekOrigin.End);
 
-                var m = new ManifestImmutable(this);
                 m.ReadManifestContents(reader);
                 _manifests.AddLast(m);
             } catch (Exception ex) {
@@ -525,6 +526,7 @@ namespace RazorDB {
             try {
                 do {
                     var m = new ManifestImmutable(null);
+                    m.ReadManifestHeader(reader);
                     m.ReadManifestContents(reader);
                     yield return m;
 

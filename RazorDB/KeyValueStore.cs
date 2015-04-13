@@ -166,13 +166,26 @@ namespace RazorDB {
 
         public void CleanIndex(string indexName) {
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
-
             var allValueStoreItems = new HashSet<ByteArray>(this.Enumerate().Select(item => new ByteArray(item.Key)));
             foreach (var indexItem in indexStore.Enumerate()) {
-                if (!allValueStoreItems.Contains(new ByteArray(indexItem.Value))) {
+                byte[] itemKey = KeyValueStore.ItemKeyFromIndex(indexItem);
+                if (!allValueStoreItems.Contains(new ByteArray(itemKey))) {
                     indexStore.Delete(indexItem.Key);
                 }
             }
+        }
+
+        /// <summary>
+        /// Get the item key from an index
+        /// </summary>
+        /// <param name="indexPair"></param>
+        /// <returns></returns>
+        private static byte[] ItemKeyFromIndex(KeyValuePair<byte[], byte[]> indexPair, int indexKeyLen=-1) {
+            int offset=0;
+            indexKeyLen = indexKeyLen == - 1 ? Helper.Decode7BitInt(indexPair.Value, ref offset) : indexKeyLen;
+            var objectKey = new byte[indexPair.Key.Length - indexKeyLen];
+            Buffer.BlockCopy(indexPair.Key, indexKeyLen, objectKey, 0, indexPair.Key.Length - indexKeyLen);
+            return objectKey;
         }
 
         public void DropIndex(string indexName) {
@@ -332,8 +345,7 @@ namespace RazorDB {
                     if (lookupValue.Length == indexKeyLen) {
                         // Lookup the value of the actual object using the key that was found
                         // get the object key from the index value tail
-                        var objectKey = new byte[key.Length - indexKeyLen];
-                        Buffer.BlockCopy(key, indexKeyLen, objectKey, 0, key.Length - indexKeyLen);
+                        var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
                         var primaryValue = this. Get(objectKey);
                         if (primaryValue != null)
                             yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
@@ -357,10 +369,7 @@ namespace RazorDB {
                     int offset = 0;
                     int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
                     if (lookupValue.Length <=  indexKeyLen) {
-                        // Lookup the value of the actual object using the key that was found
-                        // get the object key from the index value tail
-                        var objectKey = new byte[key.Length - indexKeyLen];
-                        Buffer.BlockCopy(key, indexKeyLen, objectKey, 0, key.Length - indexKeyLen);
+                        var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
                         var primaryValue = Get(objectKey);
                         if (primaryValue != null)
                             yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
@@ -388,9 +397,7 @@ namespace RazorDB {
                     int offset = 0;
                     int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
                     if (lookupValue.Length <= indexKeyLen) {
-                        // Construct the item key from index value
-                        // get the object key from the index value tail
-                        var objectKey = new byte[pair.Key.Length - indexKeyLen];
+                        var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
                         Buffer.BlockCopy(pair.Key, indexKeyLen, objectKey, 0, pair.Key.Length - indexKeyLen);
                         yield return new KeyValuePair<byte[], byte[]>(pair.Key, objectKey);
                     }
