@@ -58,8 +58,6 @@ namespace RazorDB {
             return clone;
         }
 
-        public int RazorVersion { get; private set; }
-
         private Key[] _mergeKeys;
         private List<PageRecord>[] _pages;
 
@@ -213,18 +211,16 @@ namespace RazorDB {
             return m;
         }
 
-        private const int secretFileFormatId = 99887766; // marker for manifest;
-        public const int RazorDataVersion = 2;
-        public void WriteManifestHeader(BinaryWriter writer) {
-            writer.Write7BitEncodedInt(secretFileFormatId);
-            writer.Write7BitEncodedInt(RazorDataVersion);
-        }
+        private const int RAZORFORMATSECRET = 98765432;
+        public const int RAZORFORMATCURRENT = 2;
 
         // Read/Write manifest data
         public void WriteManifestContents(BinaryWriter writer) {
-            WriteManifestHeader(writer);
-
             long startPos = writer.BaseStream.Position;
+            
+            // write out the format of the manifest
+            writer.Write7BitEncodedInt(RAZORFORMATSECRET);
+            writer.Write7BitEncodedInt(RAZORFORMATCURRENT);
 
             writer.Write7BitEncodedInt(_versions.Length);
             foreach (var b in _versions) {
@@ -251,28 +247,16 @@ namespace RazorDB {
             writer.Write(size);
         }
 
-        /// <summary>
-        /// Manifest header is where file version compatibilty is checked
-        /// </summary>
-        /// <param name="reader"></param>
-        internal void ReadManifestHeader(BinaryReader reader) {
-            var readsecret = reader.Read7BitEncodedInt();
-
-            // check to see if the manifest contains a header
-            if (readsecret != secretFileFormatId) {
-                reader.BaseStream.Seek(0L, SeekOrigin.Begin); // rewind and return;
-                return;
-            }
-
-            // if there is a header read it
-            RazorVersion = reader.Read7BitEncodedInt();
-            if (RazorVersion < 2) {
-                throw new RazorUpgradeException("Unregonized RazorDb data format version: " + RazorVersion);
-            }
-        }
+        public int RazorFormatVersion{ get; private set;}
 
         internal void ReadManifestContents(BinaryReader reader) {
+            // read num versions or the razor format at the beginning of the block
             int num_versions = reader.Read7BitEncodedInt();
+            if (num_versions == RAZORFORMATSECRET) {
+                RazorFormatVersion = reader.Read7BitEncodedInt();
+                num_versions = reader.Read7BitEncodedInt();
+            }
+
             for (int i = 0; i < num_versions; i++) {
                 _versions[i] = reader.Read7BitEncodedInt();
             }
@@ -447,7 +431,6 @@ namespace RazorDB {
             // Get an in-memory copy of the all the bytes that will be written to the manifest
             var ms = new MemoryStream();
             var writer = new BinaryWriter(ms);
-            m.WriteManifestHeader(writer);
             m.WriteManifestContents(writer);
             writer.Close();
             var manifestBytes = ms.ToArray();
@@ -494,8 +477,6 @@ namespace RazorDB {
 
             try {
                 var m = new ManifestImmutable(this);
-                // read header from start of file
-                m.ReadManifestHeader(reader);
                 
                 // Get the size of the last manifest block
                 reader.BaseStream.Seek(-4, SeekOrigin.End);
@@ -506,12 +487,24 @@ namespace RazorDB {
 
                 m.ReadManifestContents(reader);
                 _manifests.AddLast(m);
+
+                if (m.RazorFormatVersion < ManifestImmutable.RAZORFORMATCURRENT)
+                    CommitManifest(m);
+
             } catch (Exception ex) {
                 LogMessage("Error reading manifest file: {0} - {1}", _baseFileName, ex.Message);
             } finally {
                 reader.Close();
             }
         }
+
+        // Format version for razor datastore
+        public int RazorFormatVersion {
+            get {
+                return _manifests.Last().RazorFormatVersion;
+            }
+        }
+
 
         public static IEnumerable<ManifestImmutable> ReadAllManifests(string baseFileName) {
 
@@ -520,13 +513,12 @@ namespace RazorDB {
                 throw new FileNotFoundException("Could not find the manifest file.", manifestFile);
             }
 
-            FileStream fs = new FileStream(manifestFile, FileMode.Open, FileAccess.Read, FileShare.None, 1024, false);
+            FileStream fs = new FileStream(manifestFile, FileMode.Open, FileAccess.Read, FileShare.Read, 1024, false);
             BinaryReader reader = new BinaryReader(fs);
 
             try {
                 do {
                     var m = new ManifestImmutable(null);
-                    m.ReadManifestHeader(reader);
                     m.ReadManifestContents(reader);
                     yield return m;
 

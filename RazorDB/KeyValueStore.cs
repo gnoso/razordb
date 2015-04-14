@@ -65,6 +65,9 @@ namespace RazorDB {
 
         public Manifest Manifest { get { return _manifest; } }
 
+        // version of the datastore format
+        public int RazorFormatVersion { get { return _manifest.RazorFormatVersion; } }
+
         public Action<int, IEnumerable<PageRecord>, IEnumerable<PageRecord>> MergeCallback { get; set; }
 
         internal RazorCache Cache { get { return _cache; } }
@@ -156,7 +159,8 @@ namespace RazorDB {
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
             var pairs = indexStore.EnumerateFromKey(startAt);
             foreach (var pair in pairs) {
-                if (ByteArray.CompareMemCmp(pair.Value, value) == 0)
+                var itemKey = KeyValueStore.ItemKeyFromIndex(pair);
+                if (ByteArray.CompareMemCmp(itemKey, value) == 0)
                     indexStore.Delete(pair.Key);
                 if (ByteArray.CompareMemCmp(startAt, 0, pair.Key, 0, startAt.Length) == 0)
                     continue;
