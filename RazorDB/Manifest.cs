@@ -42,7 +42,7 @@ namespace RazorDB {
             }
         }
 
-        private ManifestImmutable Clone() {
+        internal ManifestImmutable Clone() {
             // Clone this copy of the manifest
             var clone = new ManifestImmutable(_manifest);
 
@@ -360,6 +360,15 @@ namespace RazorDB {
             }
         }
 
+        // upgrade manifest by cloning and commiting
+        internal void UpgradeManifest() {
+            lock (manifestLock) {
+                var manifest = _manifests.Last.Value;
+                var m = manifest.Clone();
+                CommitManifest(m);
+            }
+        }
+
         public ManifestImmutable GetLatestManifest() {
             lock (manifestLock) {
                 var manifest = _manifests.Last.Value;
@@ -487,9 +496,6 @@ namespace RazorDB {
 
                 m.ReadManifestContents(reader);
                 _manifests.AddLast(m);
-
-                if (m.RazorFormatVersion < ManifestImmutable.RAZORFORMATCURRENT)
-                    CommitManifest(m);
 
             } catch (Exception ex) {
                 LogMessage("Error reading manifest file: {0} - {1}", _baseFileName, ex.Message);
