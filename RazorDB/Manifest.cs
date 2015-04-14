@@ -361,7 +361,7 @@ namespace RazorDB {
         }
 
         // upgrade manifest by cloning and commiting
-        internal void UpgradeManifest() {
+        public void UpgradeManifest() {
             lock (manifestLock) {
                 var manifest = _manifests.Last.Value;
                 var m = manifest.Clone();
