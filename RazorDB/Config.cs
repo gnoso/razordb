@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Reflection;
 
 namespace RazorDB {
 
@@ -96,6 +97,8 @@ namespace RazorDB {
     }
 
     public static class Helper {
+        unsafe public delegate void InternalBlockCopy(byte[] src, int srcOffset, byte[] dst, int dstOffset, int len);
+        public static InternalBlockCopy BlockCopy = (InternalBlockCopy)Delegate.CreateDelegate(typeof(InternalBlockCopy), typeof(Buffer).GetMethod("InternalBlockCopy", BindingFlags.NonPublic | BindingFlags.Static));
 
         public static int Encode7BitInt(byte[] workingArray, int value) {
             int size = 0;

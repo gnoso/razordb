@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
+using System.Reflection;
 
 namespace RazorDB {
 
@@ -120,7 +121,7 @@ namespace RazorDB {
 
         public static ByteArray From(byte[] block, int offset, int size) {
             byte[] bytes = new byte[size];
-            Array.Copy(block, offset, bytes, 0, size);
+            Helper.BlockCopy(block, offset, bytes, 0, size);
             return new ByteArray(bytes);
         }
     }
