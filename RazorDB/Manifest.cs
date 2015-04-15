@@ -217,7 +217,7 @@ namespace RazorDB {
         // Read/Write manifest data
         public void WriteManifestContents(BinaryWriter writer) {
             long startPos = writer.BaseStream.Position;
-            
+
             // write out the format of the manifest
             writer.Write7BitEncodedInt(RAZORFORMATSECRET);
             writer.Write7BitEncodedInt(RAZORFORMATCURRENT);
@@ -247,7 +247,7 @@ namespace RazorDB {
             writer.Write(size);
         }
 
-        public int RazorFormatVersion{ get; private set;}
+        public int RazorFormatVersion { get; private set; }
 
         internal void ReadManifestContents(BinaryReader reader) {
             // read num versions or the razor format at the beginning of the block
@@ -430,8 +430,12 @@ namespace RazorDB {
                 path = Config.SortedBlockTableFile(BaseFileName, pageRec.Level, pageRec.Version);
                 if (File.Exists(path))
                     File.Delete(path);
-            } catch (Exception ex) {
-                LogMessage("Unable to release sbt page: {0}\r\nException: {1}", path, ex.Message);
+            } catch {
+                // try again before logging
+                ThreadPool.QueueUserWorkItem((none) => {
+                    Thread.Sleep(3000);
+                    try { File.Delete(path); } catch (Exception ex) { LogMessage("Unable to release sbt page AFTER RETRY: {0}\r\nException: {1}", path, ex.Message); }
+                });
             }
         }
 
@@ -486,7 +490,7 @@ namespace RazorDB {
 
             try {
                 var m = new ManifestImmutable(this);
-                
+
                 // Get the size of the last manifest block
                 reader.BaseStream.Seek(-4, SeekOrigin.End);
                 int size = reader.ReadInt32();
