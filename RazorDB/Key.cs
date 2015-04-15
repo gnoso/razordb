@@ -28,7 +28,7 @@ namespace RazorDB {
         }
         public Key(byte[] bytes, byte seqNum) {
             byte[] internalBytes = new byte[bytes.Length + 1];
-            Array.Copy(bytes, internalBytes, bytes.Length);
+            Helper.BlockCopy(bytes, 0, internalBytes, 0, bytes.Length);
             internalBytes[bytes.Length] = seqNum;
             _bytes = new ByteArray(internalBytes);
         }
@@ -37,7 +37,7 @@ namespace RazorDB {
         public byte[] KeyBytes {
             get { 
                 byte[] keyBytes = new byte[Length-1];
-                Array.Copy(InternalBytes, keyBytes, Length-1);
+                Helper.BlockCopy(InternalBytes, 0, keyBytes, 0, Length-1);
                 return keyBytes;
             }
         }

@@ -188,7 +188,7 @@ namespace RazorDB {
             int offset=0;
             indexKeyLen = indexKeyLen == - 1 ? Helper.Decode7BitInt(indexPair.Value, ref offset) : indexKeyLen;
             var objectKey = new byte[indexPair.Key.Length - indexKeyLen];
-            Buffer.BlockCopy(indexPair.Key, indexKeyLen, objectKey, 0, indexPair.Key.Length - indexKeyLen);
+            Helper.BlockCopy(indexPair.Key, indexKeyLen, objectKey, 0, indexPair.Key.Length - indexKeyLen);
             return objectKey;
         }
 
@@ -233,7 +233,7 @@ namespace RazorDB {
                 var lenBytes = new byte[8];
                 var indexValueLen = Helper.Encode7BitInt(lenBytes, indexValue.Length);
                 var indexValueLenBytes = new byte[indexValueLen];
-                Buffer.BlockCopy(lenBytes, 0, indexValueLenBytes, 0, indexValueLen);
+                Helper.BlockCopy(lenBytes, 0, indexValueLenBytes, 0, indexValueLen);
                 indexStore.Set(indexKey, indexValueLenBytes); // we know the key length 
             }
         }
@@ -402,7 +402,7 @@ namespace RazorDB {
                     int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
                     if (lookupValue.Length <= indexKeyLen) {
                         var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
-                        Buffer.BlockCopy(pair.Key, indexKeyLen, objectKey, 0, pair.Key.Length - indexKeyLen);
+                        Helper.BlockCopy(pair.Key, indexKeyLen, objectKey, 0, pair.Key.Length - indexKeyLen);
                         yield return new KeyValuePair<byte[], byte[]>(pair.Key, objectKey);
                     }
                 } else {
@@ -679,7 +679,7 @@ namespace RazorDB {
                 var buffer = new byte[sizeof(int)];
                 var encodedLen = Helper.Encode7BitInt(buffer, indexLen);
                 var valBuffer = new byte[encodedLen];
-                Buffer.BlockCopy(buffer, 0, valBuffer, 0, encodedLen);
+                Helper.BlockCopy(buffer, 0, valBuffer, 0, encodedLen);
                 indexDb.Set(pair.Key, valBuffer);
             }
             indexDb.Manifest.UpgradeManifest();

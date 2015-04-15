@@ -92,13 +92,13 @@ namespace RazorDB {
             _bufferPos += 4;
 
             // write the data out to the buffer
-            Array.Copy(keySize, 0, _buffer, _bufferPos, keySizeLen);
+            Helper.BlockCopy(keySize, 0, _buffer, _bufferPos, keySizeLen);
             _bufferPos += keySizeLen;
-            Array.Copy(key.InternalBytes, 0, _buffer, _bufferPos, key.Length);
+            Helper.BlockCopy(key.InternalBytes, 0, _buffer, _bufferPos, key.Length);
             _bufferPos += key.Length;
-            Array.Copy(valueSize, 0, _buffer, _bufferPos, valueSizeLen);
+            Helper.BlockCopy(valueSize, 0, _buffer, _bufferPos, valueSizeLen);
             _bufferPos += valueSizeLen;
-            Array.Copy(value.InternalBytes, 0, _buffer, _bufferPos, value.Length);
+            Helper.BlockCopy(value.InternalBytes, 0, _buffer, _bufferPos, value.Length);
             _bufferPos += value.Length;
 
             WrittenSize += bytesNeeded;
@@ -112,13 +112,13 @@ namespace RazorDB {
             if (startIndex < middleIndex) {
                 ushort leftOffset = BuildBlockTree(block, startIndex, middleIndex - 1, keyOffsets);
                 byte[] left = BitConverter.GetBytes(leftOffset);
-                Array.Copy(left, 0, block, nodeOffset + 1, 2);
+                Helper.BlockCopy(left, 0, block, nodeOffset + 1, 2);
             }
             // Build right side
             if (middleIndex < endIndex) {
                 ushort rightOffset = BuildBlockTree(block, middleIndex + 1, endIndex, keyOffsets);
                 byte[] right = BitConverter.GetBytes(rightOffset);
-                Array.Copy(right, 0, block, nodeOffset + 3, 2);
+                Helper.BlockCopy(right, 0, block, nodeOffset + 3, 2);
             }
             return nodeOffset;
         }
@@ -133,7 +133,7 @@ namespace RazorDB {
             // Build the tree structure and fill in the starting pointer
             ushort middleTreePtr = BuildBlockTree(_buffer, 0, _keyOffsets.Count - 1, _keyOffsets);
             byte[] middleTree = BitConverter.GetBytes(middleTreePtr);
-            Array.Copy(middleTree, _buffer, 2);
+            Helper.BlockCopy(middleTree, 0,_buffer, 0, 2);
             _keyOffsets.Clear();
 
             WriteBlock();
@@ -164,9 +164,9 @@ namespace RazorDB {
             }
 
             // write the data out to the buffer
-            Array.Copy(keySize, 0, _buffer, _bufferPos, keySizeLen);
+            Helper.BlockCopy(keySize, 0, _buffer, _bufferPos, keySizeLen);
             _bufferPos += keySizeLen;
-            Array.Copy(key.InternalBytes, 0, _buffer, _bufferPos, key.Length);
+            Helper.BlockCopy(key.InternalBytes, 0, _buffer, _bufferPos, key.Length);
             _bufferPos += key.Length;
         }
 
@@ -186,7 +186,7 @@ namespace RazorDB {
             writer.Write7BitEncodedInt(indexBlocks);
 
             byte[] metadata = ms.ToArray();
-            Array.Copy(metadata, _buffer, metadata.Length);
+            Helper.BlockCopy(metadata, 0, _buffer, 0, metadata.Length);
 
             // Commit the block to disk and wait for the operation to complete
             WriteBlock();
