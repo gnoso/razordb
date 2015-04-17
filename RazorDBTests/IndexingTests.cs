@@ -435,5 +435,49 @@ namespace RazorDBTests {
 
         }
 
+        [Test]
+        public void Testv51IndexUpgrade() {
+            var basename = "RazorDbTests.IndexingTests";
+            // create a buffer of 1000 random bytes;
+            var rand = new Random((int)DateTime.Now.Ticks);
+            var indexHash = new Dictionary<ByteArray, byte[]>();
+            var itemKeyLen = 35;
+            
+            var kvsName = "Testv51UpgradeIndex_" + DateTime.Now.Ticks;
+            using(var testKVS = new KeyValueStore(Path.Combine(basename,kvsName))){
+                // add a bunch of values that look like indexes
+                for(int r=0; r<100; r++){
+                    for(int i=0; i<100; i++){
+                        var indexLen = (int)(DateTime.Now.Ticks % 60) + 50;
+                        var indexKeyBytes = new byte[indexLen];
+                        rand.NextBytes(indexKeyBytes);
+                        var valuekeyBytes = indexKeyBytes.Skip(indexKeyBytes.Length - itemKeyLen).ToArray();
+                        testKVS.Set(indexKeyBytes, valuekeyBytes); // old style index
+                        indexHash.Add(new ByteArray(valuekeyBytes), indexKeyBytes);
+                    }
+                }
+                Console.WriteLine("Total Entries created: {0}/{1}", testKVS.Enumerate().Count(), indexHash.Count());
+            }
+            KeyValueStore.UpgradeIndexToVersion2Format(basename, kvsName);
+            using (var postKVS = new KeyValueStore(Path.Combine(basename, kvsName))) {
+                Console.WriteLine("Total Entries after conversion: {0}", postKVS.Enumerate().Count());
+                int missing = 0;
+                foreach (var pair in postKVS.Enumerate()) {
+                    var offset = 0;
+                    var val = Helper.Decode7BitInt(pair.Value, ref offset);
+                    var valKey = pair.Key.Skip(pair.Key.Length - itemKeyLen).ToArray();
+                    var valMatch = new ByteArray(valKey);
+                    
+                    if(!indexHash.ContainsKey(valMatch))
+                        Console.WriteLine("{0}: Missing item key: {1}", ++missing, BitConverter.ToString(valKey));
+                    if(val != pair.Key.Length - valKey.Length)
+                        Console.WriteLine("Mismatched index length: {0}:{1}", BitConverter.ToString(pair.Key), val);
+
+                    Assert.IsTrue(indexHash.ContainsKey(valMatch));
+                }
+                Console.WriteLine("Total missing keys: {0}", missing);
+            }
+        }
+
     }
 }

@@ -184,9 +184,9 @@ namespace RazorDB {
         /// </summary>
         /// <param name="indexPair"></param>
         /// <returns></returns>
-        private static byte[] ItemKeyFromIndex(KeyValuePair<byte[], byte[]> indexPair, int indexKeyLen=-1) {
-            int offset=0;
-            indexKeyLen = indexKeyLen == - 1 ? Helper.Decode7BitInt(indexPair.Value, ref offset) : indexKeyLen;
+        private static byte[] ItemKeyFromIndex(KeyValuePair<byte[], byte[]> indexPair, int indexKeyLen = -1) {
+            int offset = 0;
+            indexKeyLen = indexKeyLen == -1 ? Helper.Decode7BitInt(indexPair.Value, ref offset) : indexKeyLen;
             var objectKey = new byte[indexPair.Key.Length - indexKeyLen];
             Helper.BlockCopy(indexPair.Key, indexKeyLen, objectKey, 0, indexPair.Key.Length - indexKeyLen);
             return objectKey;
@@ -350,7 +350,7 @@ namespace RazorDB {
                         // Lookup the value of the actual object using the key that was found
                         // get the object key from the index value tail
                         var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
-                        var primaryValue = this. Get(objectKey);
+                        var primaryValue = this.Get(objectKey);
                         if (primaryValue != null)
                             yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
                     }
@@ -372,7 +372,7 @@ namespace RazorDB {
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
                     int offset = 0;
                     int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
-                    if (lookupValue.Length <=  indexKeyLen) {
+                    if (lookupValue.Length <= indexKeyLen) {
                         var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
                         var primaryValue = Get(objectKey);
                         if (primaryValue != null)
@@ -672,17 +672,18 @@ namespace RazorDB {
 
         // version 2 indexes do not repeat key so covert value from key to lenghth
         // of the indexed value
-        public void UpgradeIndexToVersion2Format(string indexName) {
-            var indexDb = GetSecondaryIndex(indexName);
-            foreach (var pair in indexDb.Enumerate()) {
-                var indexLen = pair.Key.Length - pair.Value.Length;
-                var buffer = new byte[sizeof(int)];
-                var encodedLen = Helper.Encode7BitInt(buffer, indexLen);
-                var valBuffer = new byte[encodedLen];
-                Helper.BlockCopy(buffer, 0, valBuffer, 0, encodedLen);
-                indexDb.Set(pair.Key, valBuffer);
+        public static void UpgradeIndexToVersion2Format(string baseFileName, string indexName) {
+            using (var indexDb = new KeyValueStore(Config.IndexBaseName(baseFileName, indexName))) {
+                foreach (var pair in indexDb.Enumerate()) {
+                    var indexLen = pair.Key.Length - pair.Value.Length;
+                    var buffer = new byte[sizeof(int)];
+                    var encodedLen = Helper.Encode7BitInt(buffer, indexLen);
+                    var valBuffer = new byte[encodedLen];
+                    Helper.BlockCopy(buffer, 0, valBuffer, 0, encodedLen);
+                    indexDb.Set(pair.Key, valBuffer);
+                }
+                indexDb.Manifest.UpgradeManifest();
             }
-            indexDb.Manifest.UpgradeManifest();
         }
     }
 

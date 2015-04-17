@@ -523,7 +523,7 @@ namespace RazorDB {
                 throw new FileNotFoundException("Could not find the manifest file.", manifestFile);
             }
 
-            FileStream fs = new FileStream(manifestFile, FileMode.Open, FileAccess.Read, FileShare.Read, 1024, false);
+            FileStream fs = new FileStream(manifestFile, FileMode.Open, FileAccess.Read, FileShare.None, 1024, false);
             BinaryReader reader = new BinaryReader(fs);
 
             try {
