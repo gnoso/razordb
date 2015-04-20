@@ -480,7 +480,7 @@ namespace RazorDBTests {
 
             // now perform random searches
             using (var searchKVS = new KeyValueStore(Path.Combine(basename, kvsName))) {
-                for (int i = 0; i < indexHash.Count(); i+=100) { // test 1/100 of keys
+                for (int i = 0; i < indexHash.Count(); i += 100) { // test 1/100 of keys
                     // Find exact item
                     var searchPair = indexHash.Skip(rand.Next(10000)).First();
                     var searchKey = searchPair.Value.Reverse().Skip(searchPair.Key.Length).Reverse().ToArray();
@@ -503,4 +503,64 @@ namespace RazorDBTests {
         }
 
     }
+
+
+    [TestFixture]
+    public class TableMerge {
+
+        const int recordMax = 100000;
+        [TestFixtureSetUp]
+        public void SetupData() {
+            for (int r = 0; r < recordMax; r++) {
+                dataset[r] = new byte[200];
+                rand.NextBytes(dataset[r]);
+            }
+        }
+
+        Random rand = new Random((int)DateTime.Now.Ticks);
+        private byte[][] dataset = new byte[recordMax][];
+
+
+        //[TestCase(9999, 1000000)]
+        //[TestCase(8, 1000000)]
+        //[TestCase(4, 1000000)]
+        [TestCase(9999, recordMax)]
+        [TestCase(8, recordMax)]
+        [TestCase(4, recordMax)]
+        public void TestMergeTableTiming(int mergeMax, int size) {
+            PerformanceCounter PC = new PerformanceCounter();
+            PC.CategoryName = "Process";
+            PC.CounterName = "Working Set - Private";
+            PC.InstanceName = Process.GetCurrentProcess().ProcessName;
+
+            Console.WriteLine("TESTING:  page max({0}) record count({1})", mergeMax, size);
+            var basename = "RazorDbTests.IndexingTests";
+            var rand = new Random((int)DateTime.Now.Ticks);
+            var indexHash = new Dictionary<ByteArray, byte[]>();
+            var itemKeyLen = 35;
+
+            var kvsName = string.Format("MergeTableTiming_{0}_{1}", mergeMax, DateTime.Now.Ticks);
+
+            var sw = new Stopwatch();
+            sw.Start();
+            using (var testKVS = new KeyValueStore(Path.Combine(basename, kvsName))) {
+                // add a bunch of values that look like indexes
+                for (int r = 0; r < size; r++) {
+                    var indexLen = (int)(DateTime.Now.Ticks % 60) + 50;
+                    var indexKeyBytes = dataset[r];
+                    var valuekeyBytes = indexKeyBytes.Skip(indexKeyBytes.Length - itemKeyLen).ToArray();
+                    testKVS.Set(indexKeyBytes, valuekeyBytes); // old style index
+                    indexHash.Add(new ByteArray(valuekeyBytes), indexKeyBytes);
+                }
+                TableManager.RunTableMergePass(testKVS);
+            }
+            sw.Stop();
+            var memsize = Convert.ToInt32(PC.NextValue()) / (int)(1024);
+            Console.WriteLine("Total processing time: {0} entries    {1} mergeSz    {2}  MEMORY: {3}", size, mergeMax, sw.Elapsed.ToString(), memsize);
+            Console.WriteLine();
+            PC.Close();
+            PC.Dispose();
+        }
+    }
+
 }
