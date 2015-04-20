@@ -458,8 +458,8 @@ namespace RazorDBTests {
                 Console.WriteLine("Total Entries created: {0}/{1}", testKVS.Enumerate().Count(), indexHash.Count());
             }
             // upgrade and check values
-            KeyValueStore.UpgradeIndexToVersion2Format(basename, kvsName);
             using (var postKVS = new KeyValueStore(Path.Combine(basename, kvsName))) {
+                KeyValueStore.UpgradeIndexToVersion2Format(postKVS);
                 Console.WriteLine("Total Entries after conversion: {0}", postKVS.Enumerate().Count());
                 int missing = 0;
                 foreach (var pair in postKVS.Enumerate()) {
