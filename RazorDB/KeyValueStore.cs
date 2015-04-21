@@ -186,10 +186,14 @@ namespace RazorDB {
         /// <returns></returns>
         private static byte[] ItemKeyFromIndex(KeyValuePair<byte[], byte[]> indexPair, int indexKeyLen = -1) {
             int offset = 0;
-            indexKeyLen = indexKeyLen == -1 ? Helper.Decode7BitInt(indexPair.Value, ref offset) : indexKeyLen;
-            var objectKey = new byte[indexPair.Key.Length - indexKeyLen];
-            Helper.BlockCopy(indexPair.Key, indexKeyLen, objectKey, 0, indexPair.Key.Length - indexKeyLen);
-            return objectKey;
+            if (indexPair.Value.Length > 4) {
+                return indexPair.Value;
+            } else {
+                indexKeyLen = indexKeyLen == -1 ? Helper.Decode7BitInt(indexPair.Value, ref offset) : indexKeyLen;
+                var objectKey = new byte[indexPair.Key.Length - indexKeyLen];
+                Helper.BlockCopy(indexPair.Key, indexKeyLen, objectKey, 0, indexPair.Key.Length - indexKeyLen);
+                return objectKey;
+            }
         }
 
         public void DropIndex(string indexName) {
@@ -345,11 +349,19 @@ namespace RazorDB {
                 // construct our index key pattern (lookupvalue | key)
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
                     int offset = 0;
-                    int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
-                    if (lookupValue.Length == indexKeyLen) {
-                        // Lookup the value of the actual object using the key that was found
-                        // get the object key from the index value tail
-                        var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                    byte[] objectKey = null;
+                    if (Manifest.RazorFormatVersion < 2) {
+                        if(ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
+                            objectKey = pair.Value;
+                    } else {
+                        int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                        if (lookupValue.Length == indexKeyLen) {
+                            // Lookup the value of the actual object using the key that was found
+                            // get the object key from the index value tail
+                            objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                        }
+                    }
+                    if (objectKey != null) {
                         var primaryValue = this.Get(objectKey);
                         if (primaryValue != null)
                             yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
@@ -371,9 +383,17 @@ namespace RazorDB {
                 // construct our index key pattern (lookupvalue | key)
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
                     int offset = 0;
-                    int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
-                    if (lookupValue.Length <= indexKeyLen) {
-                        var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                    byte[] objectKey = null;
+                    if (Manifest.RazorFormatVersion < 2) {
+                        if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
+                            objectKey = pair.Value;
+                    } else {
+                        int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                        if (lookupValue.Length <= indexKeyLen) {
+                            objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                        }
+                    }
+                    if (objectKey != null) {
                         var primaryValue = Get(objectKey);
                         if (primaryValue != null)
                             yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
@@ -399,11 +419,16 @@ namespace RazorDB {
                 // construct our index key pattern (lookupvalue | key)
                 if (ByteArray.CompareMemCmp(pair.Key, 0, lookupValue, 0, lookupValue.Length) == 0) {
                     int offset = 0;
-                    int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
-                    if (lookupValue.Length <= indexKeyLen) {
-                        var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
-                        Helper.BlockCopy(pair.Key, indexKeyLen, objectKey, 0, pair.Key.Length - indexKeyLen);
-                        yield return new KeyValuePair<byte[], byte[]>(pair.Key, objectKey);
+                    if (Manifest.RazorFormatVersion < 2) {
+                        if (ByteArray.CompareMemCmp(pair.Key, pair.Key.Length - pair.Value.Length, pair.Value, 0, pair.Value.Length) == 0)
+                            yield return new KeyValuePair<byte[], byte[]>(pair.Key, pair.Value);
+                    } else {
+                        int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                        if (lookupValue.Length <= indexKeyLen) {
+                            var objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                            Helper.BlockCopy(pair.Key, indexKeyLen, objectKey, 0, pair.Key.Length - indexKeyLen);
+                            yield return new KeyValuePair<byte[], byte[]>(pair.Key, objectKey);
+                        }
                     }
                 } else {
                     // if the above condition was not met then we must have enumerated past the end of the indexed value
