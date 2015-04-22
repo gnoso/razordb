@@ -350,8 +350,8 @@ namespace RazorDB {
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
                     int offset = 0;
                     byte[] objectKey = null;
-                    if (Manifest.RazorFormatVersion < 2) {
-                        if(ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
+                    if (indexStore.RazorFormatVersion < 2) {
+                        if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
                             objectKey = pair.Value;
                     } else {
                         int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
