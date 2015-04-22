@@ -34,6 +34,7 @@ namespace RazorDB {
 
         public ManifestImmutable(Manifest manifest) {
             _manifest = manifest;
+            RazorFormatVersion = RAZORFORMATCURRENT;
             _pages = new List<PageRecord>[MaxLevels];
             _mergeKeys = new Key[MaxLevels];
             for (int i = 0; i < MaxLevels; i++) {
@@ -247,6 +248,7 @@ namespace RazorDB {
             writer.Write(size);
         }
 
+
         public int RazorFormatVersion { get; private set; }
 
         internal void ReadManifestContents(BinaryReader reader) {
@@ -255,6 +257,8 @@ namespace RazorDB {
             if (num_versions == RAZORFORMATSECRET) {
                 RazorFormatVersion = reader.Read7BitEncodedInt();
                 num_versions = reader.Read7BitEncodedInt();
+            } else {
+                RazorFormatVersion = -1; // all unnumbered formats
             }
 
             for (int i = 0; i < num_versions; i++) {
