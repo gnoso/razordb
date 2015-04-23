@@ -30,6 +30,44 @@ namespace RazorDBTests {
     public class SortedBlockTableTests {
 
         [Test]
+        public void TestRecordTypeAnding() {
+            byte testbyte = (byte)RecordHeaderFlag.PrefixedRecord;
+            Assert.AreNotEqual(testbyte & (byte)RecordHeaderFlag.Record, testbyte);
+            Assert.AreEqual(testbyte & (byte)RecordHeaderFlag.PrefixedRecord, testbyte);
+            Assert.AreEqual(testbyte & (byte)(RecordHeaderFlag.PrefixedRecord | RecordHeaderFlag.Record), testbyte);
+
+            testbyte = (byte)RecordHeaderFlag.Record;
+            Assert.AreNotEqual(testbyte & (byte)RecordHeaderFlag.PrefixedRecord, testbyte);
+            Assert.AreEqual(testbyte & (byte)RecordHeaderFlag.Record, testbyte);
+            Assert.AreEqual(testbyte & (byte)(RecordHeaderFlag.PrefixedRecord | RecordHeaderFlag.Record), testbyte);
+
+            testbyte = (byte)RecordHeaderFlag.EndOfBlock;
+            Assert.AreEqual(testbyte & (byte)RecordHeaderFlag.EndOfBlock, testbyte);
+            Assert.AreNotEqual(testbyte & (byte)RecordHeaderFlag.PrefixedRecord, testbyte);
+            Assert.AreNotEqual(testbyte & (byte)RecordHeaderFlag.Record, testbyte);
+            Assert.AreNotEqual(testbyte & (byte)(RecordHeaderFlag.Record | RecordHeaderFlag.PrefixedRecord), testbyte);
+        }
+
+
+        [Test]
+        public void TestShortToBytesRoundTrip() {
+            Func<short, byte[]> twoBytes = (num) => {
+                var bytes = new byte[2];
+                bytes[0] = (byte)(num >> 8);
+                bytes[1] = (byte)(num & 255);
+                return bytes;
+            };
+
+            Func<byte[], short> toShort = (bytes) => {
+                return (short)(bytes[0] << 8 | bytes[1]);
+            };
+
+            for (short i = short.MaxValue * -1; i < short.MaxValue; i++) {
+                Assert.AreEqual(i, toShort(twoBytes(i)));
+            }
+        }
+
+        [Test]
         public void TestFileOpenSpeed() {
 
             string path = Path.GetFullPath("TestData\\TestFileOpenSpeed");

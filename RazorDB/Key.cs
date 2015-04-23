@@ -86,5 +86,30 @@ namespace RazorDB {
         public Key WithSequence(byte seqNum) {
             return new Key(KeyBytes, seqNum);
         }
+        public short PrefixLength(byte[] matchPrefix) {
+            short i=0;
+            if (matchPrefix != null) {
+                for (i = 0; i < InternalBytes.Length && i < matchPrefix.Length; i++) {
+                    if (matchPrefix[i] != InternalBytes[i])
+                        continue;
+                }
+            }
+            return i;
+        }
+
+        internal int PrefixCompareTo(byte[] prefixKey, short prefixLen, byte[] block, int offset, int keySize, out byte[] nextKey) {
+            var mergeKey = new byte[prefixLen + keySize];
+            Buffer.BlockCopy(prefixKey, 0, mergeKey, 0, prefixLen);
+            Buffer.BlockCopy(block, offset, mergeKey, prefixLen, keySize);
+            nextKey = mergeKey;
+            return CompareTo(mergeKey, 0, mergeKey.Length);
+        }
+
+        internal static Key KeyFromPrefix(byte[] prefixKey, short prefixLen, byte[] block, int offset, int keySize) {
+            var mergeKey = new byte[prefixLen + keySize];
+            Buffer.BlockCopy(prefixKey, 0, mergeKey, 0, prefixLen);
+            Buffer.BlockCopy(block, offset, mergeKey, prefixLen, keySize);
+            return new Key(new ByteArray(mergeKey));
+        }
     }
 }
