@@ -67,7 +67,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
+        [Test,Explicit]
         public void DumpPrefixedSBT() {
 
             string path = Path.GetFullPath("TestData\\DumpPrefixedSBT");
@@ -90,7 +90,7 @@ namespace RazorDBTests {
             }
         }
 
-        [Test]
+        [Test,Explicit]
         public void WriteAndDumpSBT() {
 
             string path = Path.GetFullPath("TestData\\DumpPrefixedSBT");
