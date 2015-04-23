@@ -488,11 +488,12 @@ namespace RazorDB {
             if (!FileExists)
                 yield break;
 
+            byte[] _lastKey = null;
             int startingBlock;
             if (key.Length == 0) {
                 startingBlock = 0;
             } else {
-                startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key, out _lastScanKey);
+                startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key, out _lastKey);
                 if (startingBlock < 0)
                     startingBlock = 0;
             }
@@ -524,7 +525,7 @@ namespace RazorDB {
                         var searchKeyBytes = key.InternalBytes;
                         if (i == startingBlock && key.Length != 0) {
                             while (offset >= 0) {
-                                var pair = ReadPair(ref block, ref offset);
+                                var pair = ReadPair(ref _lastKey, ref block, ref offset);
                                 var checkBytes = pair.Key.InternalBytes;
                                 if (pair.Key.CompareTo(key) >= 0) {
                                     var foundKey = pair.Key.InternalBytes;
@@ -536,7 +537,7 @@ namespace RazorDB {
 
                         // Now loop through the rest of the block
                         while (offset >= 0) {
-                            var newPair = ReadPair(ref block, ref offset);
+                            var newPair = ReadPair(ref _lastKey, ref block, ref offset);
                             yield return newPair;
                         }
                     }
@@ -713,14 +714,14 @@ namespace RazorDB {
             return val;
         }
 
-        private static KeyValuePair<Key, Value> ReadPair(ref byte[] block, ref int offset) {
+        private KeyValuePair<Key, Value> ReadPair(ref byte[] lastKey, ref byte[] block, ref int offset) {
             bool isPrefixed = block[offset++] == (byte)RecordHeaderFlag.PrefixedRecord;
             int keySize = Helper.Decode7BitInt(block, ref offset);
             short prefixLen = isPrefixed ? (short)(block[offset] << 8 | block[offset + 1]) : (short)0;
             offset += 2;
-            Key key = prefixLen > 0 ? Key.KeyFromPrefix(_lastScanKey, prefixLen, block, offset, keySize) : new Key(ByteArray.From(block, offset, keySize));
+            Key key = prefixLen > 0 ? Key.KeyFromPrefix(lastKey, prefixLen, block, offset, keySize) : new Key(ByteArray.From(block, offset, keySize));
             offset += keySize;
-            _lastScanKey = key.InternalBytes;
+            lastKey = key.InternalBytes;
 
             return new KeyValuePair<Key, Value>(key, ReadValue(ref block, ref offset));
         }
