@@ -59,14 +59,15 @@ namespace RazorDB {
             Array.Clear(_buffer, 0, _buffer.Length);
         }
 
-        private List<ushort> _keyOffsets = new List<ushort>();
-
         private byte[] _lastPairKey = null;
         // Write a new key value pair to the output file. This method assumes that the data is being fed in key-sorted order.
         public void WritePair(Key key, Value value) {
+
             // when prefixing the key is shortened to mininum differential remainder
             // i.e. skip bytes matching the previous key
-            short prefixLen = _lastPairKey != null ? (short)0 : key.PrefixLength(_lastPairKey);
+            short prefixLen = _lastPairKey == null ? (short)0 : key.PrefixLength(_lastPairKey);
+            
+            _lastPairKey = key.InternalBytes;
             int keyLength = key.Length - prefixLen;
 
             byte[] keySize = new byte[8];
@@ -75,7 +76,7 @@ namespace RazorDB {
             var valueSizeLen = Helper.Encode7BitInt(valueSize, value.Length);
 
 
-            int bytesNeeded = keySizeLen + keyLength + valueSizeLen + value.Length + 4 + 1 + 2;
+            int bytesNeeded = keySizeLen + keyLength + valueSizeLen + value.Length + 2 + 1; // +2 prefix len bytes +1 record header
 
             // Do we need to write out a block before adding this key value pair?
             if ((_bufferPos + bytesNeeded) > Config.SortedBlockSize) {
@@ -85,29 +86,23 @@ namespace RazorDB {
             // If we are at the beginning of the buffer, then add this key to the index.
             if (_bufferPos == 0) {
                 _pageIndex.Add(key);
-                // Add a place for the root node offset
-                _bufferPos += 2;
             }
 
-            // store the pair in preparation for writing
-            _keyOffsets.Add((ushort)_bufferPos);
-
             // This is a record header
-            _buffer[_bufferPos++] = (byte) RecordHeaderFlag.PrefixedRecord;
-
-            // Add space for left and right node pointers
-            _bufferPos += 4;
+            _buffer[_bufferPos] = (byte)RecordHeaderFlag.PrefixedRecord;
+            _bufferPos += 1;
 
             // write the data out to the buffer
             Helper.BlockCopy(keySize, 0, _buffer, _bufferPos, keySizeLen);
             _bufferPos += keySizeLen;
-            
+
             // add the length of prefix 2 bytes
-            _buffer[_bufferPos++] = (byte)(prefixLen >> 8);
-            _buffer[_bufferPos++] = (byte)(prefixLen & 255);
+            _buffer[_bufferPos] = (byte)(prefixLen >> 8);
+            _buffer[_bufferPos + 1] = (byte)(prefixLen & 255);
+            _bufferPos += 2;
 
             Helper.BlockCopy(key.InternalBytes, prefixLen, _buffer, _bufferPos, keyLength);
-            _bufferPos += key.Length;
+            _bufferPos += keyLength;
             Helper.BlockCopy(valueSize, 0, _buffer, _bufferPos, valueSizeLen);
             _bufferPos += valueSizeLen;
             Helper.BlockCopy(value.InternalBytes, 0, _buffer, _bufferPos, value.Length);
@@ -116,37 +111,12 @@ namespace RazorDB {
             WrittenSize += bytesNeeded;
         }
 
-        private ushort BuildBlockTree(byte[] block, int startIndex, int endIndex, List<ushort> keyOffsets) {
-            int middleIndex = (startIndex + endIndex) >> 1;
-            ushort nodeOffset = keyOffsets[middleIndex];
-
-            // Build left side
-            if (startIndex < middleIndex) {
-                ushort leftOffset = BuildBlockTree(block, startIndex, middleIndex - 1, keyOffsets);
-                byte[] left = BitConverter.GetBytes(leftOffset);
-                Helper.BlockCopy(left, 0, block, nodeOffset + 1, 2);
-            }
-            // Build right side
-            if (middleIndex < endIndex) {
-                ushort rightOffset = BuildBlockTree(block, middleIndex + 1, endIndex, keyOffsets);
-                byte[] right = BitConverter.GetBytes(rightOffset);
-                Helper.BlockCopy(right, 0, block, nodeOffset + 3, 2);
-            }
-            return nodeOffset;
-        }
-
         private void WriteDataBlock() {
 
             // Write the end of buffer flag if we have room
             if (_bufferPos < Config.SortedBlockSize) {
                 _buffer[_bufferPos++] = (byte)RecordHeaderFlag.EndOfBlock;
             }
-
-            // Build the tree structure and fill in the starting pointer
-            ushort middleTreePtr = BuildBlockTree(_buffer, 0, _keyOffsets.Count - 1, _keyOffsets);
-            byte[] middleTree = BitConverter.GetBytes(middleTreePtr);
-            Helper.BlockCopy(middleTree, 0,_buffer, 0, 2);
-            _keyOffsets.Clear();
 
             WriteBlock();
         }
@@ -217,6 +187,7 @@ namespace RazorDB {
                 indexBlocks = totalBlocks - dataBlocks;
                 // Write metadata block at the end
                 WriteMetadata();
+
                 _fileStream.Close();
                 _fileStream.Dispose();
             }
@@ -485,7 +456,7 @@ namespace RazorDB {
             PerformanceCounters.SBTLookup.Increment();
             SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
             try {
-                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key);
+                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key, out _lastScanKey);
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
                     byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
                     return ScanBlockForKey(block, key, out value);
@@ -498,12 +469,14 @@ namespace RazorDB {
             return false;
         }
 
-        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, Key key) {
+        private static int FindBlockForKey(string baseFileName, int level, int version, RazorCache indexCache, Key key, out byte[] baseKey) {
             Key[] index = indexCache.GetBlockTableIndex(baseFileName, level, version);
             int dataBlockNum = Array.BinarySearch(index, key);
             if (dataBlockNum < 0) {
                 dataBlockNum = ~dataBlockNum - 1;
             }
+
+            baseKey = (dataBlockNum > -1 && dataBlockNum < index.Length) ? index[dataBlockNum].InternalBytes : Key.Empty.InternalBytes;
             return dataBlockNum;
         }
 
@@ -519,7 +492,7 @@ namespace RazorDB {
             if (key.Length == 0) {
                 startingBlock = 0;
             } else {
-                startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key);
+                startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key, out _lastScanKey);
                 if (startingBlock < 0)
                     startingBlock = 0;
             }
@@ -545,13 +518,16 @@ namespace RazorDB {
                             asyncResult = BeginReadBlock(currentBlock, i + 1);
                         }
 
-                        int offset = 2; // reset offset, start after tree root pointer
+                        int offset = 0;
 
                         // On the first block, we need to seek to the key first (if we don't have an empty key)
+                        var searchKeyBytes = key.InternalBytes;
                         if (i == startingBlock && key.Length != 0) {
                             while (offset >= 0) {
                                 var pair = ReadPair(ref block, ref offset);
+                                var checkBytes = pair.Key.InternalBytes;
                                 if (pair.Key.CompareTo(key) >= 0) {
+                                    var foundKey = pair.Key.InternalBytes;
                                     yield return pair;
                                     break;
                                 }
@@ -560,7 +536,8 @@ namespace RazorDB {
 
                         // Now loop through the rest of the block
                         while (offset >= 0) {
-                            yield return ReadPair(ref block, ref offset);
+                            var newPair = ReadPair(ref block, ref offset);
+                            yield return newPair;
                         }
                     }
 
@@ -571,6 +548,73 @@ namespace RazorDB {
             }
 
         }
+
+
+        public IEnumerable<KeyValuePair<Key, Value>> EnumerateRaw() {
+            return EnumerateFromKeyRaw(_cache, Key.Empty);
+        }
+
+        public IEnumerable<KeyValuePair<Key, Value>> EnumerateFromKeyRaw(RazorCache indexCache, Key key) {
+            if (!FileExists)
+                yield break;
+
+            int startingBlock;
+            if (key.Length == 0) {
+                startingBlock = 0;
+            } else {
+                startingBlock = FindBlockForKey(_baseFileName, _level, _version, indexCache, key, out _lastScanKey);
+                if (startingBlock < 0)
+                    startingBlock = 0;
+            }
+            if (startingBlock < _dataBlocks) {
+
+                byte[] allocBlockA = new byte[Config.SortedBlockSize];
+                byte[] allocBlockB = new byte[Config.SortedBlockSize];
+                byte[] currentBlock = allocBlockA;
+
+                var asyncResult = BeginReadBlock(currentBlock, startingBlock);
+
+                try {
+
+                    for (int i = startingBlock; i < _dataBlocks; i++) {
+
+                        // wait on last block read to complete so we can start processing the data
+                        byte[] block = EndReadBlock(asyncResult);
+                        asyncResult = null;
+
+                        // Go ahead and kick off the next block read asynchronously while we parse the last one
+                        if (i < _dataBlocks) {
+                            SwapBlocks(allocBlockA, allocBlockB, ref currentBlock); // swap the blocks so we can issue another disk i/o
+                            asyncResult = BeginReadBlock(currentBlock, i + 1);
+                        }
+
+                        int offset = 0;
+
+                        // On the first block, we need to seek to the key first (if we don't have an empty key)
+                        if (i == startingBlock && key.Length != 0) {
+                            while (offset >= 0) {
+                                var pair = ReadPairRaw(ref block, ref offset);
+                                if (pair.Key.CompareTo(key) >= 0) {
+                                    yield return pair;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Now loop through the rest of the block
+                        while (offset >= 0) {
+                            yield return ReadPairRaw(ref block, ref offset);
+                        }
+                    }
+
+                } finally {
+                    if (asyncResult != null)
+                        EndReadBlock(asyncResult);
+                }
+            }
+
+        }
+
 
         private IEnumerable<Key> EnumerateIndex() {
             if (!FileExists)
@@ -625,24 +669,24 @@ namespace RazorDB {
 
         private static byte[] _lastScanKey = null;
         private static bool ScanBlockForKey(byte[] block, Key key, out Value value) {
-            int offset = 2; // skip over the tree root pointer
+            int offset = 0;
             value = Value.Empty;
-            while (offset >= 2 && offset < Config.SortedBlockSize 
+            while (offset >= 0 && offset < Config.SortedBlockSize
                 && ((block[offset] & (byte)(RecordHeaderFlag.Record | RecordHeaderFlag.PrefixedRecord)) == block[offset])) {
                 // read record header
                 bool isPrefixed = block[offset++] == (byte)RecordHeaderFlag.PrefixedRecord;
-                offset += 4; // skip past the tree pointers
 
                 int keySize = Helper.Decode7BitInt(block, ref offset);
                 int cmp;
                 if (isPrefixed) {
-                    var prefixLen = (short) (block[offset++] << 8 | block[offset++]); // prefix used len in two bytes
+                    var prefixLen = (short)(block[offset] << 8 | block[offset + 1]); // prefix used len in two bytes
+                    offset += 2;
                     cmp = key.PrefixCompareTo(_lastScanKey, prefixLen, block, offset, keySize, out _lastScanKey);
                 } else {
                     cmp = key.CompareTo(block, offset, keySize);
                 }
                 offset += keySize;
-                
+
                 if (cmp == 0) {
                     // Found it
                     value = ReadValue(ref block, ref offset);
@@ -657,33 +701,6 @@ namespace RazorDB {
             }
             return false;
         }
-
-        private static bool SearchBlockForKey(ref byte[] block, ref Key key, out Value value) {
-            int offset = BitConverter.ToUInt16(block, 0); // grab the tree root
-            value = Value.Empty;
-
-            while (offset >= 2 && offset < Config.SortedBlockSize && block[offset] == (byte)RecordHeaderFlag.Record) {
-                int startingOffset = offset;
-                offset += 1; // skip header
-                offset += 4; // skip tree pointers
-                int keySize = Helper.Decode7BitInt(block, ref offset);
-                int cmp = key.CompareTo(block, offset, keySize);
-                if (cmp == 0) {
-                    // Found it
-                    offset += keySize;
-                    value = ReadValue(ref block, ref offset);
-                    return true;
-                } else if (cmp < 0) {
-                    // key < node => explore left side
-                    offset = BitConverter.ToUInt16(block, startingOffset + 1);
-                } else if (cmp > 0) {
-                    // key > node => explore right side
-                    offset = BitConverter.ToUInt16(block, startingOffset + 3);
-                }
-            }
-            return false;
-        }
-
         private static Value ReadValue(ref byte[] block, ref int offset) {
             int valueSize = Helper.Decode7BitInt(block, ref offset);
             var val = Value.From(block, offset, valueSize);
@@ -698,17 +715,27 @@ namespace RazorDB {
 
         private static KeyValuePair<Key, Value> ReadPair(ref byte[] block, ref int offset) {
             bool isPrefixed = block[offset++] == (byte)RecordHeaderFlag.PrefixedRecord;
-            offset += 4; // skip over the tree pointers
             int keySize = Helper.Decode7BitInt(block, ref offset);
-            short prefixLen = isPrefixed ? (short)(block[offset++] << 8 | block[offset++]) : (short) 0;
-            Key key = isPrefixed && prefixLen > 0 ? 
-                      Key.KeyFromPrefix(_lastScanKey, prefixLen, block, offset, keySize)
-                      :new Key(ByteArray.From(block, offset, keySize));
+            short prefixLen = isPrefixed ? (short)(block[offset] << 8 | block[offset + 1]) : (short)0;
+            offset += 2;
+            Key key = prefixLen > 0 ? Key.KeyFromPrefix(_lastScanKey, prefixLen, block, offset, keySize) : new Key(ByteArray.From(block, offset, keySize));
+            offset += keySize;
             _lastScanKey = key.InternalBytes;
+
+            return new KeyValuePair<Key, Value>(key, ReadValue(ref block, ref offset));
+        }
+
+        private static KeyValuePair<Key, Value> ReadPairRaw(ref byte[] block, ref int offset) {
+            bool isPrefixed = block[offset++] == (byte)RecordHeaderFlag.PrefixedRecord;
+            int keySize = Helper.Decode7BitInt(block, ref offset);
+            short prefixLen = isPrefixed ? (short)(block[offset] << 8 | block[offset + 1]) : (short)0;
+            offset += 2;
+            Key key = new Key(ByteArray.From(block, offset, keySize));
             offset += keySize;
 
             return new KeyValuePair<Key, Value>(key, ReadValue(ref block, ref offset));
         }
+
 
         public static IEnumerable<KeyValuePair<Key, Value>> EnumerateMergedTablesPreCached(RazorCache cache, string baseFileName, IEnumerable<PageRef> tableSpecs, ExceptionHandling exceptionHandling, Action<string> logger) {
             PerformanceCounters.SBTEnumerateMergedTablesPrecached.Increment();
@@ -736,6 +763,7 @@ namespace RazorDB {
 
             Action<KeyValuePair<Key, Value>> OpenPage = (pair) => {
                 writer = new SortedBlockTableWriter(mf.BaseFileName, destinationLevel, mf.NextVersion(destinationLevel));
+
                 firstKey = pair.Key;
                 using (var m = mf.GetLatestManifest()) {
                     maxKey = m.FindSpanningLimit(destinationLevel + 1, firstKey);
@@ -783,28 +811,27 @@ namespace RazorDB {
                 msg(string.Format("\n*** Data Block {0} ***", i));
                 byte[] block = ReadBlock(new byte[Config.SortedBlockSize], i);
 
-                int treePtr = BitConverter.ToUInt16(block, 0);
-                msg(string.Format("{0:X4} \"{1}\" Tree Offset: {2:X4}", 0, BytesToString(block, 0, 2), treePtr));
-
-                int offset = 2;
+                int offset = 0;
                 while (offset < Config.SortedBlockSize && block[offset] != (byte)RecordHeaderFlag.EndOfBlock) {
 
                     // Record
-                    msg(string.Format("{0:X4} \"{1}\" {2}", offset, BytesToString(block, offset, 1), ((RecordHeaderFlag)block[offset]).ToString()));
-
-                    // Node Pointers
-                    msg(string.Format("{0:X4} \"{1}\" Left:  {2:X4}", offset + 1, BytesToString(block, offset + 1, 2), BitConverter.ToUInt16(block, offset + 1)));
-                    msg(string.Format("{0:X4} \"{1}\" Right: {2:X4}", offset + 3, BytesToString(block, offset + 3, 2), BitConverter.ToUInt16(block, offset + 3)));
-                    offset += 5;
+                    var recHdr = (RecordHeaderFlag)block[offset];
+                    msg(string.Format("{0:X4} \"{1}\" {2}", offset, BytesToString(block, offset, 1), (recHdr).ToString()));
+                    offset++;
 
                     // Key
                     int keyOffset = offset;
                     int keySize = Helper.Decode7BitInt(block, ref offset);
                     msg(string.Format("{0:X4} \"{1}\" KeySize: {2}", keyOffset, BytesToString(block, keyOffset, offset - keyOffset), keySize));
+                    if (recHdr == RecordHeaderFlag.PrefixedRecord) {
+                        short prefixLen = (short)(block[offset] << 8 | block[offset + 1]);
+                        msg(string.Format("{0:X4} \"{1}\" PrefixLen: {2}", keyOffset, BytesToString(block, offset, 2), prefixLen));
+                        offset += 2;
+                    }
                     msg(string.Format("{0:X4} \"{1}\"", offset, BytesToString(block, offset, keySize)));
                     offset += keySize;
 
-                    // Key
+                    // Data
                     int dataOffset = offset;
                     int dataSize = Helper.Decode7BitInt(block, ref offset);
                     msg(string.Format("{0:X4} \"{1}\" DataSize: {2}", dataOffset, BytesToString(block, dataOffset, offset - dataOffset), dataSize));

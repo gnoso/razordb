@@ -91,7 +91,7 @@ namespace RazorDB {
             if (matchPrefix != null) {
                 for (i = 0; i < InternalBytes.Length && i < matchPrefix.Length; i++) {
                     if (matchPrefix[i] != InternalBytes[i])
-                        continue;
+                        break;
                 }
             }
             return i;

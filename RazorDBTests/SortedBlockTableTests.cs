@@ -68,6 +68,52 @@ namespace RazorDBTests {
         }
 
         [Test]
+        public void DumpPrefixedSBT() {
+
+            string path = Path.GetFullPath("TestData\\DumpPrefixedSBT");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
+            var mt = new MemTable();
+            for (int i = 0; i < 10000; i++) {
+                var k0 = Key.Random(40);
+                var v0 = Value.Random(200);
+                mt.Add(k0, v0);
+            }
+
+            mt.WriteToSortedBlockTable("TestData\\DumpPrefixedSBT", 0, 10);
+            var cache = new RazorCache();
+            var sbt = new SortedBlockTable(cache, "TestData\\DumpPrefixedSBT", 0, 10);
+            
+            foreach (var pair in sbt.EnumerateRaw()) {
+                Console.WriteLine("Key: {0}   Value: {1}", pair.Key.ToString(), pair.Value.ToString());
+            }
+        }
+
+        [Test]
+        public void WriteAndDumpSBT() {
+
+            string path = Path.GetFullPath("TestData\\DumpPrefixedSBT");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
+            var mt = new MemTable();
+            for (int i = 0; i < 10000; i++) {
+                var k0 = Key.Random(40);
+                var v0 = Value.Random(200);
+                mt.Add(k0, v0);
+            }
+
+            mt.WriteToSortedBlockTable("TestData\\DumpPrefixedSBT", 0, 10);
+            var cache = new RazorCache();
+            var sbt = new SortedBlockTable(cache, "TestData\\DumpPrefixedSBT", 0, 10);
+            sbt.DumpContents((msg) => Console.WriteLine(msg));
+        }
+
+
+
+
+        [Test]
         public void TestFileOpenSpeed() {
 
             string path = Path.GetFullPath("TestData\\TestFileOpenSpeed");

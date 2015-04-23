@@ -340,6 +340,10 @@ namespace RazorDBTests {
 
             int numItems = 100000;
             string path = Path.GetFullPath("TestData\\BulkSetWithDelete");
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+            Directory.CreateDirectory(path);
+
             using (var db = new KeyValueStore(path)) {
                 db.Manifest.Logger = msg => Console.WriteLine(msg);
                 db.Truncate();

@@ -169,6 +169,10 @@ namespace RazorDBTests {
         public void AddObjectsAndLookupWithMixedCase() {
 
             string path = Path.GetFullPath("TestData\\AddObjectsAndLookupWithMixedCase");
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+            Directory.CreateDirectory(path);
+
             var timer = new Stopwatch();
 
             using (var db = new KeyValueStore(path)) {
