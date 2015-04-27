@@ -666,7 +666,7 @@ namespace RazorDB {
                         asyncResult = BeginReadBlock(currentBlock, i + 1);
                     }
 
-                    int offset = FormatVersion < 2 ? 2 : 0; // handle old format with 2 bytes for offset to treehead
+                    int offset = 0;
                     while (offset >= 0) {
                         yield return ReadKey(block, ref offset);
                     }
@@ -701,7 +701,7 @@ namespace RazorDB {
                 && ((block[offset] & (byte)(RecordHeaderFlag.Record | RecordHeaderFlag.PrefixedRecord)) == block[offset])) {
                 // read record header
                 bool isPrefixed = block[offset] == (byte)RecordHeaderFlag.PrefixedRecord;
-                offset += FormatVersion < 2 ? 3 : 1; // skip bytes of old tree blocks
+                offset += FormatVersion < 2 ? 5 : 1; // skip bytes of old tree blocks
 
                 int keySize = Helper.Decode7BitInt(block, ref offset);
                 int cmp;
@@ -742,10 +742,10 @@ namespace RazorDB {
 
         private KeyValuePair<Key, Value> ReadPair(ref byte[] lastKey, ref byte[] block, ref int offset) {
             bool isPrefixed = block[offset] == (byte)RecordHeaderFlag.PrefixedRecord;
-            offset += FormatVersion < 2 ? 3 : 1; // skip bytes of old tree blocks
+            offset += FormatVersion < 2 ? 5 : 1; // skip bytes of old tree blocks
             int keySize = Helper.Decode7BitInt(block, ref offset);
             short prefixLen = isPrefixed ? (short)(block[offset] << 8 | block[offset + 1]) : (short)0;
-            offset += 2;
+            offset += isPrefixed ? 2 : 0;
             Key key = prefixLen > 0 ? Key.KeyFromPrefix(lastKey, prefixLen, block, offset, keySize) : new Key(ByteArray.From(block, offset, keySize));
             offset += keySize;
             lastKey = key.InternalBytes;
@@ -755,11 +755,14 @@ namespace RazorDB {
 
         private RawRecord ReadRawRecord(ref byte[] block, ref int offset) {
             var hdrFlag = (RecordHeaderFlag)block[offset];
-            offset += FormatVersion < 2 ? 3 : 1; // skip bytes of old tree blocks
+            if ((byte)(hdrFlag & (RecordHeaderFlag.Record | RecordHeaderFlag.PrefixedRecord)) == 0x00)
+                System.Diagnostics.Debugger.Break();
+
+            offset += FormatVersion < 2 ? 5 : 1; // skip bytes of old tree blocks
             bool isPrefixed = hdrFlag == RecordHeaderFlag.PrefixedRecord;
             int keySize = Helper.Decode7BitInt(block, ref offset);
             short prefixLen = isPrefixed ? (short)(block[offset] << 8 | block[offset + 1]) : (short)0;
-            offset += 2;
+            offset += isPrefixed ? 2 : 0;
             Key key = new Key(ByteArray.From(block, offset, keySize));
             offset += keySize;
 
@@ -849,11 +852,15 @@ namespace RazorDB {
                     msg(string.Format("{0:X4} \"{1}\" {2}", offset, BytesToString(block, offset, 1), (recHdr).ToString()));
                     offset++;
 
+                    bool isPrefixed = recHdr == RecordHeaderFlag.PrefixedRecord;
+                    // handle old tree bytes
+                    offset += isPrefixed ? 0 : 4;
+
                     // Key
                     int keyOffset = offset;
                     int keySize = Helper.Decode7BitInt(block, ref offset);
                     msg(string.Format("{0:X4} \"{1}\" KeySize: {2}", keyOffset, BytesToString(block, keyOffset, offset - keyOffset), keySize));
-                    if (recHdr == RecordHeaderFlag.PrefixedRecord) {
+                    if (isPrefixed) {
                         short prefixLen = (short)(block[offset] << 8 | block[offset + 1]);
                         msg(string.Format("{0:X4} \"{1}\" PrefixLen: {2}", keyOffset, BytesToString(block, offset, 2), prefixLen));
                         offset += 2;
