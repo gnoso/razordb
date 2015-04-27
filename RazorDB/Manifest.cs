@@ -430,17 +430,8 @@ namespace RazorDB {
 
         public void NotifyPageReleased(PageRecord pageRec) {
             string path = null;
-            try {
-                path = Config.SortedBlockTableFile(BaseFileName, pageRec.Level, pageRec.Version);
-                if (File.Exists(path))
-                    File.Delete(path);
-            } catch {
-                // try again before logging
-                ThreadPool.QueueUserWorkItem((none) => {
-                    Thread.Sleep(3000);
-                    try { File.Delete(path); } catch (Exception ex) { LogMessage("Unable to release sbt page AFTER RETRY: {0}\r\nException: {1}", path, ex.Message); }
-                });
-            }
+            path = Config.SortedBlockTableFile(BaseFileName, pageRec.Level, pageRec.Version);
+            Helper.DeleteFile(path);
         }
 
         private void Write(ManifestImmutable m) {

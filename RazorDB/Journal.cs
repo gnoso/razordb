@@ -27,7 +27,7 @@ namespace RazorDB {
         public JournalWriter(string baseFileName, int version, bool append) {
             _fileName = Config.JournalFile(baseFileName, version);
             FileMode fileMode = append ? FileMode.Append : FileMode.Create;
-            _writer = new BinaryWriter(new FileStream(_fileName, fileMode, FileAccess.Write, FileShare.None, 1024, false));
+            _writer = new BinaryWriter(new FileStream(_fileName, fileMode, FileAccess.Write, FileShare.None, 1024, FileOptions.SequentialScan));
         }
 
         private BinaryWriter _writer;
@@ -61,8 +61,7 @@ namespace RazorDB {
         }
 
         public void Delete() {
-            if (File.Exists(_fileName))
-                File.Delete(_fileName);
+            Helper.DeleteFile(_fileName);
         }
 
     }

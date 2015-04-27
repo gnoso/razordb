@@ -66,7 +66,7 @@ namespace RazorDB {
             // when prefixing the key is shortened to mininum differential remainder
             // i.e. skip bytes matching the previous key
             short prefixLen = _lastPairKey == null ? (short)0 : key.PrefixLength(_lastPairKey);
-            
+
             _lastPairKey = key.InternalBytes;
             int keyLength = key.Length - prefixLen;
 
@@ -163,6 +163,8 @@ namespace RazorDB {
             BinaryWriter writer = new BinaryWriter(ms);
 
             writer.Write(Encoding.ASCII.GetBytes("@RAZORDB"));
+            writer.Write7BitEncodedInt(SortedBlockTable.Magic);
+            writer.Write(SortedBlockTable.CurrentFormatVersion);
             writer.Write7BitEncodedInt(totalBlocks + 1);
             writer.Write7BitEncodedInt(dataBlocks);
             writer.Write7BitEncodedInt(indexBlocks);
@@ -306,6 +308,10 @@ namespace RazorDB {
         }
         private string _path;
 
+        public static readonly byte CurrentFormatVersion = 0x02;
+        private byte FormatVersion;
+        public static readonly int Magic = 0x1A2B3C4D;
+
         private bool FileExists = true;
         private FileStream _fileStream;
         private FileStream internalFileStream {
@@ -370,7 +376,8 @@ namespace RazorDB {
             }
         }
 
-        private byte[] ReadBlock(byte[] block, int blockNum) {
+        private byte[] ReadBlock(byte[] block, int blockNum, byte[] initScanKey) {
+            _lastScanKey = initScanKey;
             if (_cache != null) {
                 byte[] cachedBlock = _cache.GetBlock(_baseFileName, _level, _version, blockNum);
                 if (cachedBlock != null) {
@@ -407,7 +414,7 @@ namespace RazorDB {
                     mdBlock = _cache.GetBlock(_baseFileName, _level, _version, int.MaxValue);
                     if (mdBlock == null) {
                         numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                        mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                        mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1, null);
                         PerformanceCounters.SBTReadMetadata.Increment();
                         byte[] blockCopy = (byte[])mdBlock.Clone();
                         _cache.SetBlock(_baseFileName, _level, _version, int.MaxValue, blockCopy);
@@ -416,7 +423,7 @@ namespace RazorDB {
                     }
                 } else {
                     numBlocks = (int)internalFileStream.Length / Config.SortedBlockSize;
-                    mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1);
+                    mdBlock = ReadBlock(LocalThreadAllocatedBlock(), numBlocks - 1, null);
                     PerformanceCounters.SBTReadMetadata.Increment();
                 }
 
@@ -426,7 +433,15 @@ namespace RazorDB {
                 if (checkString != "@RAZORDB") {
                     throw new InvalidDataException("This does not appear to be a valid table file.");
                 }
-                _totalBlocks = reader.Read7BitEncodedInt();
+                var testMagic = reader.Read7BitEncodedInt();
+                if (testMagic == Magic) {
+                    FormatVersion = reader.ReadByte();
+                    _totalBlocks = reader.Read7BitEncodedInt();
+                } else {
+                    _totalBlocks = testMagic;
+                    FormatVersion = 0x00;
+                }
+
                 _dataBlocks = reader.Read7BitEncodedInt();
                 _indexBlocks = reader.Read7BitEncodedInt();
 
@@ -456,11 +471,11 @@ namespace RazorDB {
             PerformanceCounters.SBTLookup.Increment();
             SortedBlockTable sbt = new SortedBlockTable(cache, baseFileName, level, version);
             try {
-                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key, out _lastScanKey);
+                byte[] lastScanKey;
+                int dataBlockNum = FindBlockForKey(baseFileName, level, version, cache, key, out lastScanKey);
                 if (dataBlockNum >= 0 && dataBlockNum < sbt._dataBlocks) {
-                    byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum);
-                    return ScanBlockForKey(block, key, out value);
-                    //return SearchBlockForKey(block, key, out value);
+                    byte[] block = sbt.ReadBlock(LocalThreadAllocatedBlock(), dataBlockNum, lastScanKey);
+                    return sbt.ScanBlockForKey(block, key, out value);
                 }
             } finally {
                 sbt.Close();
@@ -519,7 +534,7 @@ namespace RazorDB {
                             asyncResult = BeginReadBlock(currentBlock, i + 1);
                         }
 
-                        int offset = 0;
+                        int offset = FormatVersion < 2 ? 2 : 0; // handle old format with 2 bytes for offset to treehead
 
                         // On the first block, we need to seek to the key first (if we don't have an empty key)
                         var searchKeyBytes = key.InternalBytes;
@@ -550,12 +565,22 @@ namespace RazorDB {
 
         }
 
+        public class RawRecord {
+            public RawRecord(Key k, Value v, RecordHeaderFlag f) {
+                Key = k;
+                Value = v;
+                hdr = f;
+            }
+            public Key Key;
+            public Value Value;
+            public RecordHeaderFlag hdr;
+        }
 
-        public IEnumerable<KeyValuePair<Key, Value>> EnumerateRaw() {
+        public IEnumerable<RawRecord> EnumerateRaw() {
             return EnumerateFromKeyRaw(_cache, Key.Empty);
         }
 
-        public IEnumerable<KeyValuePair<Key, Value>> EnumerateFromKeyRaw(RazorCache indexCache, Key key) {
+        public IEnumerable<RawRecord> EnumerateFromKeyRaw(RazorCache indexCache, Key key) {
             if (!FileExists)
                 yield break;
 
@@ -589,14 +614,14 @@ namespace RazorDB {
                             asyncResult = BeginReadBlock(currentBlock, i + 1);
                         }
 
-                        int offset = 0;
+                        int offset = FormatVersion < 2 ? 2 : 02; // handle old format with 2 bytes for offset to treehead
 
                         // On the first block, we need to seek to the key first (if we don't have an empty key)
                         if (i == startingBlock && key.Length != 0) {
                             while (offset >= 0) {
-                                var pair = ReadPairRaw(ref block, ref offset);
-                                if (pair.Key.CompareTo(key) >= 0) {
-                                    yield return pair;
+                                var rec = ReadRawRecord(ref block, ref offset);
+                                if (rec.Key.CompareTo(key) >= 0) {
+                                    yield return rec;
                                     break;
                                 }
                             }
@@ -604,7 +629,7 @@ namespace RazorDB {
 
                         // Now loop through the rest of the block
                         while (offset >= 0) {
-                            yield return ReadPairRaw(ref block, ref offset);
+                            yield return ReadRawRecord(ref block, ref offset);
                         }
                     }
 
@@ -641,7 +666,7 @@ namespace RazorDB {
                         asyncResult = BeginReadBlock(currentBlock, i + 1);
                     }
 
-                    int offset = 0;
+                    int offset = FormatVersion < 2 ? 2 : 0; // handle old format with 2 bytes for offset to treehead
                     while (offset >= 0) {
                         yield return ReadKey(block, ref offset);
                     }
@@ -668,14 +693,15 @@ namespace RazorDB {
             return new Key(key);
         }
 
-        private static byte[] _lastScanKey = null;
-        private static bool ScanBlockForKey(byte[] block, Key key, out Value value) {
-            int offset = 0;
+        private byte[] _lastScanKey = null;
+        private bool ScanBlockForKey(byte[] block, Key key, out Value value) {
+            int offset = FormatVersion < 2 ? 2 : 0; // handle old format with 2 bytes for offset to treehead
             value = Value.Empty;
             while (offset >= 0 && offset < Config.SortedBlockSize
                 && ((block[offset] & (byte)(RecordHeaderFlag.Record | RecordHeaderFlag.PrefixedRecord)) == block[offset])) {
                 // read record header
-                bool isPrefixed = block[offset++] == (byte)RecordHeaderFlag.PrefixedRecord;
+                bool isPrefixed = block[offset] == (byte)RecordHeaderFlag.PrefixedRecord;
+                offset += FormatVersion < 2 ? 3 : 1; // skip bytes of old tree blocks
 
                 int keySize = Helper.Decode7BitInt(block, ref offset);
                 int cmp;
@@ -715,7 +741,8 @@ namespace RazorDB {
         }
 
         private KeyValuePair<Key, Value> ReadPair(ref byte[] lastKey, ref byte[] block, ref int offset) {
-            bool isPrefixed = block[offset++] == (byte)RecordHeaderFlag.PrefixedRecord;
+            bool isPrefixed = block[offset] == (byte)RecordHeaderFlag.PrefixedRecord;
+            offset += FormatVersion < 2 ? 3 : 1; // skip bytes of old tree blocks
             int keySize = Helper.Decode7BitInt(block, ref offset);
             short prefixLen = isPrefixed ? (short)(block[offset] << 8 | block[offset + 1]) : (short)0;
             offset += 2;
@@ -726,15 +753,17 @@ namespace RazorDB {
             return new KeyValuePair<Key, Value>(key, ReadValue(ref block, ref offset));
         }
 
-        private static KeyValuePair<Key, Value> ReadPairRaw(ref byte[] block, ref int offset) {
-            bool isPrefixed = block[offset++] == (byte)RecordHeaderFlag.PrefixedRecord;
+        private RawRecord ReadRawRecord(ref byte[] block, ref int offset) {
+            var hdrFlag = (RecordHeaderFlag)block[offset];
+            offset += FormatVersion < 2 ? 3 : 1; // skip bytes of old tree blocks
+            bool isPrefixed = hdrFlag == RecordHeaderFlag.PrefixedRecord;
             int keySize = Helper.Decode7BitInt(block, ref offset);
             short prefixLen = isPrefixed ? (short)(block[offset] << 8 | block[offset + 1]) : (short)0;
             offset += 2;
             Key key = new Key(ByteArray.From(block, offset, keySize));
             offset += keySize;
 
-            return new KeyValuePair<Key, Value>(key, ReadValue(ref block, ref offset));
+            return new RawRecord(key, ReadValue(ref block, ref offset), hdrFlag);
         }
 
 
@@ -810,9 +839,9 @@ namespace RazorDB {
             msg("");
             for (int i = 0; i < _dataBlocks; i++) {
                 msg(string.Format("\n*** Data Block {0} ***", i));
-                byte[] block = ReadBlock(new byte[Config.SortedBlockSize], i);
+                byte[] block = ReadBlock(new byte[Config.SortedBlockSize], i, null);
 
-                int offset = 0;
+                int offset = FormatVersion < 2 ? 2 : 0; // handle old format with 2 bytes for offset to treehead
                 while (offset < Config.SortedBlockSize && block[offset] != (byte)RecordHeaderFlag.EndOfBlock) {
 
                     // Record

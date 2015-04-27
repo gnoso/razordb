@@ -90,10 +90,10 @@ namespace RazorDB {
 
             string basePath = Path.GetFullPath(Manifest.BaseFileName);
             foreach (string file in Directory.GetFiles(basePath, "*.*", SearchOption.AllDirectories)) {
-                File.Delete(file);
+                Helper.DeleteFile(file, false, (msg) => { Manifest.LogMessage(msg); });
             }
             foreach (string dir in Directory.GetDirectories(basePath, "*.*", SearchOption.AllDirectories)) {
-                Directory.Delete(dir, true);
+                Helper.DeleteFolder(dir, false, (msg) => { Manifest.LogMessage(msg); });
             }
 
             _manifest = new Manifest(basePath);
@@ -266,16 +266,23 @@ namespace RazorDB {
             // Capture copy of the rotated table if there is one
             var rotatedMemTable = _rotatedJournaledMemTable;
 
+            // somtimes on shutdown this is null
+            if (_currentJournaledMemTable == null || _manifest == null)
+                return Value.Empty;
+                
             // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output;
             }
+
             // Check the table in rotation
             if (rotatedMemTable != null) {
                 if (rotatedMemTable.Lookup(lookupKey, out output)) {
                     return output;
                 }
             }
+
+
             // Now check the files on disk
             using (var manifest = _manifest.GetLatestManifest()) {
                 // Must check all pages on level 0
@@ -444,6 +451,30 @@ namespace RazorDB {
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> Enumerate() {
             return EnumerateFromKey(new byte[0]);
+        }
+
+        public IEnumerable<SortedBlockTable> GetTables() {
+
+            var enumerators = new List<IEnumerable<KeyValuePair<Key, Value>>>();
+
+            // Capture copy of the rotated table if there is one
+            var rotatedMemTable = _rotatedJournaledMemTable;
+
+            // Select main MemTable
+            enumerators.Add(_currentJournaledMemTable.EnumerateSnapshotFromKey(Key.Empty));
+
+            if (rotatedMemTable != null)
+                enumerators.Add(rotatedMemTable.EnumerateSnapshotFromKey(Key.Empty));
+
+            // Now check the files on disk
+            using (var manifestSnapshot = _manifest.GetLatestManifest()) {
+                List<SortedBlockTable> tables = new List<SortedBlockTable>();
+                for (int i = 0; i < manifestSnapshot.NumLevels; i++) {
+                    tables.AddRange(manifestSnapshot.GetPagesAtLevel(i).OrderByDescending(page => page.Version)
+                                    .Select(page => new SortedBlockTable(_cache, _manifest.BaseFileName, page.Level, page.Version)));
+                }
+                return tables;
+            }
         }
 
         private IEnumerable<KeyValuePair<Key, Value>> InternalEnumerateFromKey(byte[] startingKey) {
@@ -674,7 +705,7 @@ namespace RazorDB {
                             string orphanedFile = Config.SortedBlockTableFile(Manifest.BaseFileName, level, version);
 
                             // Delete the file.
-                            File.Delete(orphanedFile);
+                            Helper.DeleteFile(orphanedFile, true, (msg) => { Manifest.LogMessage(msg); });
 
                             Manifest.LogMessage("Removing Orphaned Pages '{0}'", orphanedFile);
                         }

@@ -20,6 +20,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 
 namespace RazorDB {
 
@@ -39,7 +40,7 @@ namespace RazorDB {
             return baseName + "\\" + level + "-" + version + ".sbt";
         }
         public static FileOptions SortedBlockTableFileOptions = FileOptions.SequentialScan;
-            
+
         public static string JournalFile(string baseName, int version) {
             return baseName + "\\" + version + ".jf";
         }
@@ -56,7 +57,7 @@ namespace RazorDB {
             if (level == 0) {
                 return 4;
             } else {
-                return (int) Math.Pow(10, level);
+                return (int)Math.Pow(10, level);
             }
         }
 
@@ -127,7 +128,7 @@ namespace RazorDB {
             return val;
         }
         public static int Read7BitEncodedInt(this BinaryReader rdr) {
-            return (int) rdr.Read7BitEncodedUInt();
+            return (int)rdr.Read7BitEncodedUInt();
         }
 
         public static uint Read7BitEncodedUInt(this BinaryReader rdr) {
@@ -146,7 +147,7 @@ namespace RazorDB {
         public static void Write7BitEncodedInt(this BinaryWriter wtr, int value) {
             if (value < 0)
                 throw new InvalidDataException("Negative numbers are not supported.");
-            wtr.Write7BitEncodedUInt( (uint) value);
+            wtr.Write7BitEncodedUInt((uint)value);
         }
         public static void Write7BitEncodedUInt(this BinaryWriter wtr, uint value) {
             uint num = value;
@@ -157,5 +158,55 @@ namespace RazorDB {
             wtr.Write((byte)num);
         }
 
+
+        internal static void DeleteFile(string path, bool delayedOk = false, Action<string> LogMessage = null) {
+            try {
+                if (File.Exists(path))
+                    File.Delete(path);
+            } catch {
+                Action doDelete = () => {
+                    GC.Collect(); //kill object that keep the file. I think dispose will do the trick as well.
+                    Thread.Sleep(500); //Wait for object to be killed. 
+                    try {
+                        File.Delete(path);
+                    } catch (Exception ex) {
+                        if (LogMessage != null)
+                            LogMessage(string.Format("Unable to delete file AFTER RETRY: {0}\r\nException: {1}", path, ex.Message));
+                    }
+                };
+
+                if (delayedOk) {
+                    // try again before logging
+                    ThreadPool.QueueUserWorkItem((none) => { doDelete(); });
+                } else {
+                    doDelete();
+                }
+            }
+        }
+
+        internal static void DeleteFolder(string dir, bool delayedOk = false, Action<string> LogMessage = null) {
+            try {
+                if (Directory.Exists(dir))
+                    Directory.Delete(dir, true);
+            } catch {
+                Action doDelete = () => {
+                    GC.Collect(); //kill object that keep the file. I think dispose will do the trick as well.
+                    Thread.Sleep(500); //Wait for object to be killed. 
+                    try {
+                        Directory.Delete(dir, true);
+                    } catch (Exception ex) {
+                        if (LogMessage != null)
+                            LogMessage(string.Format("Unable to delete directory AFTER RETRY: {0}\r\nException: {1}", dir, ex.Message));
+                    }
+                };
+
+                if (delayedOk) {
+                    // try again before logging
+                    ThreadPool.QueueUserWorkItem((none) => { doDelete(); });
+                } else {
+                    doDelete();
+                }
+            }
+        }
     }
 }
