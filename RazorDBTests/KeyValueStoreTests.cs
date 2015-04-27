@@ -1197,7 +1197,8 @@ namespace RazorDBTests {
             Assert.Less(spaceRatio, 1.4);
         }
 
-        [Test]
+
+        [Test, Explicit]
         public void DumpKeySpaceUsed() {
             double valueBytes=0L;
             double keyBytes = 0L;
