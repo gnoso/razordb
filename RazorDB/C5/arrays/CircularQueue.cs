@@ -64,12 +64,12 @@ namespace RazorDB.C5
       T[] newarray = new T[newlength];
 
       if (front <= back)
-        Array.Copy(array, front, newarray, 0, size);
+        Buffer.BlockCopy(array, front, newarray, 0, size);
       else
       {
         int half = array.Length - front;
-        Array.Copy(array, front, newarray, 0, half);
-        Array.Copy(array, 0, newarray, half, size - half);
+        Buffer.BlockCopy(array, front, newarray, 0, half);
+        Buffer.BlockCopy(array, 0, newarray, half, size - half);
       }
 
       front = 0;

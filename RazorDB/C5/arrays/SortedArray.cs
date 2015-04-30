@@ -704,7 +704,7 @@ namespace RazorDB.C5
         return;
 
       T[] removed = new T[size - lowind];
-      Array.Copy(array, lowind, removed, 0, removed.Length);
+      Buffer.BlockCopy(array, lowind, removed, 0, removed.Length);
       Array.Reverse(removed);
 
       Array.Clear(array, lowind, size - lowind);
@@ -730,10 +730,10 @@ namespace RazorDB.C5
         return;
 
       T[] removed = new T[highind - lowind];
-      Array.Copy(array, lowind, removed, 0, removed.Length);
+      Buffer.BlockCopy(array, lowind, removed, 0, removed.Length);
       Array.Reverse(removed);
 
-      Array.Copy(array, highind, array, lowind, size - highind);
+      Buffer.BlockCopy(array, highind, array, lowind, size - highind);
       Array.Clear(array, size - highind + lowind, highind - lowind);
       size -= highind - lowind;
 
@@ -755,9 +755,9 @@ namespace RazorDB.C5
         return;
 
       T[] removed = new T[highind];
-      Array.Copy(array, 0, removed, 0, removed.Length);
+      Buffer.BlockCopy(array, 0, removed, 0, removed.Length);
 
-      Array.Copy(array, highind, array, 0, size - highind);
+      Buffer.BlockCopy(array, highind, array, 0, size - highind);
       Array.Clear(array, size - highind, highind);
       size = size - highind;
 
@@ -859,7 +859,7 @@ namespace RazorDB.C5
 
       if (size == array.Length) expand();
 
-      Array.Copy(array, ind, array, ind + 1, size - ind);
+      Buffer.BlockCopy(array, ind, array, ind + 1, size - ind);
       array[ind] = item;
       size++;
       raiseForAdd(item);
@@ -938,7 +938,7 @@ namespace RazorDB.C5
 
       if (size == array.Length) expand();
 
-      Array.Copy(array, ind, array, ind + 1, size - ind);
+      Buffer.BlockCopy(array, ind, array, ind + 1, size - ind);
       array[ind] = item;
       size++;
       olditem = default(T);
@@ -962,7 +962,7 @@ namespace RazorDB.C5
       if (binarySearch(item, out ind))
       {
         T removeditem = array[ind];
-        Array.Copy(array, ind + 1, array, ind, size - ind - 1);
+        Buffer.BlockCopy(array, ind + 1, array, ind, size - ind - 1);
         array[--size] = default(T);
         raiseForRemove(removeditem);
         return true;
@@ -991,7 +991,7 @@ namespace RazorDB.C5
       if (binarySearch(item, out ind))
       {
         removeditem = array[ind];
-        Array.Copy(array, ind + 1, array, ind, size - ind - 1);
+        Buffer.BlockCopy(array, ind + 1, array, ind, size - ind - 1);
         array[--size] = default(T);
         raiseForRemove(removeditem);
         return true;
@@ -1297,7 +1297,7 @@ namespace RazorDB.C5
       T retval = array[0];
 
       size--;
-      Array.Copy(array, 1, array, 0, size);
+      Buffer.BlockCopy(array, 1, array, 0, size);
       array[size] = default(T);
       raiseForRemove(retval);
       return retval;
@@ -1408,7 +1408,7 @@ namespace RazorDB.C5
       T retval = array[i];
 
       size--;
-      Array.Copy(array, i + 1, array, i, size - i);
+      Buffer.BlockCopy(array, i + 1, array, i, size - i);
       array[size] = default(T);
       raiseForRemoveAt(i, retval);
       return retval;
@@ -1425,7 +1425,7 @@ namespace RazorDB.C5
     {
       updatecheck();
       checkRange(start, count);
-      Array.Copy(array, start + count, array, start, size - start - count);
+      Buffer.BlockCopy(array, start + count, array, start, size - start - count);
       size -= count;
       Array.Clear(array, size, count);
       raiseForRemoveInterval(start, count);

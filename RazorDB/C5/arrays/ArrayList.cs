@@ -378,7 +378,7 @@ namespace RazorDB.C5
         expand();
       i += offset;
       if (i < underlyingsize)
-        Array.Copy(array, i, array, i + 1, underlyingsize - i);
+        Buffer.BlockCopy(array, i, array, i + 1, underlyingsize - i);
       array[i] = item;
       addtosize(1);
       fixViewsAfterInsert(1, i);
@@ -399,7 +399,7 @@ namespace RazorDB.C5
       T retval = array[i];
       addtosize(-1);
       if (underlyingsize > i)
-        Array.Copy(array, i + 1, array, i, underlyingsize - i);
+        Buffer.BlockCopy(array, i + 1, array, i, underlyingsize - i);
       array[underlyingsize] = default(T);
 #if HASHINDEX
       itemIndex.Remove(new KeyValuePair<T, int>(retval));
@@ -889,7 +889,7 @@ namespace RazorDB.C5
       if (toadd + underlyingsize > array.Length)
         expand(toadd + underlyingsize, underlyingsize);
       if (underlyingsize > index)
-        Array.Copy(array, index, array, index + toadd, underlyingsize - index);
+        Buffer.BlockCopy(array, index, array, index + toadd, underlyingsize - index);
       int i = index;
       try
       {
@@ -909,7 +909,7 @@ namespace RazorDB.C5
         int added = i - index;
         if (added < toadd)
         {
-          Array.Copy(array, index + toadd, array, i, underlyingsize - index);
+          Buffer.BlockCopy(array, index + toadd, array, i, underlyingsize - index);
           Array.Clear(array, underlyingsize + added, toadd - added);
         }
         if (added > 0)
@@ -1488,7 +1488,7 @@ namespace RazorDB.C5
         itemIndex.Remove(p);
       }
 #endif
-      Array.Copy(array, start + count, array, start, underlyingsize - start - count);
+      Buffer.BlockCopy(array, start + count, array, start, underlyingsize - start - count);
       addtosize(-count);
       Array.Clear(array, underlyingsize, count);
 #if HASHINDEX
@@ -1791,7 +1791,7 @@ namespace RazorDB.C5
       if (removed == 0)
         return;
       viewHandler.updateViewSizesAndCounts(removed, underlyingsize);
-      Array.Copy(array, offset + size, array, j, underlyingsize - offset - size);
+      Buffer.BlockCopy(array, offset + size, array, j, underlyingsize - offset - size);
       addtosize(-removed);
       Array.Clear(array, underlyingsize, removed);
 #if HASHINDEX
@@ -1859,7 +1859,7 @@ namespace RazorDB.C5
       if (removed == 0)
         return;
       viewHandler.updateViewSizesAndCounts(removed, underlyingsize);
-      Array.Copy(array, offset + size, array, j, underlyingsize - offset - size);
+      Buffer.BlockCopy(array, offset + size, array, j, underlyingsize - offset - size);
       addtosize(-removed);
       Array.Clear(array, underlyingsize, removed);
 #if HASHINDEX
@@ -1957,7 +1957,7 @@ namespace RazorDB.C5
       if (removed == 0)
         return;
       viewHandler.updateViewSizesAndCounts(removed, underlyingsize);
-      Array.Copy(array, offset + size, array, j, underlyingsize - offset - size);
+      Buffer.BlockCopy(array, offset + size, array, j, underlyingsize - offset - size);
       addtosize(-removed);
       Array.Clear(array, underlyingsize, removed);
 #if HASHINDEX
@@ -2024,7 +2024,7 @@ namespace RazorDB.C5
       if (removed == 0)
         return;
       viewHandler.updateViewSizesAndCounts(removed, underlyingsize);
-      Array.Copy(array, offset + size, array, j, underlyingsize - offset - size);
+      Buffer.BlockCopy(array, offset + size, array, j, underlyingsize - offset - size);
       addtosize(-removed);
       Array.Clear(array, underlyingsize, removed);
 #if HASHINDEX
@@ -2162,7 +2162,7 @@ namespace RazorDB.C5
       if (removed == 0)
         return;
       viewHandler.updateViewSizesAndCounts(removed, underlyingsize);
-      Array.Copy(array, offset + size, array, j, underlyingsize - offset - size);
+      Buffer.BlockCopy(array, offset + size, array, j, underlyingsize - offset - size);
       addtosize(-removed);
       Array.Clear(array, underlyingsize, removed);
       raiseHandler.Raise();
@@ -2337,7 +2337,7 @@ namespace RazorDB.C5
 
       int i = size + offset;
       if (underlyingsize > i)
-        Array.Copy(array, i, array, i + toadd, underlyingsize - i);
+        Buffer.BlockCopy(array, i, array, i + toadd, underlyingsize - i);
       try
       {
         foreach (T item in items)
@@ -2355,7 +2355,7 @@ namespace RazorDB.C5
         int added = i - size - offset;
         if (added < toadd)
         {
-          Array.Copy(array, size + offset + toadd, array, i, underlyingsize - size - offset);
+          Buffer.BlockCopy(array, size + offset + toadd, array, i, underlyingsize - size - offset);
           Array.Clear(array, underlyingsize + added, toadd - added);
         }
         if (added > 0)

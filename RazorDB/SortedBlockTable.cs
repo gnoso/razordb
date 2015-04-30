@@ -369,7 +369,8 @@ namespace RazorDB {
                 internalFileStream.EndRead(async);
                 ablock = (AsyncBlock)async.AsyncState;
                 if (_cache != null) {
-                    var blockCopy = (byte[])ablock.Buffer.Clone();
+                    var blockCopy = new byte[ablock.Buffer.Length];
+                    Buffer.BlockCopy(ablock.Buffer, 0, blockCopy, 0, ablock.Buffer.Length);
                     _cache.SetBlock(_baseFileName, _level, _version, ablock.BlockNum, blockCopy);
                 }
                 return ablock.Buffer;
@@ -387,7 +388,8 @@ namespace RazorDB {
             internalFileStream.Seek(blockNum * Config.SortedBlockSize, SeekOrigin.Begin);
             internalFileStream.Read(block, 0, Config.SortedBlockSize);
             if (_cache != null) {
-                var blockCopy = (byte[])block.Clone();
+                var blockCopy = new byte[block.Length];
+                Buffer.BlockCopy(block, 0, blockCopy, 0, block.Length);
                 _cache.SetBlock(_baseFileName, _level, _version, blockNum, blockCopy);
             }
             return block;

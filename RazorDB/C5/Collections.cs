@@ -1250,7 +1250,7 @@ namespace RazorDB.C5
         expand();
 
       if (i < size)
-        Array.Copy(array, i, array, i + 1, size - i);
+        Buffer.BlockCopy(array, i, array, i + 1, size - i);
 
       array[i] = item;
       size++;
@@ -1320,7 +1320,7 @@ namespace RazorDB.C5
     {
       T[] res = new T[size];
 
-      Array.Copy(array, offset, res, 0, size);
+      Buffer.BlockCopy(array, offset, res, 0, size);
       return res;
     }
 
