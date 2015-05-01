@@ -86,15 +86,25 @@ namespace RazorDB {
         public Key WithSequence(byte seqNum) {
             return new Key(KeyBytes, seqNum);
         }
-        public short PrefixLength(byte[] matchPrefix) {
-            short i=0;
-            if (matchPrefix != null) {
-                for (i = 0; i < InternalBytes.Length && i < matchPrefix.Length; i++) {
-                    if (matchPrefix[i] != InternalBytes[i])
-                        break;
-                }
+
+        static unsafe short LengthOfMatchingPrefix(byte[] a1, byte[] a2) {
+            if (a1 == null || a2 == null)
+                return (short)0;
+
+            fixed (byte* p1 = a1, p2 = a2) {
+                byte* x1 = p1, x2 = p2;
+                int l1 = a1.Length;
+                int l2 = a2.Length;
+                short i = 0;
+                for (i = 0; i < l1 && i < l2; i++, x1 += 1, x2 += 1)
+                    if (*x1 != *x2) return i;
+                return i;
             }
-            return i;
+
+        }
+
+        public short PrefixLength(byte[] matchPrefix) {
+            return LengthOfMatchingPrefix(InternalBytes, matchPrefix);
         }
 
         internal int PrefixCompareTo(byte[] prefixKey, short prefixLen, byte[] block, int offset, int keySize, out byte[] nextKey) {

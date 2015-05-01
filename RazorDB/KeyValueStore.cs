@@ -449,6 +449,11 @@ namespace RazorDB {
             InternalSet(k, Value.Deleted, null);
         }
 
+        public IEnumerable<byte[]> EnumerateKeys() {
+            return EnumerateKeysFromKey(new byte[0]);
+        }
+
+
         public IEnumerable<KeyValuePair<byte[], byte[]>> Enumerate() {
             return EnumerateFromKey(new byte[0]);
         }
@@ -519,6 +524,14 @@ namespace RazorDB {
                 }
             }
 
+        }
+
+        public IEnumerable<byte[]> EnumerateKeysFromKey(byte[] startingKey) {
+            foreach (var pair in InternalEnumerateFromKey(startingKey)) {
+                if (pair.Key.SequenceNum == 0) { // only enumerate top-level keys (sequence zero)
+                    yield return pair.Key.KeyBytes;
+                }
+            }
         }
 
         public IEnumerable<KeyValuePair<byte[], byte[]>> EnumerateFromKey(byte[] startingKey) {
