@@ -328,6 +328,7 @@ namespace RazorDB {
         private Manifest() { }
         public Manifest(string baseFileName) {
             _baseFileName = baseFileName;
+            _razorFormatVersion = null;
             Read();
         }
         public static Manifest NewDummyManifest() {
@@ -360,16 +361,7 @@ namespace RazorDB {
         private void CommitManifest(ManifestImmutable manifest) {
             lock (manifestLock) {
                 Write(manifest);
-                _manifests.AddLast(manifest);
-            }
-        }
-
-        // upgrade manifest by cloning and commiting
-        public void UpgradeManifest() {
-            lock (manifestLock) {
-                var manifest = _manifests.Last.Value;
-                var m = manifest.Clone();
-                CommitManifest(m);
+                AddLastManifest(manifest);
             }
         }
 
@@ -384,6 +376,7 @@ namespace RazorDB {
         private void ReleaseManifest(ManifestImmutable manifest) {
             lock (manifestLock) {
                 _manifests.Remove(manifest);
+                _razorFormatVersion = null;
             }
         }
 
@@ -472,11 +465,18 @@ namespace RazorDB {
             }
         }
 
+        private void AddLastManifest(ManifestImmutable m) {
+            lock (manifestLock) {
+                _manifests.AddLast(m);
+                _razorFormatVersion = null;
+            }
+        }
+
         private void Read() {
 
             string manifestFile = Config.ManifestFile(_baseFileName);
             if (!File.Exists(manifestFile)) {
-                _manifests.AddLast(new ManifestImmutable(this));
+                AddLastManifest(new ManifestImmutable(this));
                 return;
             }
 
@@ -494,7 +494,7 @@ namespace RazorDB {
                 reader.BaseStream.Seek(-size - 4, SeekOrigin.End);
 
                 m.ReadManifestContents(reader);
-                _manifests.AddLast(m);
+                AddLastManifest(m);
 
             } catch (Exception ex) {
                 LogMessage("Error reading manifest file: {0} - {1}", _baseFileName, ex.Message);
@@ -504,9 +504,12 @@ namespace RazorDB {
         }
 
         // Format version for razor datastore
+        private int? _razorFormatVersion = null;
         public int RazorFormatVersion {
             get {
-                return _manifests.Last().RazorFormatVersion;
+                if(_razorFormatVersion == null)
+                    _razorFormatVersion = _manifests.Last().RazorFormatVersion;
+                return _razorFormatVersion.Value;
             }
         }
 
