@@ -108,11 +108,10 @@ namespace RazorDB {
         }
 
         internal int PrefixCompareTo(byte[] prefixKey, short prefixLen, byte[] block, int offset, int keySize, out byte[] nextKey) {
-            var mergeKey = new byte[prefixLen + keySize];
-            Buffer.BlockCopy(prefixKey, 0, mergeKey, 0, prefixLen);
-            Buffer.BlockCopy(block, offset, mergeKey, prefixLen, keySize);
-            nextKey = mergeKey;
-            return CompareTo(mergeKey, 0, mergeKey.Length);
+            nextKey = new byte[prefixLen + keySize];
+            Buffer.BlockCopy(prefixKey, 0, nextKey, 0, prefixLen);
+            Buffer.BlockCopy(block, offset, nextKey, prefixLen, keySize);
+            return CompareTo(nextKey, 0, nextKey.Length);
         }
 
         internal static Key KeyFromPrefix(byte[] prefixKey, short prefixLen, byte[] block, int offset, int keySize) {
