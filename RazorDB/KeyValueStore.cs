@@ -739,19 +739,6 @@ namespace RazorDB {
             }
         }
 
-        // version 2 indexes do not repeat key so covert value from key to lenghth
-        // of the indexed value
-        public static void UpgradeIndexToVersion2Format(KeyValueStore db) {
-            foreach (var pair in db.Enumerate()) {
-                var indexLen = pair.Key.Length - pair.Value.Length;
-                var buffer = new byte[sizeof(int)];
-                var encodedLen = Helper.Encode7BitInt(buffer, indexLen);
-                var valBuffer = new byte[encodedLen];
-                Helper.BlockCopy(buffer, 0, valBuffer, 0, encodedLen);
-                db.Set(pair.Key, valBuffer);
-            }
-            db.Manifest.UpgradeManifest();
-        }
     }
 
 }
