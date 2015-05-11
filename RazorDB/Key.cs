@@ -1,5 +1,5 @@
 ﻿/*
-Copyright 2012, 2013 Gnoso Inc.
+Copyright 2012-2015 Gnoso Inc.
 
 This software is licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except for what is in compliance with the License.
