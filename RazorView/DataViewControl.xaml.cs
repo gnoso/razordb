@@ -11,6 +11,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace RazorView {
     /// <summary>
@@ -19,6 +21,8 @@ namespace RazorView {
     public partial class DataViewControl : UserControl, IDisposable {
         public DataViewControl() {
             InitializeComponent();
+            //dataGrid.SetValue(ScrollViewer.CanContentScrollProperty, false);
+            dataGrid.EnableRowVirtualization = true;
         }
 
         public void Dispose() {
@@ -26,7 +30,7 @@ namespace RazorView {
         }
 
         private DBController _db;
-        public DBController DBController { 
+        public DBController DBController {
             get { return _db; }
             set { _db = value; if (_db != null) RefreshData(); }
         }
@@ -38,8 +42,19 @@ namespace RazorView {
             }
         }
 
+        private IEnumerable<Record> _originalSource;
         public void RefreshData() {
-            dataGrid.ItemsSource = DBController.GetRecords(KeyFilterTextBox.Text, ValueFilterTextBox.Text);
+            if (_originalSource == null) {
+                _originalSource = DBController.GetRecords(null, null);
+            }
+
+            var rOpts = RegexOptions.IgnorePatternWhitespace| RegexOptions.CultureInvariant | RegexOptions.Compiled | RegexOptions.Multiline;
+            var keyRegex = string.IsNullOrEmpty(KeyFilterTextBox.Text) ? null : new Regex(KeyFilterTextBox.Text.Trim(), rOpts);
+            var valRegex = string.IsNullOrEmpty(ValueFilterTextBox.Text) ? null : new Regex(ValueFilterTextBox.Text.Trim(), rOpts);
+            var matches = new Func<string, string, bool>((key, val) => {
+                return (keyRegex == null || keyRegex.IsMatch(Regex.Escape(key))) && (valRegex == null || valRegex.IsMatch(Regex.Escape(val)));
+            });
+            dataGrid.ItemsSource = _originalSource.Where(r => matches(r.Key, r.Value));
         }
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e) {

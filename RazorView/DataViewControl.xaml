@@ -37,10 +37,11 @@
                 <DataGridTemplateColumn Header="Value" Width="*" IsReadOnly="True" >
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <my:CellValue/>
+                            <my:CellValue MaxHeight="300"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+                <DataGridTextColumn/>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>
