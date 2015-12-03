@@ -446,7 +446,7 @@ namespace RazorDBTests {
         public class TableMerge {
 
             const int recordMax = 100000;
-            [TestFixtureSetUp]
+            [OneTimeSetUp]
             public void SetupData() {
                 for (int r = 0; r < recordMax; r++) {
                     dataset[r] = new byte[200];

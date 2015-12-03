@@ -30,7 +30,7 @@ namespace RazorDBTests {
     [TestFixture]
     public class LargeValueTests {
 
-        [TestFixtureSetUp]
+        [OneTimeSetUp]
         public void Setup() {
             string path = Path.GetFullPath("TestData");
             if (!Directory.Exists(path)) 
