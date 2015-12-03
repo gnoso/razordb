@@ -140,13 +140,14 @@ namespace RazorDBTests {
             }
         }
 
-        [Test, ExpectedException(typeof(InvalidDataException))]
+        [Test]
         public void TestTooLargeData() {
-
-            string path = Path.GetFullPath("TestData\\TestTooLargeData");
-            using (var db = new KeyValueStore(path)) {
-                db.Set(Key.Random(10).KeyBytes, ByteArray.Random(Config.MaxLargeValueSize).InternalBytes);
-            }
+            Assert.Throws<InvalidDataException>(() => {
+                string path = Path.GetFullPath("TestData\\TestTooLargeData");
+                using (var db = new KeyValueStore(path)) {
+                    db.Set(Key.Random(10).KeyBytes, ByteArray.Random(Config.MaxLargeValueSize).InternalBytes);
+                }
+            });
         }
 
         byte[] GenerateBlock(int num) {
