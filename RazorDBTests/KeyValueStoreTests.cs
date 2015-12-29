@@ -29,7 +29,7 @@ namespace RazorDBTests {
     [TestFixture]
     public class KeyValueStoreTests {
 
-        [OneTimeSetUp]
+        [TestFixtureSetUp]
         public void Setup() {
             string path = Path.GetFullPath("TestData");
             if (!Directory.Exists(path)) 
