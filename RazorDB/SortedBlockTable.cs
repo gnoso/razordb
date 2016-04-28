@@ -757,9 +757,10 @@ namespace RazorDB {
 
         private RawRecord ReadRawRecord(ref byte[] block, ref int offset) {
             var hdrFlag = (RecordHeaderFlag)block[offset];
+#if DEBUG
             if ((byte)(hdrFlag & (RecordHeaderFlag.Record | RecordHeaderFlag.PrefixedRecord)) == 0x00)
                 System.Diagnostics.Debugger.Break();
-
+#endif
             offset += FormatVersion < 2 ? 5 : 1; // skip bytes of old tree blocks
             bool isPrefixed = hdrFlag == RecordHeaderFlag.PrefixedRecord;
             int keySize = Helper.Decode7BitInt(block, ref offset);
