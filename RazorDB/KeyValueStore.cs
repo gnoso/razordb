@@ -388,64 +388,51 @@ namespace RazorDB {
 
             var queue = new System.Collections.Queue();
             var cache = System.Collections.Queue.Synchronized(queue);
-            var cacheDepth = 3;
             ManualResetEvent readComplete = new ManualResetEvent(false);
             AutoResetEvent readWorking = new AutoResetEvent(false);
             var enumerator = indexStore.EnumerateFromKey(lookupValue).GetEnumerator();
 
-            Action readAhead = () => {
-                indexingThreads.QueueWorkItem(() => {
-                    // quit if cache already full
-                    if (cache.Count >= cacheDepth) {
-                        readWorking.Set();
-                        return;
-                    }
+            var wkItem = indexingThreads.QueueWorkItem(() => {
+                // Loop over the values
+                while (enumerator.MoveNext()) {
+                    var pair = enumerator.Current;
+                    var key = pair.Key;
+                    var value = pair.Value;
 
-                    // Loop over the values
-                    while (enumerator.MoveNext()) {
-                        var pair = enumerator.Current;
-                        var key = pair.Key;
-                        var value = pair.Value;
-
-                        // construct our index key pattern (lookupvalue | key)
-                        if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
-                            int offset = 0;
-                            byte[] objectKey = null;
-                            if (Manifest.RazorFormatVersion < 2) {
-                                if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
-                                    objectKey = pair.Value;
-                            } else {
-                                int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
-                                if (lookupValue.Length <= indexKeyLen) {
-                                    objectKey = ItemKeyFromIndex(pair, indexKeyLen);
-                                }
-                            }
-                            if (objectKey != null) {
-                                var primaryValue = Get(objectKey);
-                                if (primaryValue != null) {
-                                    cache.Enqueue(new KeyValuePair<byte[], byte[]>(objectKey, primaryValue));
-                                    if (cache.Count > cacheDepth) {
-                                        readWorking.Set();
-                                        return; // leave 
-                                    }
-                                }
-                            }
+                    // construct our index key pattern (lookupvalue | key)
+                    if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+                        int offset = 0;
+                        byte[] objectKey = null;
+                        if (Manifest.RazorFormatVersion < 2) {
+                            if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
+                                objectKey = pair.Value;
                         } else {
-                            break;
+                            int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                            if (lookupValue.Length <= indexKeyLen) {
+                                objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                            }
                         }
+                        if (objectKey != null) {
+                            var primaryValue = Get(objectKey);
+                            if (primaryValue != null) {
+                                cache.Enqueue(new KeyValuePair<byte[], byte[]>(objectKey, primaryValue));
+                            }
+                        }
+                    } else {
+                        break;
                     }
-                    readComplete.Set();
-                });
-            };
+                }
+                readComplete.Set();
+            });
 
-            readAhead();
             while (cache.Count > 0 || !readComplete.WaitOne(0)) {
                 if (cache.Count > 0)
                     yield return (KeyValuePair<byte[], byte[]>)cache.Dequeue();
-                
-                if(readWorking.WaitOne(0))
-                    readAhead();
             }
+
+            if (wkItem != null)
+                wkItem.Cancel(true);
+            
             yield break;
         }
 
