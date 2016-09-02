@@ -383,12 +383,58 @@ namespace RazorDB {
 
         private static Amib.Threading.SmartThreadPool indexingThreads = new Amib.Threading.SmartThreadPool();
 
+
         public IEnumerable<KeyValuePair<byte[], byte[]>> FindStartsWith(string indexName, byte[] lookupValue) {
 
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
 
-            var cache = new CircularBuffer<KeyValuePair<byte[], byte[]>>(1000);
-            bool done = false;
+            foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
+                var key = pair.Key;
+                var value = pair.Value;
+
+                // construct our index key pattern (lookupvalue | key)
+                if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+                    int offset = 0;
+                    byte[] objectKey = null;
+                    if (Manifest.RazorFormatVersion < 2) {
+                        if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
+                            objectKey = pair.Value;
+                    } else {
+                        int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                        if (lookupValue.Length <= indexKeyLen) {
+                            objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                        }
+                    }
+                    if (objectKey != null) {
+                        var primaryValue = Get(objectKey);
+                        if (primaryValue != null) {
+                            yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
+                        }
+                    }
+                } else {
+                    yield break;
+                }
+            }
+        }
+
+        class indexQueue<T> : Queue<T> where T : struct {
+            public bool tryDequeue(ref Object item) {
+                try {
+                    item = Dequeue();
+                    return true;
+                } catch {
+                    return false;
+                }
+            }
+        }
+
+        public IEnumerable<KeyValuePair<byte[], byte[]>> FindStartsWith_TryDequeue(string indexName, byte[] lookupValue) {
+
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+
+            //var cache = new CircularBuffer<KeyValuePair<byte[], byte[]>>(1000);
+            var cache = new indexQueue<KeyValuePair<byte[], byte[]>>();
+            int done = 0;
             var wkItem = indexingThreads.QueueWorkItem(() => {
                 // Loop over the values
                 foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
@@ -418,15 +464,70 @@ namespace RazorDB {
                         break;
                     }
                 }
-                done = true;
+                Interlocked.Exchange(ref done, 1);
             });
 
 
-            var buffer = new KeyValuePair<byte[], byte[]>[1000];
-            uint buffSz = 0;
-            while ((buffSz=cache.Dequeue(buffer)) > 0 || !done) {
-                for(int i=0;i<buffSz;i++)
-                    yield return buffer[i];
+            Object item = null;
+            while (done != 1) {
+                while (cache.tryDequeue(ref item)) {
+                    yield return (KeyValuePair<byte[], byte[]>)item;
+                }
+            }
+
+            if (wkItem != null)
+                wkItem.Cancel(true);
+
+            yield break;
+        }
+
+
+        public IEnumerable<KeyValuePair<byte[], byte[]>> FindStartsWith_CircularBuffer(string indexName, byte[] lookupValue) {
+
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+
+            var cache = new CircularBuffer<KeyValuePair<byte[], byte[]>>(1000);
+            int done = 0;
+            var wkItem = indexingThreads.QueueWorkItem(() => {
+                // Loop over the values
+                foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
+                    var key = pair.Key;
+                    var value = pair.Value;
+
+                    // construct our index key pattern (lookupvalue | key)
+                    if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+                        int offset = 0;
+                        byte[] objectKey = null;
+                        if (Manifest.RazorFormatVersion < 2) {
+                            if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
+                                objectKey = pair.Value;
+                        } else {
+                            int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                            if (lookupValue.Length <= indexKeyLen) {
+                                objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                            }
+                        }
+                        if (objectKey != null) {
+                            var primaryValue = Get(objectKey);
+                            if (primaryValue != null) {
+                                cache.Enqueue(new KeyValuePair<byte[], byte[]>(objectKey, primaryValue));
+                            }
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                Interlocked.Exchange(ref done, 1);
+            });
+
+
+            var buffer = new KeyValuePair<byte[], byte[]>[100];
+            uint buffSz;
+            while (done != 1) {
+                while ((buffSz=cache.Dequeue(buffer))>0){
+                    for(int i=0;i<buffSz;i++)
+                        yield return buffer[i];
+                }
             }
 
             if (wkItem != null)
