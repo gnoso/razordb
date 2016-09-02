@@ -269,7 +269,7 @@ namespace RazorDB {
             // somtimes on shutdown this is null
             if (_currentJournaledMemTable == null || _manifest == null)
                 return Value.Empty;
-                
+
             // First check the current memtable
             if (_currentJournaledMemTable.Lookup(lookupKey, out output)) {
                 return output;
@@ -384,32 +384,52 @@ namespace RazorDB {
 
             KeyValueStore indexStore = GetSecondaryIndex(indexName);
             // Loop over the values
-            foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
-                var key = pair.Key;
-                var value = pair.Value;
-                // construct our index key pattern (lookupvalue | key)
-                if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
-                    int offset = 0;
-                    byte[] objectKey = null;
-                    if (Manifest.RazorFormatVersion < 2) {
-                        if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
-                            objectKey = pair.Value;
-                    } else {
-                        int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
-                        if (lookupValue.Length <= indexKeyLen) {
-                            objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+
+            var queue = new System.Collections.Queue();
+            var cache = System.Collections.Queue.Synchronized(queue);
+            var cacheDepth = 3;
+            AutoResetEvent readAhead = new AutoResetEvent(true);
+            ManualResetEvent readComplete = new ManualResetEvent(false);
+
+            ThreadPool.QueueUserWorkItem( (state) => {
+                foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
+                    if (queue.Count > cacheDepth)
+                        readAhead.WaitOne();
+
+                    var key = pair.Key;
+                    var value = pair.Value;
+                    // construct our index key pattern (lookupvalue | key)
+                    if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+                        int offset = 0;
+                        byte[] objectKey = null;
+                        if (Manifest.RazorFormatVersion < 2) {
+                            if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
+                                objectKey = pair.Value;
+                        } else {
+                            int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                            if (lookupValue.Length <= indexKeyLen) {
+                                objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                            }
                         }
+                        if (objectKey != null) {
+                            var primaryValue = Get(objectKey);
+                            if (primaryValue != null) {
+                                cache.Enqueue(new KeyValuePair<byte[], byte[]>(objectKey, primaryValue));
+                            }
+                        }
+                    } else {
+                        break;
                     }
-                    if (objectKey != null) {
-                        var primaryValue = Get(objectKey);
-                        if (primaryValue != null)
-                            yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
-                    }
-                } else {
-                    // if the above condition was not met then we must have enumerated past the end of the indexed value
-                    yield break;
                 }
+                readComplete.Set();
+            }, null);
+
+            while (cache.Count > 0 || !readComplete.WaitOne(0)) {
+                if (cache.Count > 0)
+                    yield return (KeyValuePair<byte[], byte[]>)cache.Dequeue();
+                readAhead.Set();
             }
+            yield break;
         }
 
         /// <summary>
