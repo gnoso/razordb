@@ -40,6 +40,10 @@
     <AssemblyOriginatorKeyFile>RazorStrongName.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="SmartThreadPool, Version=2.2.3.0, Culture=neutral, PublicKeyToken=1126fe8b671e8a79, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\External\SmartThreadPool\Windows\SmartThreadPool.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
   </ItemGroup>
@@ -91,6 +95,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SortedBlockTable.cs" />
     <Compile Include="TableManager.cs" />
+    <Compile Include="ThreadSafeCircularQueue.cs" />
     <Compile Include="Value.cs" />
     <Compile Include="Viz.cs" />
     <Compile Include="BinaryHelper.cs" />
