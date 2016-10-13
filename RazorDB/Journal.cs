@@ -83,6 +83,9 @@ namespace RazorDB {
             while (data) {
                 try {
                     int keyLen = _reader.Read7BitEncodedInt();
+                    if (keyLen < 0 || keyLen > Config.MaxSmallValueSize) {
+                        throw new InvalidOperationException("Key length is out of range.");
+                    }
                     key = _reader.ReadBytes(keyLen);
                     if (key.Length != keyLen)
                         throw new InvalidOperationException();
@@ -95,6 +98,8 @@ namespace RazorDB {
                 } catch (EndOfStreamException) {
                     data = false;
                 } catch (InvalidOperationException) {
+                    data = false;
+                } catch {
                     data = false;
                 }
                 if (data)
