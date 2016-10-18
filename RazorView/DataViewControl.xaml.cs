@@ -51,7 +51,8 @@ namespace RazorView {
             var keyRegex = string.IsNullOrEmpty(KeyFilterTextBox.Text) ? null : new Regex(KeyFilterTextBox.Text.Trim(), rOpts);
             var valRegex = string.IsNullOrEmpty(ValueFilterTextBox.Text) ? null : new Regex(ValueFilterTextBox.Text.Trim(), rOpts);
             var matches = new Func<string, string, bool>((key, val) => {
-                return (keyRegex == null || keyRegex.IsMatch(Regex.Escape(key))) && (valRegex == null || valRegex.IsMatch(Regex.Escape(val)));
+//                return (keyRegex == null || keyRegex.IsMatch(Regex.Escape(key))) && (valRegex == null || valRegex.IsMatch(Regex.Escape(val)));
+                return (keyRegex == null || keyRegex.IsMatch(key)) && (valRegex == null || valRegex.IsMatch(val));
             });
             dataGrid.ItemsSource = _originalSource.Where(r => matches(r.Key, r.Value));
         }
