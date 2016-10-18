@@ -393,7 +393,7 @@ namespace RazorDB {
                 var key = pair.Key;
                 var value = pair.Value;
 
-                // construct our index key pattern (lookupvalue | key)
+                // construct our index key pattern (lookupvalue | key) = 
                 if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
                     int offset = 0;
                     byte[] objectKey = null;
@@ -410,6 +410,79 @@ namespace RazorDB {
                         var primaryValue = Get(objectKey);
                         if (primaryValue != null) {
                             yield return new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
+                        }
+                    }
+                } else {
+                    yield break;
+                }
+            }
+        }
+
+        public IEnumerable<KeyValuePair<byte[], KeyValuePair<byte[], byte[]>>> FindStartsWithIndex(string indexName, byte[] lookupValue) {
+
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+
+            // Loop over the values
+            foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
+                var key = pair.Key;
+                var value = pair.Value;
+
+                // construct our index key pattern (lookupvalue | key) = 
+                if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+                    int offset = 0;
+                    byte[] objectKey = null;
+                    if (Manifest.RazorFormatVersion < 2) {
+                        if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
+                            objectKey = pair.Value;
+                    } else {
+                        int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                        if (lookupValue.Length <= indexKeyLen) {
+                            objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                        }
+                    }
+                    if (objectKey != null) {
+                        var primaryValue = Get(objectKey);
+                        if (primaryValue != null) {
+                            var itemPair = new KeyValuePair<byte[], byte[]>(objectKey, primaryValue);
+                            yield return new KeyValuePair<byte[], KeyValuePair<byte[], byte[]>>(key, itemPair);
+                        }
+                    }
+                } else {
+                    yield break;
+                }
+            }
+        }
+
+
+
+        public IEnumerable<T> FindStartsWith<T>(string indexName, byte[] lookupValue, Func<byte[], byte[], byte[], T> creator) {
+
+            KeyValueStore indexStore = GetSecondaryIndex(indexName);
+
+            // Loop over the values
+            foreach (var pair in indexStore.EnumerateFromKey(lookupValue)) {
+                var key = pair.Key;
+                var value = pair.Value;
+
+                // construct our index key pattern (lookupvalue | key) = 
+                if (ByteArray.CompareMemCmp(key, 0, lookupValue, 0, lookupValue.Length) == 0) {
+                    int offset = 0;
+                    byte[] objectKey = null;
+                    if (Manifest.RazorFormatVersion < 2) {
+                        if (ByteArray.CompareMemCmp(key, key.Length - value.Length, value, 0, value.Length) == 0)
+                            objectKey = pair.Value;
+                    } else {
+                        int indexKeyLen = Helper.Decode7BitInt(pair.Value, ref offset);
+                        if (lookupValue.Length <= indexKeyLen) {
+                            objectKey = ItemKeyFromIndex(pair, indexKeyLen);
+                        }
+                    }
+                    if (objectKey != null) {
+                        var primaryValue = Get(objectKey);
+                        if (primaryValue != null) {
+                            var instance = creator(key, objectKey, primaryValue);
+                            if(instance != null)
+                                yield return instance;
                         }
                     }
                 } else {
